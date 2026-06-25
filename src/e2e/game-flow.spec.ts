@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test"
 
-test.describe("纵横四海：E2E 游戏流程", () => {
+test.describe("纵横四海 (Seaforge)：E2E 游戏流程", () => {
   test("首页自动加载、显示港口视图", async ({ page }) => {
     await page.goto("/")
     await page.waitForLoadState("networkidle")

@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "纵横四海：单机版",
+  title: "纵横四海 — Seaforge",
   description: "单人离线航海贸易经营游戏",
 }
 
