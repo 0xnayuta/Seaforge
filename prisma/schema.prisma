@@ -1,0 +1,18 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+/// 存档表：Save + JSON 列模式
+/// 整个 World 序列化为 JSON 存入 data 列
+/// MVP 阶段只使用 slot 0（自动存档）
+model Save {
+  id        String   @id @default(uuid())
+  slot      Int      @unique // 0 = 自动存档, 1-N = 手动档位
+  data      String   // JSON: 整个 World 序列化
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
