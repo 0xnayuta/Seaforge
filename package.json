@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "biome check",
-    "format": "biome format --write"
+    "format": "biome format --write",
+    "docs:check": "node scripts/check-docs.mjs",
+    "check:line-endings": "node scripts/check-line-endings.mjs"
   },
   "dependencies": {
     "next": "16.2.9",
