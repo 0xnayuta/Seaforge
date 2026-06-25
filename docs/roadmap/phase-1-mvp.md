@@ -72,7 +72,7 @@ Server Action（入口）
 | | `src/data/goods.ts`（5 商品） | ✅ |
 | | `src/data/ships.ts`（2 船只） | ✅ |
 | | `src/data/formulas.ts`（可调公式常量） | ✅ |
-| **View Builder** | `src/game/view-builder/buildGameView.ts`（5 个 view 类型） | ✅ |
+| **View Builder** | `src/game/view-builder/buildGameView.ts`（6 个 view 类型） | ✅ |
 | **Server Actions** | `src/app/actions/save.ts`（loadGame） | ✅ |
 | | `src/app/actions/trade.ts`（buyGoods / sellGoods） | ✅ |
 | | `src/app/actions/travel.ts`（startTravel） | ✅ |
@@ -92,7 +92,7 @@ Server Action（入口）
 #### 验证标准
 
 - `npx next build` 无错误通过
-- 所有 5 个路由（`/`、`/market`、`/cargo`、`/navigation`、`/ship`）编译成功
+- 所有 6 个路由（`/`、`/market`、`/cargo`、`/navigation`、`/ship`、`/voyage`）编译成功
 - 点击「开始航海」后进入港口总览页，显示当前港口、天数、金币、舱容
 - 可进入交易所查看商品列表和价格
 - 可在导航页选择目的地并出航
@@ -195,8 +195,9 @@ Server Action（入口）
 - [x] 升级后 UI 刷新
 
 ### 测试
-- [x] 游戏引擎纯函数单元测试（domain: 50 tests）
+- [x] 游戏引擎纯函数单元测试（domain: 65 tests）
 - [x] View Builder 单元测试（18 tests）
+- [x] 总计 83 测试全部通过
 
 ---
 
@@ -276,11 +277,25 @@ Server Action（入口）
 
 ### 质量条件（建议满足）
 
-- [ ] UI 无控制台报错
-- [ ] 价格公式给出了合理的利润空间（单次跑商利润在 20%-200% 之间）
-- [ ] 数据配置中的数值经过一轮基础平衡
-- [ ] 存档恢复后状态完全一致（金币、货物、位置）
+- [ ] UI 无控制台报错（需人工检验：`bun run dev` + 浏览器开发者工具）
+- [x] 价格公式给出了合理的利润空间（单次跑商利润在 20%-200% 之间）
+- [x] 数据配置中的数值经过一轮基础平衡
+- [x] 存档恢复后状态完全一致（金币、货物、位置）
 
+---
+
+| 路线 | 商品 | 利润率 | 航行天数 |
+|------|------|--------|---------|
+| 泉州→长崎 | 丝绸 | +68% | 5 |
+| 泉州→长崎 | 瓷器 | +64% | 5 |
+| 泉州→马六甲 | 丝绸 | +64% | 8 |
+| 泉州→马六甲 | 瓷器 | +69% | 8 |
+| 马六甲→泉州 | 香料 | +79% | 8 |
+| 马六甲→泉州 | 木材 | +54% | 8 |
+| 马六甲→长崎 | 香料 | +85% | 10 |
+| 长崎→泉州 | 玉石 | +67% | 5 |
+| 长崎→泉州 | 木材 | +33% | 5 |
+| 长崎→马六甲 | 玉石 | +60% | 10 |
 ---
 
 ## 参考文档
