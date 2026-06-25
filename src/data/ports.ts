@@ -20,9 +20,9 @@ export const PORTS: readonly PortConfig[] = [
     description: "宋元时期东方第一大港，商贾云集",
     specialties: ["porcelain", "silk"],
     priceModifiers: {
-      silk: 0.85, // 产地，便宜
-      porcelain: 0.80,
-      spice: 1.30,
+      silk: 0.78,
+      porcelain: 0.72,
+      spice: 1.25,
       jade: 1.20,
       timber: 1.00,
     },
@@ -34,11 +34,11 @@ export const PORTS: readonly PortConfig[] = [
     description: "东西方海上十字路口，香料集散之地",
     specialties: ["spice"],
     priceModifiers: {
-      spice: 0.75, // 产地，便宜
-      silk: 1.35,
-      porcelain: 1.25,
+      spice: 0.70,
+      silk: 1.28,
+      porcelain: 1.22,
       jade: 1.15,
-      timber: 0.90,
+      timber: 0.68,
     },
   },
   {
@@ -48,11 +48,11 @@ export const PORTS: readonly PortConfig[] = [
     description: "日本唯一的对外窗口，白银与武士的国度",
     specialties: ["jade"],
     priceModifiers: {
-      jade: 0.85,
-      silk: 1.20,
-      porcelain: 1.10,
-      spice: 1.25,
-      timber: 0.95,
+      jade: 0.72,
+      silk: 1.32,
+      porcelain: 1.18,
+      spice: 1.20,
+      timber: 0.75,
     },
   },
 ] as const

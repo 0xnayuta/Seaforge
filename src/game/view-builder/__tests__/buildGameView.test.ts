@@ -56,12 +56,12 @@ describe("buildMarketView", () => {
     expect(view.playerGold).toBe(5000)
   })
 
-  it("silk price at quanzhou = 102 (base 120 × 0.85)", () => {
+  it("silk price at quanzhou = 94 (base 120 × 0.78)", () => {
     const world = createTestWorld()
     const view = buildMarketView(world)
 
     const silk = view.goods.find((g) => g.id === "silk")
-    expect(silk?.buyPrice).toBe(102)
+    expect(silk?.buyPrice).toBe(94)
   })
 
   it("sell price equals buy price (no spread)", () => {
