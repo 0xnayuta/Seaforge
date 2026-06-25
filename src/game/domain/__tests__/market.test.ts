@@ -23,14 +23,14 @@ describe("market pure functions", () => {
       expect(getCurrentPrice("spice", "quanzhou", world)).toBe(260)
     })
 
-    it("returns 0 for unknown port", () => {
+    it("throws for unknown port", () => {
       const world = createTestWorld()
-      expect(getCurrentPrice("silk", "atlantis", world)).toBe(0)
+      expect(() => getCurrentPrice("silk", "atlantis", world)).toThrow("未知港口")
     })
 
-    it("returns 0 for unknown good", () => {
+    it("throws for unknown good", () => {
       const world = createTestWorld()
-      expect(getCurrentPrice("unicorn", "quanzhou", world)).toBe(0)
+      expect(() => getCurrentPrice("unicorn", "quanzhou", world)).toThrow("无商品")
     })
   })
 

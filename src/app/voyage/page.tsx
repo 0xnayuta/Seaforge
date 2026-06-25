@@ -103,9 +103,9 @@ export default function VoyagePage() {
             航行日志
           </h3>
           <div className="space-y-2">
-            {view.events.map((event) => (
+            {view.events.map((event, i) => (
               <div
-                key={`day-${event.day}-${event.description.slice(0, 8)}`}
+                key={`day-${event.day}-${i}`}
                 className="rounded bg-ocean-700/40 px-3 py-2 text-sm"
               >
                 <div className="flex items-start gap-2">
