@@ -193,10 +193,9 @@ Server Action（入口）
 ### 船只升级
 - [x] 升级 Server Action（扣金币 + 加容量）
 - [x] 升级后 UI 刷新
-
 ### 测试
-- [ ] 游戏引擎纯函数单元测试
-- [ ] View Builder 单元测试
+- [x] 游戏引擎纯函数单元测试（domain: 50 tests）
+- [x] View Builder 单元测试（18 tests）
 
 ---
 
