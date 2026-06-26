@@ -136,4 +136,48 @@ describe("generateVoyageEvents", () => {
 
     vi.restoreAllMocks();
   });
+
+  it("uses triggerText from events config as description", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+
+    const world = createTestWorld();
+    const result = generateVoyageEvents(world, 1);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].description).toBe("海面吹起顺风，船帆鼓满，船行如飞。");
+
+    vi.restoreAllMocks();
+  });
+
+  it("produces events distributed across all event types over many rolls", () => {
+    vi.restoreAllMocks();
+
+    const world = createTestWorld();
+    const allEvents = generateVoyageEvents(world, 1000);
+
+    // Should trigger some events
+    expect(allEvents.length).toBeGreaterThan(100);
+    // Should include pirate events (cargoLoss > 0 for some)
+    const withLoss = allEvents.filter((e) => e.cargoLoss > 0);
+    expect(withLoss.length).toBeGreaterThan(5);
+    // Should include gold-gain events
+    const withGain = allEvents.filter((e) => e.goldChange > 0);
+    expect(withGain.length).toBeGreaterThan(20);
+    // Should include gold-loss events
+    const withLossGold = allEvents.filter((e) => e.goldChange < 0);
+    expect(withLossGold.length).toBeGreaterThan(5);
+  });
+
+  it("region lookup does not crash for unknown ports", () => {
+    vi.spyOn(Math, "random").mockReturnValue(1);
+
+    const world = createTestWorld({
+      player: { ...createTestWorld().player, currentPortId: "unknown" },
+    });
+    const result = generateVoyageEvents(world, 5);
+
+    expect(Array.isArray(result)).toBe(true);
+
+    vi.restoreAllMocks();
+  });
 });
