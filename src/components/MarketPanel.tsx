@@ -45,6 +45,9 @@ export function MarketPanel({ view, onRefresh }: MarketPanelProps) {
       case "inCargo":
         cmp = a.inCargo - b.inCargo;
         break;
+      case "volume":
+        cmp = a.volume - b.volume;
+        break;
     }
     return sortDir === "desc" ? -cmp : cmp;
   });
@@ -121,7 +124,7 @@ export function MarketPanel({ view, onRefresh }: MarketPanelProps) {
 
       {/* 商品列表 */}
       <div className="rounded-lg border border-ocean-600 bg-ocean-800/80 overflow-hidden">
-        <div className="grid grid-cols-5 gap-2 border-b border-ocean-600 bg-ocean-700/60 px-4 py-2 text-xs font-semibold text-parchment-dark uppercase tracking-wider">
+        <div className="grid grid-cols-6 gap-2 border-b border-ocean-600 bg-ocean-700/60 px-4 py-2 text-xs font-semibold text-parchment-dark uppercase tracking-wider">
           <button
             type="button"
             onClick={() => toggleSort("name")}
@@ -138,15 +141,22 @@ export function MarketPanel({ view, onRefresh }: MarketPanelProps) {
           </button>
           <button
             type="button"
+            onClick={() => toggleSort("volume")}
+            className="text-center hover:text-gold-400 transition-colors"
+          >
+            占用舱容{sortIndicator("volume")}
+          </button>
+          <button
+            type="button"
             onClick={() => toggleSort("buyPrice")}
-            className="text-right hover:text-gold-400 transition-colors"
+            className="text-center hover:text-gold-400 transition-colors"
           >
             买入价{sortIndicator("buyPrice")}
           </button>
           <button
             type="button"
             onClick={() => toggleSort("inCargo")}
-            className="text-right hover:text-gold-400 transition-colors"
+            className="text-center hover:text-gold-400 transition-colors"
           >
             持有{sortIndicator("inCargo")}
           </button>
@@ -155,21 +165,19 @@ export function MarketPanel({ view, onRefresh }: MarketPanelProps) {
         {sortedGoods.map((good) => (
           <div
             key={good.id}
-            className="grid grid-cols-5 gap-2 items-center border-b border-ocean-700/30 px-4 py-3 text-sm hover:bg-ocean-700/40 transition-colors last:border-b-0"
+            className="grid grid-cols-6 gap-2 items-center border-b border-ocean-700/30 px-4 py-3 text-sm hover:bg-ocean-700/40 transition-colors last:border-b-0"
           >
-            <span className="font-medium">
-              {good.name}
-              <span className="ml-1 text-xs text-parchment-dark">
-                (×{good.volume}舱)
-              </span>
-            </span>
+            <span className="font-medium">{good.name}</span>
             <span className="text-xs text-parchment-dark">{good.category}</span>
+            <span className="text-center text-parchment-dark">
+              {good.volume}
+            </span>
             <span
-              className={`text-right ${good.priceChangePercent > 10 ? "text-red-400" : good.priceChangePercent < -10 ? "text-green-400" : "text-gold-400"}`}
+              className={`text-center ${good.priceChangePercent > 10 ? "text-red-400" : good.priceChangePercent < -10 ? "text-green-400" : "text-gold-400"}`}
             >
               {good.buyPrice}
             </span>
-            <span className="text-right text-parchment-dark">
+            <span className="text-center text-parchment-dark">
               {good.inCargo}
             </span>
             <button

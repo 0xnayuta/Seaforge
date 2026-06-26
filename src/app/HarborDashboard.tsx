@@ -16,7 +16,7 @@ export function HarborDashboard({ view }: { view: HarborView }) {
             {view.playerGold.toLocaleString()}
           </span>
           <span className="text-parchment-dark">
-            舱 {view.cargoCount}/{view.cargoCapacity}
+            舱容 {view.cargoCount}/{view.cargoCapacity}
           </span>
         </div>
       </div>

@@ -38,7 +38,8 @@ export function CargoHold({ view, onRefresh }: CargoHoldProps) {
       <div className="flex items-center justify-between rounded-lg border border-ocean-600 bg-ocean-800/80 px-4 py-2 text-sm">
         <span className="font-bold text-gold-400">{view.shipName} - 船舱</span>
         <span className="text-parchment-dark">
-          舱容 {view.usedCapacity}/{view.maxCapacity}
+          舱容 {view.usedCapacity} / {view.effectiveCapacity}（原始{" "}
+          {view.maxCapacity}）
         </span>
       </div>
 
@@ -61,31 +62,35 @@ export function CargoHold({ view, onRefresh }: CargoHoldProps) {
         </div>
       ) : (
         <div className="rounded-lg border border-ocean-600 bg-ocean-800/80 overflow-hidden">
-          <div className="grid grid-cols-6 gap-2 border-b border-ocean-600 bg-ocean-700/60 px-4 py-2 text-xs font-semibold text-parchment-dark uppercase tracking-wider">
-            <span>货物</span>
-            <span className="text-right">数量</span>
-            <span className="text-right">舱位</span>
-            <span className="text-right">买入价</span>
-            <span className="text-right">利润</span>
+          <div className="grid grid-cols-7 gap-2 border-b border-ocean-600 bg-ocean-700/60 px-4 py-2 text-xs font-semibold text-parchment-dark uppercase tracking-wider">
+            <span className="text-left">货物</span>
+            <span className="text-left">分类</span>
+            <span className="text-center">占用舱容</span>
+            <span className="text-center">买入价</span>
+            <span className="text-center">数量</span>
+            <span className="text-center">利润</span>
             <span />
           </div>
           {view.items.map((item) => (
             <div
               key={item.goodId}
-              className="grid grid-cols-6 gap-2 items-center border-b border-ocean-700/30 px-4 py-3 text-sm hover:bg-ocean-700/40 transition-colors last:border-b-0"
+              className="grid grid-cols-7 gap-2 items-center border-b border-ocean-700/30 px-4 py-3 text-sm hover:bg-ocean-700/40 transition-colors last:border-b-0"
             >
-              <span className="font-medium">{item.goodName}</span>
-              <span className="text-right text-parchment-dark">
-                {item.quantity}
+              <span className="text-left font-medium">{item.goodName}</span>
+              <span className="text-left text-parchment-dark">
+                {item.category}
               </span>
-              <span className="text-right text-parchment-dark">
+              <span className="text-center text-parchment-dark">
                 {item.quantity * item.volume}
               </span>
-              <span className="text-right text-parchment-dark">
+              <span className="text-center text-parchment-dark">
                 {item.buyPrice}
               </span>
+              <span className="text-center text-parchment-dark">
+                {item.quantity}
+              </span>
               <span
-                className={`text-right ${
+                className={`text-center ${
                   item.estimatedProfit >= 0 ? "text-green-400" : "text-red-400"
                 }`}
               >
