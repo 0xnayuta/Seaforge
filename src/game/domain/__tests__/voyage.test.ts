@@ -89,7 +89,14 @@ describe("applyVoyageEvents", () => {
 
   it("cargo loss does nothing when cargo is empty", () => {
     const world = createTestWorld({
-      ship: { typeId: "sloop", upgradeLevel: 0, cargo: [] },
+      ship: {
+        typeId: "sloop",
+        upgradeLevel: 0,
+        currentHp: 50,
+        maxHp: 50,
+        armamentLevel: 0,
+        cargo: [],
+      },
     });
     const events: VoyageEvent[] = [
       { day: 1, description: "pirates", goldChange: 0, cargoLoss: 2 },

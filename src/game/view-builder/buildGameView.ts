@@ -91,7 +91,11 @@ export function buildMarketView(world: World): MarketView {
     goods,
     playerGold: world.player.gold,
     cargoCount: getUsedCapacity(world),
-    cargoCapacity: getMaxCapacity(world),
+    cargoCapacity: getEffectiveCapacityForShip(
+      world.ship.typeId,
+      getMaxCapacity(world),
+      world.ship.armamentLevel,
+    ),
   };
 }
 
@@ -154,6 +158,7 @@ export function buildNavigationView(world: World): NavigationView {
     destinations,
     armamentOptions,
     currentCargoCount: getUsedCapacity(world),
+    currentArmament: world.ship.armamentLevel,
   };
 }
 
@@ -166,6 +171,7 @@ export function buildCargoView(world: World): CargoView {
     return {
       goodId: c.goodId,
       goodName: good?.name ?? "未知",
+      category: good ? CATEGORY_LABEL[good.category] : "",
       quantity: c.quantity,
       buyPrice: c.buyPrice,
       sellPrice,
@@ -178,6 +184,11 @@ export function buildCargoView(world: World): CargoView {
     shipName: ship?.name ?? "未知",
     usedCapacity: getUsedCapacity(world),
     maxCapacity: getMaxCapacity(world),
+    effectiveCapacity: getEffectiveCapacityForShip(
+      world.ship.typeId,
+      getMaxCapacity(world),
+      world.ship.armamentLevel,
+    ),
     items,
   };
 }

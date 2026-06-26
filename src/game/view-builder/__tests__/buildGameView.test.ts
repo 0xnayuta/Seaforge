@@ -193,7 +193,14 @@ describe("buildShipView", () => {
 
   it("upgradeCost null at max level", () => {
     const world = createTestWorld({
-      ship: { typeId: "sloop", upgradeLevel: 3, cargo: [] },
+      ship: {
+        typeId: "sloop",
+        upgradeLevel: 3,
+        currentHp: 50,
+        maxHp: 50,
+        armamentLevel: 0,
+        cargo: [],
+      },
     });
     const view = buildShipView(world);
 

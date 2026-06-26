@@ -1,7 +1,8 @@
 "use client";
-
 import { useState, useTransition } from "react";
+
 import { startTravel } from "../app/actions/travel";
+import { updateArmamentLevel } from "../app/navigation/actions";
 import type { NavigationView } from "../types/game-view";
 import { Modal } from "./ui/Modal";
 
@@ -19,7 +20,9 @@ export function NavigationPanel({ view }: NavigationPanelProps) {
   } | null>(null);
 
   // L3: 当前选择的武装配置
-  const [selectedArmament, setSelectedArmament] = useState(0);
+  const [selectedArmament, setSelectedArmament] = useState(
+    view.currentArmament,
+  );
 
   const selectedOption = view.armamentOptions[selectedArmament];
   const isOverCargo =
@@ -42,7 +45,11 @@ export function NavigationPanel({ view }: NavigationPanelProps) {
         isOverCargo={isOverCargo}
         riskLevel={riskLevel}
         currentCargoCount={view.currentCargoCount}
-        onChange={setSelectedArmament}
+        onChange={(level) => {
+          const armLevel = level as 0 | 1 | 2;
+          setSelectedArmament(armLevel);
+          updateArmamentLevel(armLevel);
+        }}
       />
 
       {/* 目的地列表 */}
@@ -89,6 +96,7 @@ export function NavigationPanel({ view }: NavigationPanelProps) {
       {selectedDest && (
         <DepartureConfirmModal
           dest={selectedDest}
+          isOverCargo={isOverCargo}
           armamentLabel={selectedOption?.label ?? "满载货物"}
           survivalRate={selectedOption?.survivalRate ?? 0}
           isTravelPending={isTravelPending}
@@ -96,9 +104,7 @@ export function NavigationPanel({ view }: NavigationPanelProps) {
             startTravelTransition(async () => {
               const fd = new FormData();
               fd.set("portId", selectedDest.portId);
-              fd.set("armamentLevel", String(selectedArmament));
               await startTravel(fd);
-              window.location.href = "/voyage";
             });
           }}
           onClose={() => setSelectedDest(null)}
@@ -200,6 +206,7 @@ interface DepartureConfirmModalProps {
   readonly armamentLabel: string;
   readonly survivalRate: number;
   readonly isTravelPending: boolean;
+  readonly isOverCargo: boolean;
   readonly onConfirm: () => void;
   readonly onClose: () => void;
 }
@@ -209,6 +216,7 @@ function DepartureConfirmModal({
   armamentLabel,
   survivalRate,
   isTravelPending,
+  isOverCargo,
   onConfirm,
   onClose,
 }: DepartureConfirmModalProps) {
@@ -245,13 +253,18 @@ function DepartureConfirmModal({
             </span>
           </div>
         )}
+        {isOverCargo && (
+          <div className="rounded border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-400 text-center">
+            ⚠ 当前货物量超出有效舱容，请卸货或换装满载配置
+          </div>
+        )}
       </div>
 
       <div className="mt-4 flex gap-2">
         <button
           type="button"
           onClick={onConfirm}
-          disabled={isTravelPending}
+          disabled={isTravelPending || isOverCargo}
           className="flex-1 rounded bg-gold-500 py-2 text-sm font-bold text-ocean-900 hover:bg-gold-400 transition-colors disabled:opacity-50"
         >
           {isTravelPending ? "出航中..." : "确认出航"}

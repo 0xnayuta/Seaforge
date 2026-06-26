@@ -5,8 +5,11 @@
 import { EVENT_CONFIGS, type EventTemplate } from "../../data/events";
 import { PORTS } from "../../data/ports";
 import { applyCombatOutcome, resolveCombat } from "./combat";
+import { getEffectiveCapacityForShip } from "./navigation";
 import { getNearestPort } from "./ship";
+import { getMaxCapacity, getUsedCapacity } from "./trade";
 import type { CargoItem, VoyageEvent, VoyageState, World } from "./types";
+import { DomainError } from "./types";
 
 /**
  * 按区域调整事件概率权重。
@@ -177,7 +180,7 @@ export function applyVoyageEvents(
   return result;
 }
 
-/** 创建航行状态（出航时调用） */
+/** 创建航行状态（出航时调用）。校验有效舱容，超载则抛错。 */
 export function startVoyage(
   world: World,
   fromPortId: string,
@@ -185,6 +188,16 @@ export function startVoyage(
   travelDays: number,
   armamentLevel: 0 | 1 | 2 = 0,
 ): VoyageState {
+  const usedCapacity = getUsedCapacity(world);
+  const maxCapacity = getMaxCapacity(world);
+  const effectiveCapacity = getEffectiveCapacityForShip(
+    world.ship.typeId,
+    maxCapacity,
+    armamentLevel,
+  );
+  if (usedCapacity > effectiveCapacity) {
+    throw new DomainError("CARGO_EXCEEDS_CAPACITY");
+  }
   return {
     fromPortId,
     toPortId,

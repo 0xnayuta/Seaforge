@@ -23,6 +23,7 @@ export function createTestWorld(overrides?: Partial<World>): World {
       upgradeLevel: 0,
       currentHp: 50,
       maxHp: 50,
+      armamentLevel: 0,
       cargo: [
         { goodId: "silk", quantity: 5, buyPrice: 102 },
         { goodId: "spice", quantity: 3, buyPrice: 260 },
@@ -49,6 +50,7 @@ export function createEmptyWorld(overrides?: Partial<World>): World {
       currentHp: 50,
       maxHp: 50,
       cargo: [],
+      armamentLevel: 0,
     },
     market: { prices: buildTestPrices() },
     voyage: null,

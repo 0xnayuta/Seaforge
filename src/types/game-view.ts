@@ -63,6 +63,7 @@ export interface NavigationView {
   readonly destinations: DestinationView[];
   readonly armamentOptions: ArmamentOptionView[];
   readonly currentCargoCount: number;
+  readonly currentArmament: 0 | 1 | 2;
 }
 
 /** 船舱页（/cargo） */
@@ -70,6 +71,7 @@ export interface CargoView {
   readonly shipName: string;
   readonly usedCapacity: number;
   readonly maxCapacity: number;
+  readonly effectiveCapacity: number;
   readonly items: CargoItemView[];
 }
 
@@ -77,6 +79,7 @@ export interface CargoItemView {
   readonly goodId: string;
   readonly goodName: string;
   readonly quantity: number;
+  readonly category: string;
   readonly buyPrice: number;
   readonly sellPrice: number;
   readonly volume: number;

@@ -22,6 +22,7 @@ export function createDefaultWorld(): World {
       upgradeLevel: 0,
       currentHp: defaultShip.baseHp,
       maxHp: defaultShip.baseHp,
+      armamentLevel: 0,
       cargo: [],
     },
     market: initMarketPrices(),

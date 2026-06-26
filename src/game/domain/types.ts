@@ -19,6 +19,7 @@ export interface ShipState {
   readonly upgradeLevel: number;
   readonly currentHp: number;
   readonly maxHp: number;
+  readonly armamentLevel: 0 | 1 | 2;
   readonly cargo: readonly CargoItem[];
 }
 
@@ -90,4 +91,5 @@ export type DomainErrorCode =
   | "IN_VOYAGE"
   | "UNKNOWN_PORT"
   | "NO_PRICE_DATA"
-  | "NOT_AT_PORT";
+  | "NOT_AT_PORT"
+  | "CARGO_EXCEEDS_CAPACITY";
