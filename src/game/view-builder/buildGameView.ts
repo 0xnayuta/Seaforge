@@ -21,6 +21,7 @@ import type {
   VoyageEventView,
   VoyageView,
 } from "../../types/game-view";
+import type { CombatOutcome } from "../domain/combat";
 import { getPortGoods, getSellPrice } from "../domain/market";
 import {
   getEffectiveCapacityForShip,
@@ -29,7 +30,7 @@ import {
 import type { ArmamentLevel } from "../domain/ship";
 import { ARMAMENT_LABELS } from "../domain/ship";
 import { getMaxCapacity, getUsedCapacity } from "../domain/trade";
-import type { World } from "../domain/types";
+import type { VoyageEvent, World } from "../domain/types";
 
 // ============================================================
 // 主入口
@@ -205,6 +206,54 @@ export function buildShipView(world: World): ShipView {
   };
 }
 
+// ============================================================
+// 航行视图辅助函数
+// ============================================================
+
+/** 格式化金币变动文本 */
+function formatGoldChange(goldChange: number): string | null {
+  if (goldChange > 0) return `获得 ${goldChange} 金币`;
+  if (goldChange < 0) return `损失 ${Math.abs(goldChange)} 金币`;
+  return null;
+}
+
+/** 格式化战斗日志条目 */
+function formatCombatLog(outcome: CombatOutcome): CombatLogEntryView {
+  const resultLabel =
+    outcome.result === "victory"
+      ? "胜利"
+      : outcome.result === "partialLoss"
+        ? "受损"
+        : "惨败";
+  return {
+    result: resultLabel,
+    description: outcome.description,
+    hpDamage: outcome.hpDamage,
+    cargoLoss: outcome.cargoLoss,
+    ...(outcome.allCargoLost ? { allCargoLost: true as const } : {}),
+  };
+}
+
+/** 格式化单个航行事件视图 */
+function buildEventView(event: VoyageEvent): VoyageEventView {
+  const parts: string[] = [];
+  const goldText = formatGoldChange(event.goldChange);
+  if (goldText) parts.push(goldText);
+  if (event.cargoLoss > 0) parts.push(`丢失 ${event.cargoLoss} 单位货物`);
+
+  const combatLog = event.combatOutcome
+    ? formatCombatLog(event.combatOutcome)
+    : undefined;
+  const effect =
+    parts.length > 0 ? parts.join("，") : combatLog ? "" : "无影响";
+
+  return {
+    day: event.day,
+    description: event.description,
+    effect,
+    combatLog,
+  };
+}
 export function buildVoyageView(world: World): VoyageView {
   const voyage = world.voyage;
   if (!voyage) {
@@ -222,51 +271,12 @@ export function buildVoyageView(world: World): VoyageView {
   const fromPort = PORTS.find((p) => p.id === voyage.fromPortId);
   const toPort = PORTS.find((p) => p.id === voyage.toPortId);
 
-  const events: VoyageEventView[] = voyage.events.map((e) => {
-    const parts: string[] = [];
-    if (e.goldChange > 0) {
-      parts.push(`获得 ${e.goldChange} 金币`);
-    } else if (e.goldChange < 0) {
-      parts.push(`损失 ${Math.abs(e.goldChange)} 金币`);
-    }
-    if (e.cargoLoss > 0) {
-      parts.push(`丢失 ${e.cargoLoss} 单位货物`);
-    }
-
-    // 战斗日志
-    let combatLog: CombatLogEntryView | undefined;
-    if (e.combatOutcome) {
-      const resultLabel =
-        e.combatOutcome.result === "victory"
-          ? "胜利"
-          : e.combatOutcome.result === "partialLoss"
-            ? "受损"
-            : "惨败";
-      combatLog = {
-        result: resultLabel,
-        description: e.combatOutcome.description,
-        hpDamage: e.combatOutcome.hpDamage,
-        cargoLoss: e.combatOutcome.cargoLoss,
-        ...(e.combatOutcome.allCargoLost
-          ? { allCargoLost: true as const }
-          : {}),
-      };
-    }
-
-    return {
-      day: e.day,
-      description: e.description,
-      effect: parts.length > 0 ? parts.join("，") : combatLog ? "" : "无影响",
-      combatLog,
-    };
-  });
-
   return {
     fromPortName: fromPort?.name ?? "未知",
     toPortName: toPort?.name ?? "未知",
     travelDays: voyage.travelDays,
     isUnderway: true,
-    events,
+    events: voyage.events.map(buildEventView),
     armamentLevel: voyage.armamentLevel,
     armamentLabel: ARMAMENT_LABELS[voyage.armamentLevel],
   };

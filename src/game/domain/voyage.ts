@@ -24,6 +24,45 @@ function adjustEventsByRegion(region: string): {
   return { events: adjusted, totalChance };
 }
 
+/** 判断当日是否触发事件 */
+function isEventTriggered(roll: number, totalChance: number): boolean {
+  return roll < totalChance;
+}
+
+/** 按权重选择事件模板，返回 null 表示无匹配 */
+function pickEvent(
+  roll: number,
+  events: readonly EventTemplate[],
+): EventTemplate | null {
+  let cumulative = 0;
+  for (const tmpl of events) {
+    cumulative += tmpl.chance;
+    if (roll < cumulative) return tmpl;
+  }
+  return null;
+}
+
+/** 创建战斗事件（数值由抵达时结算） */
+function createCombatEvent(day: number, tmpl: EventTemplate): VoyageEvent {
+  return {
+    day,
+    description: tmpl.triggerText,
+    goldChange: 0,
+    cargoLoss: 0,
+    type: "combat",
+  };
+}
+
+/** 创建普通事件（即时生成数值） */
+function createDefaultEvent(day: number, tmpl: EventTemplate): VoyageEvent {
+  const goldChange =
+    tmpl.minGold + Math.round(Math.random() * (tmpl.maxGold - tmpl.minGold));
+  const cargoLoss =
+    Math.random() < tmpl.cargoLossChance
+      ? 1 + Math.floor(Math.random() * tmpl.maxCargoLoss)
+      : 0;
+  return { day, description: tmpl.triggerText, goldChange, cargoLoss };
+}
 /** 每天最多一个事件：按权重随机选择并生成，返回 null 表示今日无事 */
 function generateSingleDayEvent(
   day: number,
@@ -31,36 +70,14 @@ function generateSingleDayEvent(
   totalChance: number,
 ): VoyageEvent | null {
   const roll = Math.random();
-  if (roll >= totalChance) return null;
+  if (!isEventTriggered(roll, totalChance)) return null;
 
-  let cumulative = 0;
-  for (const tmpl of events) {
-    cumulative += tmpl.chance;
-    if (roll < cumulative) {
-      // 战斗事件：标记 type=combat，数值由抵达时结算
-      if (tmpl.type === "combat") {
-        return {
-          day,
-          description: tmpl.triggerText,
-          goldChange: 0,
-          cargoLoss: 0,
-          type: "combat",
-        };
-      }
+  const tmpl = pickEvent(roll, events);
+  if (!tmpl) return null;
 
-      // 普通事件：按模板生成数值
-      const goldChange =
-        tmpl.minGold +
-        Math.round(Math.random() * (tmpl.maxGold - tmpl.minGold));
-      const cargoLoss =
-        Math.random() < tmpl.cargoLossChance
-          ? 1 + Math.floor(Math.random() * tmpl.maxCargoLoss)
-          : 0;
-
-      return { day, description: tmpl.triggerText, goldChange, cargoLoss };
-    }
-  }
-  return null;
+  return tmpl.type === "combat"
+    ? createCombatEvent(day, tmpl)
+    : createDefaultEvent(day, tmpl);
 }
 
 /** 生成航行事件（在出航时一次性确定）。每天有概率触发 0-1 个事件。 */
@@ -103,6 +120,40 @@ function subtractCargoLoss(
   return result;
 }
 
+/** 解析战斗事件并应用结果 */
+function applyCombatEvent(world: World, event: VoyageEvent): World {
+  const port = PORTS.find((p) => p.id === world.player.currentPortId);
+  const region = port?.region ?? "";
+  const outcome = resolveCombat(world, region);
+  const nearestPort = getNearestPort(
+    world.voyage?.fromPortId ?? world.player.currentPortId,
+    world.voyage?.toPortId ?? world.player.currentPortId,
+  );
+
+  // 将 combatOutcome 存入事件（view builder 读取展示）
+  (event as VoyageEvent & { combatOutcome: typeof outcome }).combatOutcome =
+    outcome;
+
+  return applyCombatOutcome(world, outcome, nearestPort);
+}
+
+/** 应用金币变化 */
+function applyGoldChange(world: World, delta: number): World {
+  if (delta === 0) return world;
+  return {
+    ...world,
+    player: { ...world.player, gold: Math.max(0, world.player.gold + delta) },
+  };
+}
+
+/** 应用货物损失 */
+function applyCargoLoss(world: World, loss: number): World {
+  if (loss <= 0 || world.ship.cargo.length === 0) return world;
+  return {
+    ...world,
+    ship: { ...world.ship, cargo: subtractCargoLoss(world.ship.cargo, loss) },
+  };
+}
 /**
  * 应用航行事件效果到 World（扣金币、丢失货物）。
  * 战斗事件在抵达时实时解析（考虑之前事件造成的 HP 变化）。
@@ -116,42 +167,10 @@ export function applyVoyageEvents(
 
   for (const event of events) {
     if (event.type === "combat") {
-      // 战斗事件：实时解析，考虑当前船体状态
-      const port = PORTS.find((p) => p.id === result.player.currentPortId);
-      const region = port?.region ?? "";
-      const outcome = resolveCombat(result, region);
-      const nearestPort = getNearestPort(
-        result.voyage?.fromPortId ?? result.player.currentPortId,
-        result.voyage?.toPortId ?? result.player.currentPortId,
-      );
-
-      // 将 combatOutcome 存入事件（view builder 读取展示）
-      (event as VoyageEvent & { combatOutcome: typeof outcome }).combatOutcome =
-        outcome;
-
-      result = applyCombatOutcome(result, outcome, nearestPort);
-      continue;
-    }
-
-    // 金币变化
-    if (event.goldChange !== 0) {
-      result = {
-        ...result,
-        player: {
-          ...result.player,
-          gold: Math.max(0, result.player.gold + event.goldChange),
-        },
-      };
-    }
-
-    if (event.cargoLoss > 0 && result.ship.cargo.length > 0) {
-      result = {
-        ...result,
-        ship: {
-          ...result.ship,
-          cargo: subtractCargoLoss(result.ship.cargo, event.cargoLoss),
-        },
-      };
+      result = applyCombatEvent(result, event);
+    } else {
+      result = applyGoldChange(result, event.goldChange);
+      result = applyCargoLoss(result, event.cargoLoss);
     }
   }
 
