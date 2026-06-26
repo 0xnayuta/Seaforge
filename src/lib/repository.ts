@@ -32,27 +32,18 @@ export async function loadWorld(tx: PrismaTransactionClient): Promise<World> {
 
   // 迁移：旧存档缺少新商品的价格 → 用均衡价补齐
   const allGoodIds = new Set(GOODS.map((g: GoodConfig) => g.id));
-  let needsFill = false;
+  const marketPorts = world.market.prices;
   for (const port of PORTS) {
-    const portPrices = world.market.prices[port.id];
-    if (!portPrices) continue;
-    for (const goodId of allGoodIds) {
-      if (!(goodId in portPrices)) {
-        needsFill = true;
-        break;
-      }
-    }
-    if (needsFill) break;
-  }
-
-  if (needsFill) {
-    for (const port of PORTS) {
+    const portPrices = marketPorts[port.id];
+    if (!portPrices) {
+      marketPorts[port.id] = {};
       for (const goodId of allGoodIds) {
-        if (!(world.market.prices[port.id]?.[goodId] !== undefined)) {
-          world.market.prices[port.id][goodId] = getBasePriceFor(
-            goodId,
-            port.id,
-          );
+        marketPorts[port.id][goodId] = getBasePriceFor(goodId, port.id);
+      }
+    } else {
+      for (const goodId of allGoodIds) {
+        if (!(goodId in portPrices)) {
+          portPrices[goodId] = getBasePriceFor(goodId, port.id);
         }
       }
     }
