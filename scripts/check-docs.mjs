@@ -46,7 +46,17 @@ const DOC_META_RULES = {
 // =============================================================================
 
 function read(file) {
-  return fs.readFileSync(path.join(root, file), "utf8");
+  const fullPath = path.join(root, file);
+  if (!fs.existsSync(fullPath)) {
+    errors.push(`❌ 文件不存在: ${file}`);
+    return "";
+  }
+  try {
+    return fs.readFileSync(fullPath, "utf8");
+  } catch {
+    errors.push(`❌ 无法读取: ${file}`);
+    return "";
+  }
 }
 
 function walk(dir) {

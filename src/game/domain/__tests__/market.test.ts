@@ -141,11 +141,11 @@ describe("market pure functions", () => {
     it("all prices stay >= 1", () => {
       const world = createTestWorld();
       const updated = applyDayPass(world);
-      const { prices } = updated.market;
-      for (const portPrices of Object.values(prices)) {
-        for (const price of Object.values(portPrices)) {
-          expect(price).toBeGreaterThanOrEqual(1);
-        }
+      const allPrices = Object.values(updated.market.prices).flatMap(
+        Object.values,
+      );
+      for (const price of allPrices) {
+        expect(price).toBeGreaterThanOrEqual(1);
       }
     });
 

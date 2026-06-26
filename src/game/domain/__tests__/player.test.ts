@@ -30,33 +30,28 @@ describe("createDefaultWorld", () => {
   it("market.prices has entries for all 3 ports x 5 goods = 15 entries", () => {
     const world = createDefaultWorld();
     const prices = world.market.prices;
-
-    let totalEntries = 0;
-    for (const port of PORTS) {
-      expect(prices[port.id]).toBeDefined();
-      for (const good of GOODS) {
-        expect(prices[port.id][good.id]).toBeTypeOf("number");
-        totalEntries++;
-      }
+    const entries = PORTS.flatMap((port) =>
+      GOODS.map((good) => ({ portId: port.id, goodId: good.id })),
+    );
+    expect(entries).toHaveLength(15);
+    for (const { portId, goodId } of entries) {
+      expect(prices[portId][goodId]).toBeTypeOf("number");
     }
-    expect(totalEntries).toBe(15);
   });
-
   it("market prices match basePrice x portModifier", () => {
     const world = createDefaultWorld();
     const prices = world.market.prices;
-
-    for (const port of PORTS) {
-      for (const good of GOODS) {
+    const entries = PORTS.flatMap((port) =>
+      GOODS.map((good) => {
         const modifier = port.priceModifiers[good.id] ?? 1.0;
         const expected = Math.round(good.basePrice * modifier);
-        expect(prices[port.id][good.id]).toBe(expected);
-      }
+        return { portId: port.id, goodId: good.id, expected };
+      }),
+    );
+    for (const { portId, goodId, expected } of entries) {
+      expect(prices[portId][goodId]).toBe(expected);
     }
   });
-});
-
-describe("advanceDay", () => {
   it("increments day by N", () => {
     const world = createTestWorld();
     const advanced = advanceDay(world, 3);
