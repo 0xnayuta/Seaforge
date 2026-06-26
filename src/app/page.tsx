@@ -1,7 +1,6 @@
-import { initMarketPrices } from "../game/domain/market";
-import type { World } from "../game/domain/types";
 import { buildHarborView } from "../game/view-builder/buildGameView";
 import { prisma } from "../lib/prisma";
+import { loadWorld } from "../lib/repository";
 import { HarborDashboard } from "./HarborDashboard";
 import { NewGameForm } from "./NewGameForm";
 
@@ -12,17 +11,9 @@ export default async function HarborPage() {
     where: { slot: 0 },
   });
 
-  if (!save) {
-    return <NewGameForm />;
-  }
+  if (!save) return <NewGameForm />;
 
-  const world = JSON.parse(save.data) as World;
-
-  // 迁移：旧存档没有 market 字段 → 初始化价格
-  const hydratedWorld: World = world.market
-    ? world
-    : { ...world, market: initMarketPrices() };
-
-  const view = buildHarborView(hydratedWorld);
+  const world = await loadWorld(prisma);
+  const view = buildHarborView(world);
   return <HarborDashboard view={view} />;
 }
