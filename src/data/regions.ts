@@ -34,7 +34,7 @@ export const REGIONS: readonly RegionConfig[] = [
       craft: 1.1,
       material: 0.8,
     },
-    dangerModifier: 1.1,
+    dangerModifier: 0.9,
   },
   {
     id: "africa",
@@ -45,7 +45,7 @@ export const REGIONS: readonly RegionConfig[] = [
       craft: 1.2,
       material: 0.75,
     },
-    dangerModifier: 1.3,
+    dangerModifier: 0.7,
   },
   {
     id: "mediterranean",
@@ -56,7 +56,7 @@ export const REGIONS: readonly RegionConfig[] = [
       craft: 0.9,
       material: 1.1,
     },
-    dangerModifier: 0.9,
+    dangerModifier: 1.2,
   },
   {
     id: "north_sea",
@@ -67,6 +67,6 @@ export const REGIONS: readonly RegionConfig[] = [
       craft: 1.15,
       material: 1.0,
     },
-    dangerModifier: 1.2,
+    dangerModifier: 0.8,
   },
 ] as const;
