@@ -18,12 +18,14 @@ World 是存档的全部内容。每次存档时，整个 World 序列化为 JSO
 ## World 包含的内容
 
 ```typescript
+// Phase 1（当前）
 interface World {
   player: {
     name: string
     gold: number
     currentPortId: string
     day: number
+    // level, exp, expToNext — Phase 2.1 新增
   }
   ship: {
     typeId: string
@@ -35,10 +37,48 @@ interface World {
   // worldEvents: WorldEventState[]
 }
 
+// Phase 2（舰队重构后）
+interface World {
+  player: {
+    name: string
+    currentPortId: string
+    day: number
+    level: number
+    exp: number
+    expToNext: number
+    // 注意：gold 已移至 fleet.gold
+  }
+  fleet: {
+    ships: ShipInstance[]         // 多船，替换 ship
+    maxShips: number
+    crew: number
+    maxCrew: number
+    gold: number                  // 舰队共有资金
+  }
+}
+
+interface ShipInstance {
+  id: string                       // uuid
+  typeId: string
+  name: string                     // 玩家可命名
+  equipment: ShipEquipment
+  durability: number
+  maxDurability: number
+  cargo: CargoItem[]
+  equippedItems: string[]          // 装备 ID
+}
+
+interface ShipEquipment {
+  hullLevel: number                // 舱容等级
+  sailLevel: number                // 速度等级
+  armorLevel: number               // 装甲等级（耐久上限）
+  cannonLevel: number              // 炮击等级（攻击力）
+}
+
 interface CargoItem {
   goodId: string
   quantity: number
-  buyPrice: number  // 每单位买入价，用于计算利润
+  buyPrice: number                 // 每单位买入价
 }
 ```
 
