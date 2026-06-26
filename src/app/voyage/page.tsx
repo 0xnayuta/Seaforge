@@ -5,7 +5,7 @@ import { loadVoyageView, completeVoyage } from "./actions"
 import type { VoyageView } from "../../types/game-view"
 
 export default function VoyagePage() {
-  const [view, loadAction] = useActionState(loadVoyageView, null)
+  const [view, loadAction, isLoadPending] = useActionState(loadVoyageView, null)
   const [arriving, setArriving] = useState(false)
   const [arrived, setArrived] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -63,9 +63,25 @@ export default function VoyagePage() {
   }
 
   if (!view) {
+    if (isLoadPending) {
+      return (
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-sm text-parchment-dark">加载航行信息...</p>
+        </div>
+      )
+    }
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <p className="text-sm text-parchment-dark">加载航行信息...</p>
+      <div className="flex-1 flex flex-col items-center justify-center p-4 space-y-4">
+        <div className="rounded-lg border border-red-600 bg-ocean-800/80 p-6 text-center max-w-md">
+          <h2 className="text-lg font-bold text-red-400">加载失败</h2>
+          <p className="mt-2 text-sm text-parchment-dark">无法加载航行信息，请返回港口重试</p>
+        </div>
+        <a
+          href="/"
+          className="rounded border border-ocean-600 px-4 py-2 text-sm text-parchment-dark hover:bg-ocean-700 transition-colors"
+        >
+          返回港口
+        </a>
       </div>
     )
   }

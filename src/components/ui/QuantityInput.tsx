@@ -34,6 +34,7 @@ export function QuantityInput({
         max={max}
         onChange={(e) => {
           const raw = Number(e.target.value)
+          if (isNaN(raw)) return
           const clamped = max !== undefined
             ? Math.min(max, Math.max(min, raw))
             : Math.max(min, raw)
