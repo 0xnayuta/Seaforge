@@ -1,4 +1,4 @@
-import type { World, VoyageState, VoyageEvent } from "./types"
+import type { World, VoyageState, VoyageEvent, CargoItem } from "./types"
 
 // ============================================================
 // 航行逻辑 — 纯函数
@@ -73,6 +73,33 @@ const VOYAGE_EVENTS: readonly EventTemplate[] = [
   },
 ]
 
+/** 每天最多一个事件：按权重随机选择并生成，返回 null 表示今日无事 */
+function generateSingleDayEvent(
+  day: number,
+  totalChance: number,
+): VoyageEvent | null {
+  const roll = Math.random()
+  if (roll >= totalChance) return null
+
+  let cumulative = 0
+  for (const tmpl of VOYAGE_EVENTS) {
+    cumulative += tmpl.chance
+    if (roll < cumulative) {
+      const goldChange =
+        tmpl.minGold +
+        Math.round(Math.random() * (tmpl.maxGold - tmpl.minGold))
+      const cargoLoss =
+        Math.random() < tmpl.cargoLossChance
+          ? 1 + Math.floor(Math.random() * tmpl.maxCargoLoss)
+          : 0
+
+      return { day, description: tmpl.description, goldChange, cargoLoss }
+    }
+  }
+  return null
+}
+
+
 /*
  * 生成航行事件（在出航时一次性确定）。
  * 每天有概率触发 0-1 个事件。
@@ -85,34 +112,34 @@ export function generateVoyageEvents(
   const totalChance = VOYAGE_EVENTS.reduce((sum, t) => sum + t.chance, 0)
 
   for (let day = 1; day <= travelDays; day++) {
-    // 每天最多一个事件：按权重随机选择
-    const roll = Math.random()
-    if (roll >= totalChance) continue // 今日无事
-
-    let cumulative = 0
-    for (const tmpl of VOYAGE_EVENTS) {
-      cumulative += tmpl.chance
-      if (roll < cumulative) {
-        const goldChange =
-          tmpl.minGold +
-          Math.round(Math.random() * (tmpl.maxGold - tmpl.minGold))
-        const cargoLoss =
-          Math.random() < tmpl.cargoLossChance
-            ? 1 + Math.floor(Math.random() * tmpl.maxCargoLoss)
-            : 0
-
-        events.push({
-          day,
-          description: tmpl.description,
-          goldChange,
-          cargoLoss,
-        })
-        break
-      }
-    }
+    const event = generateSingleDayEvent(day, totalChance)
+    if (event) events.push(event)
   }
 
   return events
+}
+
+/** 随机从 cargo 中扣除指定数量货物（支持超额跨摊分） */
+function subtractCargoLoss(
+  cargo: readonly CargoItem[],
+  lossAmount: number,
+): readonly CargoItem[] {
+  let remainingLoss = lossAmount
+  let result = [...cargo]
+  while (remainingLoss > 0 && result.length > 0) {
+    const idx = Math.floor(Math.random() * result.length)
+    const item = result[idx]
+    if (item.quantity <= remainingLoss) {
+      remainingLoss -= item.quantity
+      result = result.filter((_, i) => i !== idx)
+    } else {
+      result = result.map((c, i) =>
+        i === idx ? { ...c, quantity: c.quantity - remainingLoss } : c,
+      )
+      remainingLoss = 0
+    }
+  }
+  return result
 }
 
 /**
@@ -137,26 +164,13 @@ export function applyVoyageEvents(
       }
     }
 
-    // 丢失货物 — 支持超额丢失（跨多个货物摊分）
     if (event.cargoLoss > 0 && result.ship.cargo.length > 0) {
-      let remainingLoss = event.cargoLoss
-      let cargo = [...result.ship.cargo]
-      while (remainingLoss > 0 && cargo.length > 0) {
-        const idx = Math.floor(Math.random() * cargo.length)
-        const item = cargo[idx]
-        if (item.quantity <= remainingLoss) {
-          remainingLoss -= item.quantity
-          cargo = cargo.filter((_, i) => i !== idx)
-        } else {
-          cargo = cargo.map((c, i) =>
-            i === idx ? { ...c, quantity: c.quantity - remainingLoss } : c,
-          )
-          remainingLoss = 0
-        }
-      }
       result = {
         ...result,
-        ship: { ...result.ship, cargo },
+        ship: {
+          ...result.ship,
+          cargo: subtractCargoLoss(result.ship.cargo, event.cargoLoss),
+        },
       }
     }
   }
