@@ -1,3 +1,4 @@
+import Link from "next/link"
 import type { Metadata } from "next"
 import "./globals.css"
 
@@ -19,30 +20,30 @@ export default function RootLayout({
             纵横四海
           </span>
           <div className="flex gap-4 text-parchment-dark">
-            <a
+            <Link
               href="/"
               className="hover:text-gold-400 focus-visible:text-gold-400 transition-colors outline-none"
             >
               港口
-            </a>
-            <a
+            </Link>
+            <Link
               href="/market"
               className="hover:text-gold-400 focus-visible:text-gold-400 transition-colors outline-none"
             >
               交易所
-            </a>
-            <a
+            </Link>
+            <Link
               href="/cargo"
               className="hover:text-gold-400 focus-visible:text-gold-400 transition-colors outline-none"
             >
               船舱
-            </a>
-            <a
+            </Link>
+            <Link
               href="/navigation"
               className="hover:text-gold-400 focus-visible:text-gold-400 transition-colors outline-none"
             >
               航海图
-            </a>
+            </Link>
           </div>
         </nav>
         <main className="flex-1 flex flex-col">{children}</main>
