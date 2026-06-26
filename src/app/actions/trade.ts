@@ -10,10 +10,7 @@ import { loadWorld, saveWorld } from "../../lib/repository";
 import type { CargoView, MarketView } from "../../types/game-view";
 import type { PrismaTransactionClient } from "../../types/prisma";
 
-export async function buyGoods(
-  _prev: MarketView | null,
-  formData: FormData,
-): Promise<MarketView> {
+export async function buyGoods(formData: FormData): Promise<MarketView> {
   const goodId = formData.get("goodId") as string;
   const quantity = Number(formData.get("quantity"));
 
@@ -31,11 +28,7 @@ export async function buyGoods(
     throw new Error(getErrorMessage(e));
   }
 }
-
-export async function sellGoods(
-  _prev: CargoView | null,
-  formData: FormData,
-): Promise<CargoView> {
+export async function sellGoods(formData: FormData): Promise<CargoView> {
   const goodId = formData.get("goodId") as string;
   const quantity = Number(formData.get("quantity"));
 

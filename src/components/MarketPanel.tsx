@@ -65,7 +65,7 @@ export function MarketPanel({ view, onRefresh }: MarketPanelProps) {
     setIsBuying(true);
     setMessage(null);
     try {
-      await buyGoods(null, formData);
+      await buyGoods(formData);
       onRefresh();
       const goodId = formData.get("goodId") as string;
       const qty = formData.get("quantity") as string;

@@ -21,7 +21,7 @@ export function CargoHold({ view, onRefresh }: CargoHoldProps) {
     setIsSelling(true);
     setMessage(null);
     try {
-      await sellGoods(null, formData);
+      await sellGoods(formData);
       onRefresh();
       setMessage("成功卖出");
       setSelectedItem(null);
