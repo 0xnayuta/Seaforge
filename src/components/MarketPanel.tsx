@@ -78,9 +78,13 @@ export function MarketPanel({ view, onRefresh }: MarketPanelProps) {
   }
 
   const selectedGood = view.goods.find((g) => g.id === selectedGoodId);
+  const remainingCargo = view.cargoCapacity - view.cargoCount;
+  const maxBuyable = selectedGood
+    ? Math.floor(remainingCargo / selectedGood.volume)
+    : 0;
   const totalCost = selectedGood ? selectedGood.buyPrice * quantity : 0;
   const canBuy = selectedGood
-    ? totalCost <= view.playerGold && quantity > 0
+    ? totalCost <= view.playerGold && quantity > 0 && quantity <= maxBuyable
     : false;
 
   return (
@@ -117,7 +121,7 @@ export function MarketPanel({ view, onRefresh }: MarketPanelProps) {
 
       {/* 商品列表 */}
       <div className="rounded-lg border border-ocean-600 bg-ocean-800/80 overflow-hidden">
-        <div className="grid grid-cols-5 gap-0.5 border-b border-ocean-600 bg-ocean-700/60 px-4 py-2 text-xs font-semibold text-parchment-dark uppercase tracking-wider">
+        <div className="grid grid-cols-5 gap-2 border-b border-ocean-600 bg-ocean-700/60 px-4 py-2 text-xs font-semibold text-parchment-dark uppercase tracking-wider">
           <button
             type="button"
             onClick={() => toggleSort("name")}
@@ -151,12 +155,12 @@ export function MarketPanel({ view, onRefresh }: MarketPanelProps) {
         {sortedGoods.map((good) => (
           <div
             key={good.id}
-            className="grid grid-cols-5 gap-0.5 items-center border-b border-ocean-700/30 px-4 py-3 text-sm hover:bg-ocean-700/40 transition-colors last:border-b-0"
+            className="grid grid-cols-5 gap-2 items-center border-b border-ocean-700/30 px-4 py-3 text-sm hover:bg-ocean-700/40 transition-colors last:border-b-0"
           >
             <span className="font-medium">{good.name}</span>
             <span className="text-xs text-parchment-dark">{good.category}</span>
             <span
-              className={`text-right ${good.priceChangePercent > 0 ? "text-red-400" : good.priceChangePercent < 0 ? "text-green-400" : "text-gold-400"}`}
+              className={`text-right ${good.priceChangePercent > 10 ? "text-red-400" : good.priceChangePercent < -10 ? "text-green-400" : "text-gold-400"}`}
             >
               {good.buyPrice}
             </span>
@@ -171,7 +175,7 @@ export function MarketPanel({ view, onRefresh }: MarketPanelProps) {
                 setMessage(null);
               }}
               disabled={!good.canAfford}
-              className="ml-4 rounded bg-gold-500/20 px-2 py-1 text-xs text-gold-400 hover:bg-gold-500/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="rounded bg-gold-500/20 px-2 py-1 text-xs text-gold-400 hover:bg-gold-500/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
               买入
             </button>
@@ -205,7 +209,11 @@ export function MarketPanel({ view, onRefresh }: MarketPanelProps) {
             </div>
           </div>
 
-          <QuantityInput value={quantity} onChange={setQuantity} />
+          <QuantityInput
+            value={quantity}
+            onChange={setQuantity}
+            max={maxBuyable}
+          />
 
           <div className="mt-4 flex gap-2">
             <button

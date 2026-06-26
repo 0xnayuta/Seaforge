@@ -81,6 +81,7 @@ export function buildMarketView(world: World): MarketView {
       sellPrice: getSellPrice(good.id, world.player.currentPortId, world),
       inCargo,
       canAfford: world.player.gold >= buyPrice,
+      volume: good.volume,
       priceChangePercent,
     };
   });
