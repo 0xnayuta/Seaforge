@@ -1,4 +1,7 @@
-import { initMarketPrices } from "../game/domain/market";
+import type { GoodConfig } from "../data/goods";
+import { GOODS } from "../data/goods";
+import { PORTS } from "../data/ports";
+import { getBasePriceFor, initMarketPrices } from "../game/domain/market";
 import { createDefaultWorld } from "../game/domain/player";
 import type { World } from "../game/domain/types";
 import type { PrismaTransactionClient } from "../types/prisma";
@@ -25,6 +28,34 @@ export async function loadWorld(tx: PrismaTransactionClient): Promise<World> {
       ...world,
       market: initMarketPrices(),
     };
+  }
+
+  // 迁移：旧存档缺少新商品的价格 → 用均衡价补齐
+  const allGoodIds = new Set(GOODS.map((g: GoodConfig) => g.id));
+  let needsFill = false;
+  for (const port of PORTS) {
+    const portPrices = world.market.prices[port.id];
+    if (!portPrices) continue;
+    for (const goodId of allGoodIds) {
+      if (!(goodId in portPrices)) {
+        needsFill = true;
+        break;
+      }
+    }
+    if (needsFill) break;
+  }
+
+  if (needsFill) {
+    for (const port of PORTS) {
+      for (const goodId of allGoodIds) {
+        if (!(world.market.prices[port.id]?.[goodId] !== undefined)) {
+          world.market.prices[port.id][goodId] = getBasePriceFor(
+            goodId,
+            port.id,
+          );
+        }
+      }
+    }
   }
 
   return world;
