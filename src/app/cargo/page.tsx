@@ -1,56 +1,47 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useActionState } from "react"
+import { Modal } from "../../components/ui/Modal"
+import { QuantityInput } from "../../components/ui/QuantityInput"
 import { loadCargoView } from "./actions"
 import { sellGoods } from "../actions/trade"
 import type { CargoView, CargoItemView } from "../../types/game-view"
 
 export default function CargoPage() {
-  const [view, setView] = useState<CargoView | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [view, loadAction, isLoadPending] = useActionState(loadCargoView, null)
+  const [isSelling, setIsSelling] = useState(false)
   const [selectedItem, setSelectedItem] = useState<CargoItemView | null>(null)
   const [sellQuantity, setSellQuantity] = useState(1)
   const [message, setMessage] = useState<string | null>(null)
 
-  async function doLoad() {
-    setLoading(true)
-    try {
-      const result = await loadCargoView()
-      setView(result)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   async function doSell(formData: FormData) {
-    setLoading(true)
+    setIsSelling(true)
     setMessage(null)
     try {
       await sellGoods(null, formData)
-      const result = await loadCargoView()
-      setView(result)
+      loadAction()
       setMessage(`成功卖出`)
       setSelectedItem(null)
       setSellQuantity(1)
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "卖出失败")
     } finally {
-      setLoading(false)
+      setIsSelling(false)
     }
   }
 
   if (!view) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <form action={loadAction} className="flex-1 flex items-center justify-center">
         <button
-          type="button"
-          onClick={doLoad}
-          disabled={loading}
+          type="submit"
+          disabled={isLoadPending}
           className="rounded-lg bg-gold-500 px-6 py-3 text-lg font-bold text-ocean-900 hover:bg-gold-400 transition-colors disabled:opacity-50"
         >
-          {loading ? "加载中..." : "查看船舱"}
+          {isLoadPending ? "加载中..." : "查看船舱"}
         </button>
-      </div>
+      </form>
     )
   }
 
@@ -128,108 +119,75 @@ export default function CargoPage() {
       )}
 
       {selectedItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="w-80 rounded-lg border border-ocean-600 bg-ocean-800 p-6 shadow-xl">
-            <h3 className="mb-2 text-lg font-semibold text-gold-400">
-              卖出 {selectedItem.goodName}
-            </h3>
-            <div className="space-y-2 text-sm text-parchment-dark">
-              <div className="flex justify-between">
-                <span>持有</span>
-                <span>{selectedItem.quantity}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>买入价</span>
-                <span>{selectedItem.buyPrice}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>当前卖价</span>
-                <span className="text-gold-400">{selectedItem.sellPrice}</span>
-              </div>
-              <div className="flex justify-between border-t border-ocean-700 pt-2">
-                <span>预计利润</span>
-                <span
-                  className={`font-bold ${
-                    selectedItem.sellPrice - selectedItem.buyPrice >= 0
-                      ? "text-green-400"
-                      : "text-red-400"
-                  }`}
-                >
-                  {(
-                    (selectedItem.sellPrice - selectedItem.buyPrice) *
-                    sellQuantity
-                  ).toLocaleString()}
-                </span>
-              </div>
+        <Modal
+          title={`卖出 ${selectedItem.goodName}`}
+          onClose={() => {
+            setSelectedItem(null)
+            setSellQuantity(1)
+          }}
+        >
+          <div className="space-y-2 text-sm text-parchment-dark">
+            <div className="flex justify-between">
+              <span>持有</span>
+              <span>{selectedItem.quantity}</span>
             </div>
-
-            <div className="mt-4 flex items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={() =>
-                  setSellQuantity(Math.max(1, sellQuantity - 1))
-                }
-                disabled={sellQuantity <= 1}
-                className="rounded bg-ocean-700 px-3 py-1 text-sm hover:bg-ocean-600 disabled:opacity-30"
-              >
-                -
-              </button>
-              <input
-                type="number"
-                value={sellQuantity}
-                min={1}
-                max={selectedItem.quantity}
-                onChange={(e) =>
-                  setSellQuantity(
-                    Math.min(
-                      selectedItem.quantity,
-                      Math.max(1, Number(e.target.value)),
-                    ),
-                  )
-                }
-                className="w-20 rounded bg-ocean-900 border border-ocean-600 px-3 py-1 text-center text-sm text-parchment"
-              />
-              <button
-                type="button"
-                onClick={() =>
-                  setSellQuantity(
-                    Math.min(selectedItem.quantity, sellQuantity + 1),
-                  )
-                }
-                disabled={sellQuantity >= selectedItem.quantity}
-                className="rounded bg-ocean-700 px-3 py-1 text-sm hover:bg-ocean-600 disabled:opacity-30"
-              >
-                +
-              </button>
+            <div className="flex justify-between">
+              <span>买入价</span>
+              <span>{selectedItem.buyPrice}</span>
             </div>
-
-            <div className="mt-4 flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  const fd = new FormData()
-                  fd.set("goodId", selectedItem.goodId)
-                  fd.set("quantity", String(sellQuantity))
-                  doSell(fd)
-                }}
-                disabled={loading}
-                className="flex-1 rounded bg-gold-500 py-2 text-sm font-bold text-ocean-900 hover:bg-gold-400 transition-colors disabled:opacity-50"
+            <div className="flex justify-between">
+              <span>当前卖价</span>
+              <span className="text-gold-400">{selectedItem.sellPrice}</span>
+            </div>
+            <div className="flex justify-between border-t border-ocean-700 pt-2">
+              <span>预计利润</span>
+              <span
+                className={`font-bold ${
+                  selectedItem.sellPrice - selectedItem.buyPrice >= 0
+                    ? "text-green-400"
+                    : "text-red-400"
+                }`}
               >
-                {loading ? "卖出中..." : "确认卖出"}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedItem(null)
-                  setSellQuantity(1)
-                }}
-                className="rounded bg-ocean-700 px-4 py-2 text-sm hover:bg-ocean-600 transition-colors"
-              >
-                取消
-              </button>
+                {(
+                  (selectedItem.sellPrice - selectedItem.buyPrice) *
+                  sellQuantity
+                ).toLocaleString()}
+              </span>
             </div>
           </div>
-        </div>
+
+          <QuantityInput
+            value={sellQuantity}
+            max={selectedItem.quantity}
+            onChange={setSellQuantity}
+          />
+
+          <div className="mt-4 flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                const fd = new FormData()
+                fd.set("goodId", selectedItem.goodId)
+                fd.set("quantity", String(sellQuantity))
+                doSell(fd)
+              }}
+              disabled={isSelling}
+              className="flex-1 rounded bg-gold-500 py-2 text-sm font-bold text-ocean-900 hover:bg-gold-400 transition-colors disabled:opacity-50"
+            >
+              {isSelling ? "卖出中..." : "确认卖出"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedItem(null)
+                setSellQuantity(1)
+              }}
+              className="rounded bg-ocean-700 px-4 py-2 text-sm hover:bg-ocean-600 transition-colors"
+            >
+              取消
+            </button>
+          </div>
+        </Modal>
       )}
 
       <div className="text-center">
