@@ -10,7 +10,6 @@
  * - cargoLossChance: 丢失货物的概率（0-1）
  * - maxCargoLoss: 最多丢失货物单位数
  * - triggerText: 触发时显示的文字（叙事描述）
- * - resultText: 结果文本（效果概述），为空时由 view builder 从数值计算
  * - type: 事件类型，"combat" 表示需接入战斗结算
  * - regionProbMultiplier: 区域概率乘数，key=区域名，0=从不触发，不列=1.0
  */
@@ -21,7 +20,6 @@ export interface EventTemplate {
   readonly cargoLossChance: number;
   readonly maxCargoLoss: number;
   readonly triggerText: string;
-  readonly resultText: string;
   readonly type?: "combat";
   readonly regionProbMultiplier?: Readonly<Record<string, number>>;
 }
@@ -34,7 +32,6 @@ export const EVENT_CONFIGS: readonly EventTemplate[] = [
     cargoLossChance: 0,
     maxCargoLoss: 0,
     triggerText: "海面吹起顺风，船帆鼓满，船行如飞。",
-    resultText: "",
   },
   {
     chance: 0.08,
@@ -43,7 +40,6 @@ export const EVENT_CONFIGS: readonly EventTemplate[] = [
     cargoLossChance: 0,
     maxCargoLoss: 0,
     triggerText: "海面平静如镜，船帆无力地垂下，船队停滞不前。",
-    resultText: "",
     regionProbMultiplier: {
       南洋: 1.5,
     },
@@ -55,7 +51,6 @@ export const EVENT_CONFIGS: readonly EventTemplate[] = [
     cargoLossChance: 0.3,
     maxCargoLoss: 3,
     triggerText: "天色骤变，狂风裹着巨浪劈头盖脸地砸来！",
-    resultText: "",
     regionProbMultiplier: {
       东瀛: 1.4,
     },
@@ -67,7 +62,6 @@ export const EVENT_CONFIGS: readonly EventTemplate[] = [
     cargoLossChance: 0,
     maxCargoLoss: 0,
     triggerText: "前方出现海盗船，高高挂起黑色骷髅旗！",
-    resultText: "",
     type: "combat",
     regionProbMultiplier: {
       南洋: 1.6,
@@ -82,7 +76,6 @@ export const EVENT_CONFIGS: readonly EventTemplate[] = [
     cargoLossChance: 0,
     maxCargoLoss: 0,
     triggerText: "瞭望手发现海面上漂着一只雕花宝箱。",
-    resultText: "",
   },
   {
     chance: 0.12,
@@ -91,7 +84,6 @@ export const EVENT_CONFIGS: readonly EventTemplate[] = [
     cargoLossChance: 0,
     maxCargoLoss: 0,
     triggerText: "发现一艘遇难的商船，桅杆折断，船上空无一人。",
-    resultText: "",
   },
   {
     chance: 0.07,
@@ -100,6 +92,5 @@ export const EVENT_CONFIGS: readonly EventTemplate[] = [
     cargoLossChance: 0.2,
     maxCargoLoss: 2,
     triggerText: "多名船员出现坏血病症状，牙龈出血、浑身乏力。",
-    resultText: "",
   },
 ] as const;

@@ -42,7 +42,8 @@ describe("resolveCombat", () => {
     // RNG=0 → 最低分 → 全损
     const outcome = resolveCombat(damaged, "南洋", fixedRng(0));
     expect(outcome.result).toBe("totalLoss");
-    expect(outcome.cargoLoss).toBe(-1);
+    expect(outcome.cargoLoss).toBe(0);
+    expect(outcome.allCargoLost).toBe(true);
   });
 
   it("partialLoss on medium score", () => {

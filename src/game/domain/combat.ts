@@ -17,6 +17,7 @@ export interface CombatOutcome {
   readonly result: CombatResult;
   readonly hpDamage: number;
   readonly cargoLoss: number;
+  readonly allCargoLost?: true;
   readonly description: string;
 }
 
@@ -54,7 +55,8 @@ export function resolveCombat(
     return {
       result: "totalLoss",
       hpDamage: world.ship.currentHp,
-      cargoLoss: -1,
+      cargoLoss: 0,
+      allCargoLost: true,
       description: "海盗登船洗劫一空，船体严重损毁，勉强漂回港口……",
     };
   }

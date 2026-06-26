@@ -114,7 +114,7 @@ export default async function VoyagePage() {
                               货物损失 {event.combatLog.cargoLoss} 单位
                             </span>
                           )}
-                          {event.combatLog.cargoLoss === -1 && (
+                          {event.combatLog.allCargoLost && (
                             <span>所有货物全部丢失</span>
                           )}
                         </div>

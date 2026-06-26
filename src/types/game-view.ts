@@ -93,7 +93,6 @@ export interface ShipView {
   readonly maxHp: number;
   readonly repairCost: number;
   readonly canRepair: boolean;
-  readonly canSail: boolean;
 }
 /** 航行中页（/voyage） */
 /** 战斗日志条目 */
@@ -102,6 +101,7 @@ export interface CombatLogEntryView {
   readonly description: string;
   readonly hpDamage: number;
   readonly cargoLoss: number;
+  readonly allCargoLost?: true;
 }
 
 export interface VoyageEventView {

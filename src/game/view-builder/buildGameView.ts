@@ -3,6 +3,7 @@
 // 纯函数，无副作用，不调用数据库
 // ============================================================
 
+import { REPAIR_COST_MULTIPLIER } from "../../data/formulas";
 import { CATEGORY_LABEL, GOODS } from "../../data/goods";
 import { PORTS } from "../../data/ports";
 import { SHIPS } from "../../data/ships";
@@ -177,7 +178,11 @@ export function buildShipView(world: World): ShipView {
 
   const missingHp = world.ship.maxHp - world.ship.currentHp;
   const repairCost =
-    missingHp > 0 ? Math.ceil(missingHp * shipConfig.repairCostPerHp * 1.0) : 0;
+    missingHp > 0
+      ? Math.ceil(
+          missingHp * shipConfig.repairCostPerHp * REPAIR_COST_MULTIPLIER,
+        )
+      : 0;
 
   return {
     shipName: shipConfig.name,
@@ -197,7 +202,6 @@ export function buildShipView(world: World): ShipView {
     repairCost,
     canRepair:
       missingHp > 0 && world.player.gold >= repairCost && !world.voyage,
-    canSail: world.ship.currentHp > 0 && !world.voyage,
   };
 }
 
@@ -243,6 +247,9 @@ export function buildVoyageView(world: World): VoyageView {
         description: e.combatOutcome.description,
         hpDamage: e.combatOutcome.hpDamage,
         cargoLoss: e.combatOutcome.cargoLoss,
+        ...(e.combatOutcome.allCargoLost
+          ? { allCargoLost: true as const }
+          : {}),
       };
     }
 

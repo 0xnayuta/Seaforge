@@ -1,5 +1,5 @@
 "use server";
-import { upgradeShip } from "../../game/domain/ship";
+import { repairShip, upgradeShip } from "../../game/domain/ship";
 import { buildShipView } from "../../game/view-builder/buildGameView";
 import { prisma } from "../../lib/prisma";
 import { loadWorld, saveWorld } from "../../lib/repository";
@@ -27,7 +27,6 @@ export async function repairShipAction(
 ): Promise<ShipView> {
   return await prisma.$transaction(async (tx: PrismaTransactionClient) => {
     const world = await loadWorld(tx);
-    const { repairShip } = await import("../../game/domain/ship");
     const newWorld = repairShip(world);
     await saveWorld(tx, newWorld);
     return buildShipView(newWorld);
