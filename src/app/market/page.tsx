@@ -1,28 +1,9 @@
-"use client";
+export const dynamic = "force-dynamic";
 
-import { useActionState } from "react";
 import { MarketPanel } from "../../components/MarketPanel";
 import { loadMarketView } from "./actions";
 
-export default function MarketPage() {
-  const [view, loadAction, isPending] = useActionState(loadMarketView, null);
-
-  if (!view) {
-    return (
-      <form
-        action={loadAction}
-        className="flex-1 flex items-center justify-center"
-      >
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded-lg bg-gold-500 px-6 py-3 text-lg font-bold text-ocean-900 hover:bg-gold-400 transition-colors disabled:opacity-50"
-        >
-          {isPending ? "加载中..." : "进入交易所"}
-        </button>
-      </form>
-    );
-  }
-
-  return <MarketPanel view={view} onRefresh={loadAction} />;
+export default async function MarketPage() {
+  const view = await loadMarketView();
+  return <MarketPanel view={view} loadView={loadMarketView} />;
 }

@@ -41,19 +41,16 @@ test.describe("纵横四海 (Seaforge)：E2E 游戏流程", () => {
 
     // 交易所
     await page.locator("nav").getByRole("link", { name: "交易所" }).click();
-    await page.getByRole("button", { name: "进入交易所" }).click();
     await expect(
       page.getByRole("button", { name: "买入" }).first(),
     ).toBeVisible({ timeout: 15_000 });
 
     // 船舱（空舱）
     await page.locator("nav").getByRole("link", { name: "船舱" }).click();
-    await page.getByRole("button", { name: "查看船舱" }).click();
     await expect(page.getByText("空空如也")).toBeVisible({ timeout: 15_000 });
 
     // 航海图
     await page.locator("nav").getByRole("link", { name: "航海图" }).click();
-    await page.getByRole("button", { name: "打开航海图" }).click();
     await expect(
       page.getByRole("button", { name: "前往" }).first(),
     ).toBeVisible({ timeout: 15_000 });
@@ -61,7 +58,6 @@ test.describe("纵横四海 (Seaforge)：E2E 游戏流程", () => {
     // 造船厂（从港口卡片进入）
     await page.locator("nav").getByRole("link", { name: "港口" }).click();
     await page.getByRole("link", { name: /造船厂/ }).click();
-    await page.getByRole("button", { name: /进入造船厂/ }).click();
     await expect(page.getByText("造船厂")).toBeVisible({ timeout: 15_000 });
   });
 
@@ -74,7 +70,6 @@ test.describe("纵横四海 (Seaforge)：E2E 游戏流程", () => {
 
     // 进入交易所
     await page.locator("nav").getByRole("link", { name: "交易所" }).click();
-    await page.getByRole("button", { name: "进入交易所" }).click();
     await expect(
       page.getByRole("button", { name: /^买入$/ }).first(),
     ).toBeVisible({ timeout: 15_000 });
@@ -90,10 +85,8 @@ test.describe("纵横四海 (Seaforge)：E2E 游戏流程", () => {
       timeout: 15_000,
     });
     await page.getByRole("button", { name: "确认购买" }).click();
-
     // 进入船舱查看
     await page.locator("nav").getByRole("link", { name: "船舱" }).click();
-    await page.getByRole("button", { name: "查看船舱" }).click();
     await expect(page.getByText("单桅帆船 - 船舱")).toBeVisible({
       timeout: 15_000,
     });
@@ -113,7 +106,6 @@ test.describe("纵横四海 (Seaforge)：E2E 游戏流程", () => {
 
     // 进入航海图
     await page.locator("nav").getByRole("link", { name: "航海图" }).click();
-    await page.getByRole("button", { name: "打开航海图" }).click();
     await expect(
       page.getByRole("button", { name: "前往" }).first(),
     ).toBeVisible({ timeout: 15_000 });

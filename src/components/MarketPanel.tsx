@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useState } from "react";
+import { useState } from "react";
 import { buyGoods, sellGoods } from "../app/actions/trade";
 import type { MarketView } from "../types/game-view";
 import { Modal } from "./ui/Modal";
@@ -8,10 +8,11 @@ import { QuantityInput } from "./ui/QuantityInput";
 
 interface MarketPanelProps {
   readonly view: MarketView;
-  readonly onRefresh: () => void;
+  readonly loadView: () => Promise<MarketView>;
 }
 
-export function MarketPanel({ view, onRefresh }: MarketPanelProps) {
+export function MarketPanel({ view: initialView, loadView }: MarketPanelProps) {
+  const [view, setView] = useState(initialView);
   const [isBuying, setIsBuying] = useState(false);
   const [selectedGoodId, setSelectedGoodId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -78,9 +79,8 @@ export function MarketPanel({ view, onRefresh }: MarketPanelProps) {
     setMessage(null);
     try {
       await buyGoods(formData);
-      startTransition(() => {
-        onRefresh();
-      });
+      const newView = await loadView();
+      setView(newView);
       const goodId = formData.get("goodId") as string;
       const qty = formData.get("quantity") as string;
       const good = view.goods.find((g) => g.id === goodId);
@@ -98,9 +98,8 @@ export function MarketPanel({ view, onRefresh }: MarketPanelProps) {
     setMessage(null);
     try {
       await sellGoods(formData);
-      startTransition(() => {
-        onRefresh();
-      });
+      const newView = await loadView();
+      setView(newView);
       const qty = formData.get("quantity") as string;
       setMessage(`成功卖出 ${qty} 个商品`);
       setSelectedSellGoodId(null);

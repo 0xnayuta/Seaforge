@@ -1,22 +1,27 @@
 "use client";
 
+import { useActionState } from "react";
 import type { ShipView } from "../types/game-view";
 
 interface ShipyardPanelProps {
   readonly view: ShipView;
-  readonly onUpgrade: (formData: FormData) => void;
-  readonly onRepair: (formData: FormData) => void;
-  readonly afterUpgrade: ShipView | null;
-  readonly afterRepair: ShipView | null;
+  readonly onUpgrade: (
+    _prev: ShipView | null,
+    _formData?: FormData,
+  ) => Promise<ShipView>;
+  readonly onRepair: (
+    _prev: ShipView | null,
+    _formData?: FormData,
+  ) => Promise<ShipView>;
 }
 
 export function ShipyardPanel({
   view,
   onUpgrade,
   onRepair,
-  afterUpgrade,
-  afterRepair,
 }: ShipyardPanelProps) {
+  const [afterUpgrade, doUpgrade] = useActionState(onUpgrade, null);
+  const [afterRepair, doRepair] = useActionState(onRepair, null);
   const displayView = afterUpgrade ?? afterRepair ?? view;
   const blockedByVoyage = displayView.blockedByVoyage;
   const hpPercent =
@@ -62,7 +67,7 @@ export function ShipyardPanel({
         <RepairForm
           repairCost={displayView.repairCost}
           canRepair={displayView.canRepair}
-          onRepair={onRepair}
+          onRepair={doRepair}
         />
       )}
 
@@ -71,7 +76,7 @@ export function ShipyardPanel({
         upgradeCost={displayView.upgradeCost}
         canUpgrade={displayView.canUpgrade}
         blockedByVoyage={blockedByVoyage}
-        onUpgrade={onUpgrade}
+        onUpgrade={doUpgrade}
       />
 
       <div className="text-center">
