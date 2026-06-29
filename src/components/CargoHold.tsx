@@ -1,36 +1,56 @@
 "use client";
 
 import { useState } from "react";
-import { sellGoods } from "../app/actions/trade";
-import type { CargoItemView, CargoView } from "../types/game-view";
-import { Modal } from "./ui/Modal";
-import { QuantityInput } from "./ui/QuantityInput";
+import type { CargoView } from "../types/game-view";
 
-interface CargoHoldProps {
-  readonly view: CargoView;
-  readonly onRefresh: () => void;
-}
-
-export function CargoHold({ view, onRefresh }: CargoHoldProps) {
-  const [isSelling, setIsSelling] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<CargoItemView | null>(null);
-  const [sellQuantity, setSellQuantity] = useState(1);
+export function CargoHold({ view }: { readonly view: CargoView }) {
   const [message, setMessage] = useState<string | null>(null);
-
-  async function doSell(formData: FormData) {
-    setIsSelling(true);
-    setMessage(null);
-    try {
-      await sellGoods(formData);
-      onRefresh();
-      setMessage("成功卖出");
-      setSelectedItem(null);
-      setSellQuantity(1);
-    } catch (e) {
-      setMessage(e instanceof Error ? e.message : "卖出失败");
-    } finally {
-      setIsSelling(false);
+  // L3: 排序状态
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc" | null>(null);
+  function toggleSort(col: string) {
+    if (sortColumn === col) {
+      setSortDir((prev) =>
+        prev === "asc" ? "desc" : prev === "desc" ? null : "asc",
+      );
+    } else {
+      setSortColumn(col);
+      setSortDir("asc");
     }
+  }
+  const sortedItems = [...view.items].sort((a, b) => {
+    if (!sortColumn || !sortDir) return 0;
+    let cmp = 0;
+    switch (sortColumn) {
+      case "name":
+        cmp = a.goodName.localeCompare(b.goodName);
+        break;
+      case "category":
+        cmp = a.category.localeCompare(b.category);
+        break;
+      case "usedVolume":
+        cmp = a.quantity * a.volume - b.quantity * b.volume;
+        break;
+      case "buyPrice":
+        cmp = a.buyPrice - b.buyPrice;
+        break;
+      case "quantity":
+        cmp = a.quantity - b.quantity;
+        break;
+      case "totalCost":
+        cmp = a.buyPrice * a.quantity - b.buyPrice * b.quantity;
+        break;
+    }
+    return sortDir === "desc" ? -cmp : cmp;
+  });
+  function sortIndicator(col: string): string {
+    return sortColumn === col
+      ? sortDir === "asc"
+        ? " ▲"
+        : sortDir === "desc"
+          ? " ▼"
+          : ""
+      : "";
   }
 
   return (
@@ -62,19 +82,54 @@ export function CargoHold({ view, onRefresh }: CargoHoldProps) {
         </div>
       ) : (
         <div className="rounded-lg border border-ocean-600 bg-ocean-800/80 overflow-hidden">
-          <div className="grid grid-cols-7 gap-2 border-b border-ocean-600 bg-ocean-700/60 px-4 py-2 text-xs font-semibold text-parchment-dark uppercase tracking-wider">
-            <span className="text-left">货物</span>
-            <span className="text-left">分类</span>
-            <span className="text-center">占用舱容</span>
-            <span className="text-center">买入价</span>
-            <span className="text-center">数量</span>
-            <span className="text-center">利润</span>
-            <span />
+          <div className="grid grid-cols-6 gap-2 border-b border-ocean-600 bg-ocean-700/60 px-4 py-2 text-xs font-semibold text-parchment-dark uppercase tracking-wider">
+            <button
+              type="button"
+              onClick={() => toggleSort("name")}
+              className="text-left cursor-pointer hover:text-gold-400 transition-colors"
+            >
+              货物{sortIndicator("name")}
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleSort("category")}
+              className="text-left cursor-pointer hover:text-gold-400 transition-colors"
+            >
+              分类{sortIndicator("category")}
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleSort("usedVolume")}
+              className="text-center cursor-pointer hover:text-gold-400 transition-colors"
+            >
+              占用舱容{sortIndicator("usedVolume")}
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleSort("buyPrice")}
+              className="text-center cursor-pointer hover:text-gold-400 transition-colors"
+            >
+              买入价{sortIndicator("buyPrice")}
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleSort("totalCost")}
+              className="text-center cursor-pointer hover:text-gold-400 transition-colors"
+            >
+              成本{sortIndicator("totalCost")}
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleSort("quantity")}
+              className="text-center cursor-pointer hover:text-gold-400 transition-colors"
+            >
+              数量{sortIndicator("quantity")}
+            </button>
           </div>
-          {view.items.map((item) => (
+          {sortedItems.map((item) => (
             <div
               key={item.goodId}
-              className="grid grid-cols-7 gap-2 items-center border-b border-ocean-700/30 px-4 py-3 text-sm hover:bg-ocean-700/40 transition-colors last:border-b-0"
+              className="grid grid-cols-6 gap-2 items-center border-b border-ocean-700/30 px-4 py-3 text-sm hover:bg-ocean-700/40 transition-colors last:border-b-0"
             >
               <span className="text-left font-medium">{item.goodName}</span>
               <span className="text-left text-parchment-dark">
@@ -86,103 +141,15 @@ export function CargoHold({ view, onRefresh }: CargoHoldProps) {
               <span className="text-center text-parchment-dark">
                 {item.buyPrice}
               </span>
+              <span className="text-center text-gold-400">
+                {(item.buyPrice * item.quantity).toLocaleString()}
+              </span>
               <span className="text-center text-parchment-dark">
                 {item.quantity}
               </span>
-              <span
-                className={`text-center ${
-                  item.estimatedProfit >= 0 ? "text-green-400" : "text-red-400"
-                }`}
-              >
-                {item.estimatedProfit >= 0 ? "+" : ""}
-                {item.estimatedProfit.toLocaleString()}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedItem(item);
-                  setSellQuantity(1);
-                  setMessage(null);
-                }}
-                className="rounded bg-gold-500/20 px-2 py-1 text-xs text-gold-400 hover:bg-gold-500/30 transition-colors"
-              >
-                卖出
-              </button>
             </div>
           ))}
         </div>
-      )}
-
-      {selectedItem && (
-        <Modal
-          title={`卖出 ${selectedItem.goodName}`}
-          onClose={() => {
-            setSelectedItem(null);
-            setSellQuantity(1);
-          }}
-        >
-          <div className="space-y-2 text-sm text-parchment-dark">
-            <div className="flex justify-between">
-              <span>持有</span>
-              <span>{selectedItem.quantity}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>买入价</span>
-              <span>{selectedItem.buyPrice}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>当前卖价</span>
-              <span className="text-gold-400">{selectedItem.sellPrice}</span>
-            </div>
-            <div className="flex justify-between border-t border-ocean-700 pt-2">
-              <span>预计利润</span>
-              <span
-                className={`font-bold ${
-                  selectedItem.sellPrice - selectedItem.buyPrice >= 0
-                    ? "text-green-400"
-                    : "text-red-400"
-                }`}
-              >
-                {(
-                  (selectedItem.sellPrice - selectedItem.buyPrice) *
-                  sellQuantity
-                ).toLocaleString()}
-              </span>
-            </div>
-          </div>
-
-          <QuantityInput
-            value={sellQuantity}
-            max={selectedItem.quantity}
-            onChange={setSellQuantity}
-          />
-
-          <div className="mt-4 flex gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                const fd = new FormData();
-                fd.set("goodId", selectedItem.goodId);
-                fd.set("quantity", String(sellQuantity));
-                doSell(fd);
-              }}
-              disabled={isSelling}
-              className="flex-1 rounded bg-gold-500 py-2 text-sm font-bold text-ocean-900 hover:bg-gold-400 transition-colors disabled:opacity-50"
-            >
-              {isSelling ? "卖出中..." : "确认卖出"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedItem(null);
-                setSellQuantity(1);
-              }}
-              className="rounded bg-ocean-700 px-4 py-2 text-sm hover:bg-ocean-600 transition-colors"
-            >
-              取消
-            </button>
-          </div>
-        </Modal>
       )}
 
       <div className="text-center">

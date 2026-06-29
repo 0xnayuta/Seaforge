@@ -3,6 +3,11 @@ import { useState, useTransition } from "react";
 
 import { startTravel } from "../app/actions/travel";
 import { updateArmamentLevel } from "../app/navigation/actions";
+import {
+  SURVIVAL_DEFENSE_FACTOR,
+  SURVIVAL_HP_PENALTY_FACTOR,
+} from "../data/formulas";
+import { calcDefenseScore } from "../game/domain/ship";
 import type { NavigationView } from "../types/game-view";
 import { Modal } from "./ui/Modal";
 
@@ -17,6 +22,7 @@ export function NavigationPanel({ view }: NavigationPanelProps) {
     portName: string;
     travelDays: number;
     estimatedProfit: number;
+    baseDangerScore: number;
   } | null>(null);
 
   // L3: 当前选择的武装配置
@@ -24,11 +30,66 @@ export function NavigationPanel({ view }: NavigationPanelProps) {
     view.currentArmament,
   );
 
+  // L3: 排序状态
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc" | null>(null);
+  function toggleSort(col: string) {
+    if (sortColumn === col) {
+      setSortDir((prev) =>
+        prev === "asc" ? "desc" : prev === "desc" ? null : "asc",
+      );
+    } else {
+      setSortColumn(col);
+      setSortDir("asc");
+    }
+  }
+  function sortIndicator(col: string): string {
+    return sortColumn === col
+      ? sortDir === "asc"
+        ? " ▲"
+        : sortDir === "desc"
+          ? " ▼"
+          : ""
+      : "";
+  }
+  const sortedDestinations = [...view.destinations].sort((a, b) => {
+    if (!sortColumn || !sortDir) return 0;
+    let cmp = 0;
+    switch (sortColumn) {
+      case "region":
+        cmp = a.region.localeCompare(b.region);
+        break;
+      case "distance":
+        cmp = a.distance - b.distance;
+        break;
+      case "travelDays":
+        cmp = a.travelDays - b.travelDays;
+        break;
+      case "survivalRate":
+        cmp = a.baseDangerScore - b.baseDangerScore;
+        break;
+      case "estimatedProfit":
+        cmp = a.estimatedProfit - b.estimatedProfit;
+        break;
+    }
+    return sortDir === "desc" ? -cmp : cmp;
+  });
+
   const selectedOption = view.armamentOptions[selectedArmament];
   const isOverCargo =
     view.currentCargoCount >
     (selectedOption?.effectiveCapacity ?? view.currentCargoCount);
   const riskLevel = selectedOption?.defenseMultiplier ?? 1;
+
+  function getSurvivalRate(baseDangerScore: number): number {
+    const score = calcDefenseScore(
+      selectedOption?.defenseMultiplier ?? 1,
+      view.hpRatio,
+      SURVIVAL_DEFENSE_FACTOR,
+      SURVIVAL_HP_PENALTY_FACTOR,
+    );
+    return Math.min(99, Math.max(5, Math.floor(score - baseDangerScore)));
+  }
 
   return (
     <div className="flex-1 p-4 max-w-2xl mx-auto w-full space-y-4">
@@ -54,17 +115,49 @@ export function NavigationPanel({ view }: NavigationPanelProps) {
 
       {/* 目的地列表 */}
       <div className="rounded-lg border border-ocean-600 bg-ocean-800/80 overflow-hidden">
-        <div className="grid grid-cols-6 gap-2 border-b border-ocean-600 bg-ocean-700/60 px-4 py-2 text-xs font-semibold text-parchment-dark uppercase tracking-wider">
+        <div className="grid grid-cols-8 gap-2 border-b border-ocean-600 bg-ocean-700/60 px-4 py-2 text-xs font-semibold text-parchment-dark uppercase tracking-wider">
           <span className="col-span-2">目的地</span>
-          <span className="text-right">地区</span>
-          <span className="text-right">距离</span>
-          <span className="text-right">天数</span>
+          <button
+            type="button"
+            onClick={() => toggleSort("region")}
+            className="text-right cursor-pointer hover:text-gold-400 transition-colors"
+          >
+            地区{sortIndicator("region")}
+          </button>
+          <button
+            type="button"
+            onClick={() => toggleSort("distance")}
+            className="text-right cursor-pointer hover:text-gold-400 transition-colors"
+          >
+            距离{sortIndicator("distance")}
+          </button>
+          <button
+            type="button"
+            onClick={() => toggleSort("travelDays")}
+            className="text-right cursor-pointer hover:text-gold-400 transition-colors"
+          >
+            天数{sortIndicator("travelDays")}
+          </button>
+          <button
+            type="button"
+            onClick={() => toggleSort("survivalRate")}
+            className="text-right cursor-pointer hover:text-gold-400 transition-colors"
+          >
+            生存率{sortIndicator("survivalRate")}
+          </button>
+          <button
+            type="button"
+            onClick={() => toggleSort("estimatedProfit")}
+            className="text-right cursor-pointer hover:text-gold-400 transition-colors"
+          >
+            预估利润{sortIndicator("estimatedProfit")}
+          </button>
           <span />
         </div>
-        {view.destinations.map((dest) => (
+        {sortedDestinations.map((dest) => (
           <div
             key={dest.portId}
-            className="grid grid-cols-6 gap-2 items-center border-b border-ocean-700/30 px-4 py-3 text-sm hover:bg-ocean-700/40 transition-colors last:border-b-0"
+            className="grid grid-cols-8 gap-2 items-center border-b border-ocean-700/30 px-4 py-3 text-sm hover:bg-ocean-700/40 transition-colors last:border-b-0"
           >
             <span className="col-span-2 font-medium">{dest.portName}</span>
             <span className="text-right text-xs text-parchment-dark">
@@ -74,6 +167,30 @@ export function NavigationPanel({ view }: NavigationPanelProps) {
               {dest.distance}
             </span>
             <span className="text-right text-gold-400">{dest.travelDays}</span>
+            <span
+              className={`text-right ${
+                getSurvivalRate(dest.baseDangerScore) >= 70
+                  ? "text-green-400"
+                  : getSurvivalRate(dest.baseDangerScore) >= 40
+                    ? "text-yellow-400"
+                    : "text-red-400"
+              }`}
+            >
+              {getSurvivalRate(dest.baseDangerScore)}%
+            </span>
+            <span
+              className={`text-right ${
+                dest.estimatedProfit > 0
+                  ? "text-green-400"
+                  : dest.estimatedProfit < 0
+                    ? "text-red-400"
+                    : "text-parchment-dark"
+              }`}
+            >
+              {dest.estimatedProfit > 0
+                ? `+${dest.estimatedProfit.toLocaleString()}`
+                : dest.estimatedProfit.toLocaleString()}
+            </span>
             <button
               type="button"
               onClick={() =>
@@ -82,6 +199,7 @@ export function NavigationPanel({ view }: NavigationPanelProps) {
                   portName: dest.portName,
                   travelDays: dest.travelDays,
                   estimatedProfit: dest.estimatedProfit,
+                  baseDangerScore: dest.baseDangerScore,
                 })
               }
               className="rounded bg-gold-500/20 px-2 py-1 text-xs text-gold-400 hover:bg-gold-500/30 transition-colors"
@@ -98,7 +216,7 @@ export function NavigationPanel({ view }: NavigationPanelProps) {
           dest={selectedDest}
           isOverCargo={isOverCargo}
           armamentLabel={selectedOption?.label ?? "满载货物"}
-          survivalRate={selectedOption?.survivalRate ?? 0}
+          survivalRate={getSurvivalRate(selectedDest.baseDangerScore)}
           isTravelPending={isTravelPending}
           onConfirm={() => {
             startTravelTransition(async () => {
@@ -166,9 +284,6 @@ function ArmamentConfig({
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-parchment">
                   {opt.label}
-                </span>
-                <span className="text-xs text-gold-400">
-                  生存率 {opt.survivalRate}%
                 </span>
               </div>
               <div className="mt-1 flex gap-3 text-xs text-parchment-dark">

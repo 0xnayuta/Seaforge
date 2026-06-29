@@ -3,7 +3,10 @@
 // 纯函数，无副作用，不调用数据库
 // ============================================================
 
-import { REPAIR_COST_MULTIPLIER } from "../../data/formulas";
+import {
+  REPAIR_COST_MULTIPLIER,
+  SURVIVAL_DISTANCE_FACTOR,
+} from "../../data/formulas";
 import { CATEGORY_LABEL, GOODS } from "../../data/goods";
 import { PORTS } from "../../data/ports";
 import { REGIONS } from "../../data/regions";
@@ -66,6 +69,9 @@ export function buildMarketView(world: World): MarketView {
   const goods: GoodView[] = portGoods.map(({ good, buyPrice }) => {
     const cargo = world.ship.cargo.find((c) => c.goodId === good.id);
     const inCargo = cargo?.quantity ?? 0;
+    const sellPrice = getSellPrice(good.id, world.player.currentPortId, world);
+    const estimatedProfit =
+      cargo != null ? (sellPrice - cargo.buyPrice) * cargo.quantity : undefined;
 
     const basePrice = good.basePrice;
     const priceChangePercent =
@@ -78,8 +84,10 @@ export function buildMarketView(world: World): MarketView {
       name: good.name,
       category: CATEGORY_LABEL[good.category],
       buyPrice,
-      sellPrice: getSellPrice(good.id, world.player.currentPortId, world),
+      sellPrice,
       inCargo,
+      cargoBuyPrice: cargo?.buyPrice,
+      estimatedProfit,
       canAfford: world.player.gold >= buyPrice,
       volume: good.volume,
       priceChangePercent,
@@ -102,17 +110,27 @@ export function buildMarketView(world: World): MarketView {
 export function buildNavigationView(world: World): NavigationView {
   const port = PORTS.find((p) => p.id === world.player.currentPortId);
   const reachable = getReachablePorts(world);
+  const hpRatio =
+    world.ship.maxHp > 0 ? world.ship.currentHp / world.ship.maxHp : 0;
 
+  // baseDangerScore = avgDanger × distance × SURVIVAL_DISTANCE_FACTOR × avgRegionModifier
+  const depRegion = REGIONS.find((reg) => reg.id === port?.regionId);
+  const depRegionMod = depRegion?.dangerModifier ?? 1.0;
   const destinations: DestinationView[] = reachable.map((r) => {
     const estimatedProfit = world.ship.cargo.reduce((sum, c) => {
       const targetPrice = getSellPrice(c.goodId, r.port.id, world);
       return sum + (targetPrice - c.buyPrice) * c.quantity;
     }, 0);
 
-    // 简单生存率估算（基于船只当前 HP 和默认满载配置）
-    const hpRatio =
-      world.ship.maxHp > 0 ? world.ship.currentHp / world.ship.maxHp : 0;
-    const baseSurvival = Math.min(99, Math.floor(hpRatio * 100));
+    const depDanger = port?.danger ?? 0.5;
+    const arrDanger = r.port.danger;
+    const avgDanger = (depDanger + arrDanger) / 2;
+    const destRegion = REGIONS.find((reg) => reg.id === r.port.regionId);
+    const avgModifier =
+      (depRegionMod + (destRegion?.dangerModifier ?? 1.0)) / 2;
+    const baseDangerScore =
+      avgDanger * r.distance * SURVIVAL_DISTANCE_FACTOR * avgModifier;
+
     return {
       portId: r.port.id,
       portName: r.port.name,
@@ -120,7 +138,7 @@ export function buildNavigationView(world: World): NavigationView {
       distance: r.distance,
       travelDays: r.travelDays,
       estimatedProfit,
-      survivalRate: baseSurvival,
+      baseDangerScore,
     };
   });
 
@@ -134,20 +152,12 @@ export function buildNavigationView(world: World): NavigationView {
           maxCap,
           i as ArmamentLevel,
         );
-        // 生存率 = min(99, HP比 × 防御乘数 × 75)
-        const hpRatio =
-          world.ship.maxHp > 0 ? world.ship.currentHp / world.ship.maxHp : 0;
-        const survivalRate = Math.min(
-          99,
-          Math.floor(hpRatio * defenseMultiplier * 75),
-        );
 
         return {
           level: i,
           label: ARMAMENT_LABELS[i],
           cargoRatio,
           defenseMultiplier,
-          survivalRate,
           effectiveCapacity,
         };
       })
@@ -159,6 +169,7 @@ export function buildNavigationView(world: World): NavigationView {
     armamentOptions,
     currentCargoCount: getUsedCapacity(world),
     currentArmament: world.ship.armamentLevel,
+    hpRatio,
   };
 }
 

@@ -36,6 +36,8 @@ export interface GoodView {
   readonly canAfford: boolean;
   readonly volume: number;
   readonly priceChangePercent: number; // 行情涨跌（与世界均价对比）
+  readonly cargoBuyPrice?: number; // 持仓加权平均买入价（仅当 inCargo > 0 时有值）
+  readonly estimatedProfit?: number; // 当前港口预期利润
 }
 /** 武装配置选项 */
 export interface ArmamentOptionView {
@@ -43,7 +45,6 @@ export interface ArmamentOptionView {
   readonly label: string;
   readonly cargoRatio: number;
   readonly defenseMultiplier: number;
-  readonly survivalRate: number;
   readonly effectiveCapacity: number;
 }
 
@@ -54,7 +55,7 @@ export interface DestinationView {
   readonly distance: number;
   readonly travelDays: number;
   readonly estimatedProfit: number;
-  readonly survivalRate: number;
+  readonly baseDangerScore: number;
 }
 
 /** 航海图页（/navigation） */
@@ -64,6 +65,7 @@ export interface NavigationView {
   readonly armamentOptions: ArmamentOptionView[];
   readonly currentCargoCount: number;
   readonly currentArmament: 0 | 1 | 2;
+  readonly hpRatio: number;
 }
 
 /** 船舱页（/cargo） */

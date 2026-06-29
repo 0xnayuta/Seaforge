@@ -24,5 +24,5 @@ export default function CargoPage() {
     );
   }
 
-  return <CargoHold view={view} onRefresh={loadAction} />;
+  return <CargoHold view={view} />;
 }
