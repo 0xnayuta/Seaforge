@@ -17,12 +17,15 @@ export function HarborDashboard({ view }: { view: HarborView }) {
               <div
                 className="h-full rounded-full bg-gold-500"
                 style={{
-                  width: `${Math.min(100, (view.playerExp / view.playerExpToNext) * 100)}%`,
+                  width: `${view.playerExpToNext > 0 ? Math.min(100, (view.playerExp / view.playerExpToNext) * 100) : 0}%`,
                 }}
               />
             </div>
             <span className="text-xs text-parchment-dark/60">
-              {Math.round((view.playerExp / view.playerExpToNext) * 100)}%
+              {view.playerExpToNext > 0
+                ? Math.round((view.playerExp / view.playerExpToNext) * 100)
+                : 0}
+              %
             </span>
           </div>
           <span className="text-gold-400">

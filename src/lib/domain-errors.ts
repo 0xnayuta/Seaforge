@@ -13,7 +13,6 @@ const ERROR_MAP: Record<string, string> = {
   NO_PRICE_DATA: "该商品暂无价格数据",
   UNKNOWN_REGION: "未知海域",
   CARGO_EXCEEDS_CAPACITY: "当前货物量超出该配置有效舱容，无法出航",
-  LEVEL_EXP_REQUIRED: "等级不足",
 };
 
 /** 将领域层的 DomainError 转为用户可读的中文错误消息 */

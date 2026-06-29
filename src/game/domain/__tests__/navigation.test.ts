@@ -13,6 +13,25 @@ describe("calcTravelDays", () => {
     const world = createTestWorld();
     expect(calcTravelDays(8, world)).toBe(4);
   });
+
+  it("level 10 reduces travel days vs level 1", () => {
+    const worldL1 = createTestWorld();
+    const worldL10 = createTestWorld({
+      player: {
+        name: "x",
+        gold: 5000,
+        currentPortId: "quanzhou",
+        day: 1,
+        level: 10,
+        exp: 0,
+        expToNext: 100,
+      },
+    });
+
+    // distance 30: level 1 → ceil(30/(1*1.02*2)) = 15, level 10 → ceil(30/(1*1.20*2)) = 13
+    expect(calcTravelDays(30, worldL1)).toBe(15);
+    expect(calcTravelDays(30, worldL10)).toBe(13);
+  });
 });
 
 describe("getReachablePorts", () => {

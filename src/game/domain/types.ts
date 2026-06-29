@@ -96,5 +96,4 @@ export type DomainErrorCode =
   | "UNKNOWN_REGION"
   | "NO_PRICE_DATA"
   | "NOT_AT_PORT"
-  | "CARGO_EXCEEDS_CAPACITY"
-  | "LEVEL_EXP_REQUIRED";
+  | "CARGO_EXCEEDS_CAPACITY";

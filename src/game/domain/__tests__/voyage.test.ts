@@ -129,6 +129,19 @@ describe("applyVoyageEvents", () => {
 
     expect(result.player.gold).toBe(5000 + 150 - 30 + 200);
   });
+
+  it("grants EVENT_EXP per event", () => {
+    const world = createTestWorld();
+    expect(world.player.exp).toBe(0);
+
+    const events: VoyageEvent[] = [
+      { day: 1, description: "storm", goldChange: 0, cargoLoss: 0 },
+      { day: 2, description: "calm", goldChange: 0, cargoLoss: 0 },
+    ];
+
+    const result = applyVoyageEvents(world, events);
+    expect(result.player.exp).toBe(10); // 2 events × EVENT_EXP
+  });
 });
 
 describe("generateVoyageEvents", () => {
