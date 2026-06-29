@@ -4,7 +4,6 @@ import { useState } from "react";
 import type { CargoView } from "../types/game-view";
 
 export function CargoHold({ view }: { readonly view: CargoView }) {
-  const [message, setMessage] = useState<string | null>(null);
   // L3: 排序状态
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc" | null>(null);
@@ -62,19 +61,6 @@ export function CargoHold({ view }: { readonly view: CargoView }) {
           {view.maxCapacity}）
         </span>
       </div>
-
-      {message && (
-        <div className="rounded bg-ocean-700/80 px-3 py-2 text-sm text-gold-400 border border-gold-600/50">
-          {message}
-          <button
-            type="button"
-            onClick={() => setMessage(null)}
-            className="ml-2 text-xs text-parchment-dark"
-          >
-            ×
-          </button>
-        </div>
-      )}
 
       {view.items.length === 0 ? (
         <div className="rounded-lg border border-ocean-600 bg-ocean-800/80 p-8 text-center text-sm text-parchment-dark">

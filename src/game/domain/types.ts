@@ -90,6 +90,7 @@ export type DomainErrorCode =
   | "INVALID_SHIP"
   | "IN_VOYAGE"
   | "UNKNOWN_PORT"
+  | "UNKNOWN_REGION"
   | "NO_PRICE_DATA"
   | "NOT_AT_PORT"
   | "CARGO_EXCEEDS_CAPACITY";

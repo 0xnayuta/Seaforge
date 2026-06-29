@@ -49,7 +49,7 @@ export const COMBAT_CARGO_LOSS_MAX = 8;
 export const TOTAL_LOSS_THRESHOLD = 15;
 
 /// 战斗评分 = 100 + (defenseMultiplier - 1) × COMBAT_DEFENSE_BONUS_FACTOR - (1 - hpRatio) × COMBAT_HP_PENALTY_FACTOR
-/// 然后 × random(±40%) × region.dangerModifier
+/// 然后 × random(±40%) / difficulty（difficulty = regionMod × portDanger，每日插值）
 export const COMBAT_DEFENSE_BONUS_FACTOR = 20;
 export const COMBAT_HP_PENALTY_FACTOR = 100;
 /// 生存率 = clamp(100 - avgDanger × distance × SURVIVAL_DISTANCE_FACTOR × avgRegionModifier + defenseBonus - hpPenalty, 5, 99)

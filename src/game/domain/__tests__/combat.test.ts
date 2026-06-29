@@ -61,6 +61,7 @@ describe("resolveCombat", () => {
 
     // RNG low → 部分损失
     const outcome = resolveCombat(world, 1.0, fixedRng(0.05));
+    expect(outcome.result).toBe("partialLoss");
     expect(outcome.hpDamage).toBeGreaterThanOrEqual(0);
     expect(outcome.cargoLoss).toBeGreaterThanOrEqual(0);
   });
