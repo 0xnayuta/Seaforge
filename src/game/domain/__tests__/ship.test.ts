@@ -1,46 +1,56 @@
 import { describe, expect, it } from "bun:test";
 import {
+  getActiveShip,
   getNearestPort,
   repairShip,
   setArmamentLevel,
   takeDamage,
-  upgradeShip,
+  upgradeComponent,
 } from "../ship";
 import { createTestWorld } from "./helpers";
 
 describe("takeDamage", () => {
-  it("reduces currentHp by damage amount", () => {
+  it("reduces durability by damage amount", () => {
     const world = createTestWorld();
-    const result = takeDamage(world, 10);
-    expect(result.ship.currentHp).toBe(40);
+    const result = takeDamage(world, getActiveShip(world).id, 10);
+    expect(result.fleet.ships[0].durability).toBe(40);
   });
 
   it("does not reduce below 0", () => {
     const world = createTestWorld();
-    const result = takeDamage(world, 200);
-    expect(result.ship.currentHp).toBe(0);
+    const result = takeDamage(world, getActiveShip(world).id, 200);
+    expect(result.fleet.ships[0].durability).toBe(0);
   });
 
   it("returns same world when damage is 0", () => {
     const world = createTestWorld();
-    const result = takeDamage(world, 0);
-    expect(result).toBe(world); // 引用不变
+    const result = takeDamage(world, getActiveShip(world).id, 0);
+    expect(result).toBe(world);
   });
 
   it("returns same world when damage is negative", () => {
     const world = createTestWorld();
-    const result = takeDamage(world, -5);
+    const result = takeDamage(world, getActiveShip(world).id, -5);
     expect(result).toBe(world);
   });
 });
 
 describe("repairShip", () => {
-  it("restores HP to max and deducts gold", () => {
-    const damaged = createTestWorld();
-    damaged.ship.currentHp = 20;
-    const result = repairShip(damaged);
-    expect(result.ship.currentHp).toBe(50); // maxHp = 50 (sloop)
-    expect(result.player.gold).toBe(5000 - Math.ceil(30 * 5 * 1.0)); // 修复 30 HP
+  it("restores durability to max and deducts gold", () => {
+    const damaged = createTestWorld({
+      fleet: {
+        ...createTestWorld().fleet,
+        ships: [
+          {
+            ...createTestWorld().fleet.ships[0],
+            durability: 20,
+          },
+        ],
+      },
+    });
+    const result = repairShip(damaged, getActiveShip(damaged).id);
+    expect(result.fleet.ships[0].durability).toBe(50); // baseDurability = 50 (sloop)
+    expect(result.fleet.gold).toBe(5000 - Math.ceil(30 * 5 * 1.0));
   });
 
   it("throws IN_VOYAGE when sailing", () => {
@@ -54,56 +64,83 @@ describe("repairShip", () => {
         armamentLevel: 0,
       },
     });
-    expect(() => repairShip(damaged)).toThrow("IN_VOYAGE");
+    expect(() => repairShip(damaged, getActiveShip(damaged).id)).toThrow(
+      "IN_VOYAGE",
+    );
   });
 
   it("throws INSUFFICIENT_GOLD when player cannot afford", () => {
     const poor = createTestWorld({
-      player: { name: "a", gold: 1, currentPortId: "quanzhou", day: 1 },
+      player: { name: "a", currentPortId: "quanzhou", day: 1 },
+      fleet: {
+        ...createTestWorld().fleet,
+        gold: 1,
+        ships: [
+          {
+            ...createTestWorld().fleet.ships[0],
+            durability: 1,
+          },
+        ],
+      },
     });
-    poor.ship.currentHp = 1;
-    expect(() => repairShip(poor)).toThrow("INSUFFICIENT_GOLD");
+    expect(() => repairShip(poor, getActiveShip(poor).id)).toThrow(
+      "INSUFFICIENT_GOLD",
+    );
   });
 
-  it("returns same world when HP is full", () => {
+  it("returns same world when durability is full", () => {
     const world = createTestWorld();
-    const result = repairShip(world);
+    const result = repairShip(world, getActiveShip(world).id);
     expect(result).toBe(world);
   });
 });
 
 describe("getNearestPort", () => {
   it("returns fromPort when route is shorter or equal", () => {
-    // 泉州→长崎: 5, 长崎→泉州: 5 → 相等 → 取 from
     expect(getNearestPort("quanzhou", "nagasaki")).toBe("quanzhou");
   });
 
   it("returns shorter port when asymmetric", () => {
-    // 其实 routes 中对不对称，马六甲→长崎 10, 长崎→马六甲 10
-    // 取 from
     expect(getNearestPort("malacca", "nagasaki")).toBe("malacca");
   });
 });
 
-describe("upgradeShip", () => {
-  it("increases upgradeLevel and maxHp", () => {
+describe("upgradeComponent", () => {
+  it("increases hullLevel", () => {
     const world = createTestWorld();
-    const result = upgradeShip(world);
-    expect(result.ship.upgradeLevel).toBe(1);
-    expect(result.ship.maxHp).toBe(Math.floor(50 * 1.2)); // sloop: 50 * 1.2
-    expect(result.ship.currentHp).toBe(result.ship.maxHp); // 升级回满
+    const result = upgradeComponent(world, getActiveShip(world).id, "hull");
+    expect(result.fleet.ships[0].equipment.hullLevel).toBe(1);
+    // hull upgrade does not affect durability/maxDurability (armor does)
+    expect(result.fleet.ships[0].maxDurability).toBe(50);
+    expect(result.fleet.ships[0].durability).toBe(50);
   });
 
   it("deducts gold", () => {
     const world = createTestWorld();
-    const result = upgradeShip(world);
-    expect(result.player.gold).toBe(5000 - 500); // sloop Lv0 cost
+    const result = upgradeComponent(world, getActiveShip(world).id, "hull");
+    expect(result.fleet.gold).toBe(5000 - 500); // sloop hull Lv0 cost
   });
 
   it("throws MAX_LEVEL_REACHED at max level", () => {
-    const maxed = createTestWorld();
-    maxed.ship.upgradeLevel = 3;
-    expect(() => upgradeShip(maxed)).toThrow("MAX_LEVEL_REACHED");
+    const maxed = createTestWorld({
+      fleet: {
+        ...createTestWorld().fleet,
+        ships: [
+          {
+            ...createTestWorld().fleet.ships[0],
+            equipment: {
+              hullLevel: 3,
+              sailLevel: 0,
+              armorLevel: 0,
+              cannonLevel: 0,
+            },
+          },
+        ],
+      },
+    });
+    expect(() =>
+      upgradeComponent(maxed, getActiveShip(maxed).id, "hull"),
+    ).toThrow("MAX_LEVEL_REACHED");
   });
 
   it("throws IN_VOYAGE when sailing", () => {
@@ -117,21 +154,23 @@ describe("upgradeShip", () => {
         armamentLevel: 0,
       },
     });
-    expect(() => upgradeShip(voyaging)).toThrow("IN_VOYAGE");
+    expect(() =>
+      upgradeComponent(voyaging, getActiveShip(voyaging).id, "hull"),
+    ).toThrow("IN_VOYAGE");
   });
 });
 
 describe("setArmamentLevel", () => {
   it("sets armament level on the ship", () => {
     const world = createTestWorld();
-    const result = setArmamentLevel(world, 2);
-    expect(result.ship.armamentLevel).toBe(2);
+    const result = setArmamentLevel(world, getActiveShip(world).id, 2);
+    expect(result.fleet.ships[0].armamentLevel).toBe(2);
   });
 
   it("does not mutate the original world", () => {
     const world = createTestWorld();
-    setArmamentLevel(world, 2);
-    expect(world.ship.armamentLevel).toBe(0);
+    setArmamentLevel(world, getActiveShip(world).id, 2);
+    expect(world.fleet.ships[0].armamentLevel).toBe(0);
   });
 
   it("throws IN_VOYAGE when sailing", () => {
@@ -145,6 +184,8 @@ describe("setArmamentLevel", () => {
         armamentLevel: 0,
       },
     });
-    expect(() => setArmamentLevel(voyaging, 1)).toThrow("IN_VOYAGE");
+    expect(() =>
+      setArmamentLevel(voyaging, getActiveShip(voyaging).id, 1),
+    ).toThrow("IN_VOYAGE");
   });
 });

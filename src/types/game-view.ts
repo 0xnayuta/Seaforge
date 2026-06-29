@@ -90,20 +90,25 @@ export interface CargoItemView {
   readonly volume: number;
   readonly estimatedProfit: number;
 }
+export interface ComponentView {
+  readonly id: string;
+  readonly label: string;
+  readonly level: number;
+  readonly maxLevel: number;
+  readonly nextCost: number | null;
+  readonly canUpgrade: boolean;
+  readonly upgradeDescription: string;
+}
+
 export interface ShipView {
   readonly shipName: string;
-  readonly upgradeLevel: number;
-  readonly maxUpgradeLevel: number;
-  readonly capacity: number;
-  readonly speed: number;
-  readonly playerGold: number;
-  readonly upgradeCost: number | null;
-  readonly canUpgrade: boolean;
-  readonly blockedByVoyage: boolean;
-  readonly currentHp: number;
-  readonly maxHp: number;
+  readonly fleetGold: number;
+  readonly durability: number;
+  readonly maxDurability: number;
   readonly repairCost: number;
   readonly canRepair: boolean;
+  readonly blockedByVoyage: boolean;
+  readonly components: ComponentView[];
 }
 /** 航行中页（/voyage） */
 /** 战斗日志条目 */

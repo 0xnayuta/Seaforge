@@ -1,22 +1,47 @@
 "use server";
-import { repairShip, upgradeShip } from "../../game/domain/ship";
+import type { ComponentType } from "../../game/domain/ship";
+import {
+  getActiveShip,
+  repairShip,
+  upgradeComponent,
+} from "../../game/domain/ship";
 import { buildShipView } from "../../game/view-builder/buildGameView";
 import { prisma } from "../../lib/prisma";
-import { loadWorld } from "../../lib/repository";
-import { withActionState } from "../../lib/with-transaction";
+import { loadWorld, saveWorld } from "../../lib/repository";
 import type { ShipView } from "../../types/game-view";
+import type { PrismaTransactionClient } from "../../types/prisma";
 
-/**
- * 加载造船厂视图（读档 + 组装 View）。
- * 无副作用。
- */
 export async function loadShipView(): Promise<ShipView> {
   const world = await loadWorld(prisma);
   return buildShipView(world);
 }
 
-/** 升级船只（船型/货舱/速度） */
-export const upgradeShipAction = withActionState(upgradeShip, buildShipView);
+export async function upgradeComponentAction(
+  _prev: ShipView | null,
+  formData: FormData,
+): Promise<ShipView> {
+  const component = formData.get("component") as ComponentType;
 
-/** 修理船只（恢复 HP） */
-export const repairShipAction = withActionState(repairShip, buildShipView);
+  return await prisma.$transaction(async (tx: PrismaTransactionClient) => {
+    const world = await loadWorld(tx);
+    const newWorld = upgradeComponent(
+      world,
+      getActiveShip(world).id,
+      component,
+    );
+    await saveWorld(tx, newWorld);
+    return buildShipView(newWorld);
+  });
+}
+
+export async function repairShipAction(
+  _prev: ShipView | null,
+  _formData?: FormData,
+): Promise<ShipView> {
+  return await prisma.$transaction(async (tx: PrismaTransactionClient) => {
+    const world = await loadWorld(tx);
+    const newWorld = repairShip(world, getActiveShip(world).id);
+    await saveWorld(tx, newWorld);
+    return buildShipView(newWorld);
+  });
+}

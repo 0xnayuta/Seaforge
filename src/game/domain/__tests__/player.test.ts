@@ -11,14 +11,14 @@ describe("createDefaultWorld", () => {
 
     // Player state defaults
     expect(world.player.name).toBe("船长");
-    expect(world.player.gold).toBe(5000);
+    expect(world.fleet.gold).toBe(5000);
     expect(world.player.currentPortId).toBe("quanzhou");
     expect(world.player.day).toBe(1);
 
     // Ship: sloop, empty cargo
-    expect(world.ship.typeId).toBe("sloop");
-    expect(world.ship.upgradeLevel).toBe(0);
-    expect(world.ship.cargo).toEqual([]);
+    expect(world.fleet.ships[0].typeId).toBe("sloop");
+    expect(world.fleet.ships[0].equipment.hullLevel).toBe(0);
+    expect(world.fleet.ships[0].cargo).toEqual([]);
 
     // Voyage is null
     expect(world.voyage).toBeNull();
@@ -83,7 +83,8 @@ describe("createDefaultWorld", () => {
     // New market object (applyDayPass creates new prices)
     expect(advanced.market).not.toBe(world.market);
     // Ship is unchanged; advanceDay only spreads world + updates player
-    expect(advanced.ship).toBe(world.ship);
+    // Fleet is unchanged; advanceDay only spreads world + updates player
+    expect(advanced.fleet).toBe(world.fleet);
     expect(advanced.voyage).toBe(world.voyage);
 
     // Original world untouched
@@ -95,7 +96,7 @@ describe("createDefaultWorld", () => {
     const world = createTestWorld();
     const advanced = advanceDay(world, 2);
 
-    expect(advanced.ship).toBe(world.ship);
+    expect(advanced.fleet).toBe(world.fleet);
     expect(advanced.voyage).toBe(world.voyage);
   });
 
@@ -104,14 +105,16 @@ describe("createDefaultWorld", () => {
     const advanced = advanceDay(world, 1);
 
     // Cargo unchanged
-    expect(advanced.ship.cargo).toEqual(world.ship.cargo);
+    expect(advanced.fleet.ships[0].cargo).toEqual(world.fleet.ships[0].cargo);
     // Voyage still null
     expect(advanced.voyage).toBeNull();
     // Other ship fields preserved
-    expect(advanced.ship.typeId).toBe(world.ship.typeId);
-    expect(advanced.ship.upgradeLevel).toBe(world.ship.upgradeLevel);
+    expect(advanced.fleet.ships[0].typeId).toBe(world.fleet.ships[0].typeId);
+    expect(advanced.fleet.ships[0].equipment.hullLevel).toBe(
+      world.fleet.ships[0].equipment.hullLevel,
+    );
     // Gold unchanged
-    expect(advanced.player.gold).toBe(world.player.gold);
+    expect(advanced.fleet.gold).toBe(world.fleet.gold);
     // Port unchanged
     expect(advanced.player.currentPortId).toBe(world.player.currentPortId);
   });

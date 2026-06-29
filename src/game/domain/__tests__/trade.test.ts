@@ -30,7 +30,20 @@ describe("getMaxCapacity", () => {
 
   it("should scale with upgrade level (每级 +20%)", () => {
     const world = createTestWorld({
-      ship: { ...createTestWorld().ship, upgradeLevel: 2 },
+      fleet: {
+        ...createTestWorld().fleet,
+        ships: [
+          {
+            ...createTestWorld().fleet.ships[0],
+            equipment: {
+              hullLevel: 2,
+              sailLevel: 0,
+              armorLevel: 0,
+              cannonLevel: 0,
+            },
+          },
+        ],
+      },
     });
     // floor(30 * (1 + 2 * 0.2)) = floor(30 * 1.4) = 42
     expect(getMaxCapacity(world)).toBe(42);
@@ -48,11 +61,13 @@ describe("executeBuy", () => {
     const newWorld = result.world;
 
     // gold deducted
-    expect(newWorld.player.gold).toBe(world.player.gold - totalCost);
+    expect(newWorld.fleet.gold).toBe(world.fleet.gold - totalCost);
     expect(result.totalCost).toBe(totalCost);
 
     // cargo updated
-    const cargo = newWorld.ship.cargo.find((c) => c.goodId === "silk");
+    const cargo = newWorld.fleet.ships[0].cargo.find(
+      (c) => c.goodId === "silk",
+    );
     expect(cargo).toBeDefined();
     expect(cargo?.quantity).toBe(5 + quantity);
 
@@ -68,8 +83,10 @@ describe("executeBuy", () => {
 
     const result = executeBuy(world, { goodId: "silk", quantity });
 
-    expect(result.world.player.gold).toBe(world.player.gold - totalCost);
-    const cargo = result.world.ship.cargo.find((c) => c.goodId === "silk");
+    expect(result.world.fleet.gold).toBe(world.fleet.gold - totalCost);
+    const cargo = result.world.fleet.ships[0].cargo.find(
+      (c) => c.goodId === "silk",
+    );
     expect(cargo).toBeDefined();
     expect(cargo?.quantity).toBe(2);
     expect(cargo?.buyPrice).toBe(price);
@@ -79,7 +96,7 @@ describe("executeBuy", () => {
     const world = createTestWorld();
     const price = getBuyPrice("silk", world.player.currentPortId, world);
     // 1000 * price = 102000 > 5000
-    expect(1000 * price).toBeGreaterThan(world.player.gold);
+    expect(1000 * price).toBeGreaterThan(world.fleet.gold);
     expect(() => executeBuy(world, { goodId: "silk", quantity: 1000 })).toThrow(
       "INSUFFICIENT_GOLD",
     );
@@ -115,11 +132,13 @@ describe("executeSell", () => {
 
     // gold increased by revenue = price × quantity
     const expectedRevenue = price * quantity;
-    expect(result.world.player.gold).toBe(world.player.gold + expectedRevenue);
+    expect(result.world.fleet.gold).toBe(world.fleet.gold + expectedRevenue);
     expect(result.totalRevenue).toBe(expectedRevenue);
 
     // silk reduced from 5 to 2
-    const cargo = result.world.ship.cargo.find((c) => c.goodId === "silk");
+    const cargo = result.world.fleet.ships[0].cargo.find(
+      (c) => c.goodId === "silk",
+    );
     expect(cargo).toBeDefined();
     expect(cargo?.quantity).toBe(2);
   });
@@ -141,7 +160,7 @@ describe("executeSell", () => {
 
   it("should remove cargo entry entirely when selling exact amount", () => {
     const world = createTestWorld();
-    const silkCargo = world.ship.cargo.find(
+    const silkCargo = world.fleet.ships[0].cargo.find(
       (c) => c.goodId === "silk",
     ) as CargoItem;
     const result = executeSell(world, {
@@ -151,12 +170,12 @@ describe("executeSell", () => {
 
     // cargo entry for silk should be gone
     expect(
-      result.world.ship.cargo.find((c) => c.goodId === "silk"),
+      result.world.fleet.ships[0].cargo.find((c) => c.goodId === "silk"),
     ).toBeUndefined();
 
     // spice cargo should remain
     expect(
-      result.world.ship.cargo.find((c) => c.goodId === "spice"),
+      result.world.fleet.ships[0].cargo.find((c) => c.goodId === "spice"),
     ).toBeDefined();
   });
 
@@ -164,7 +183,7 @@ describe("executeSell", () => {
     const world = createTestWorld();
     const price = getSellPrice("silk", world.player.currentPortId, world);
     const quantity = 3;
-    const cargo = world.ship.cargo.find(
+    const cargo = world.fleet.ships[0].cargo.find(
       (c) => c.goodId === "silk",
     ) as CargoItem;
 
@@ -176,9 +195,14 @@ describe("executeSell", () => {
 
   it("should grant experience on profitable sell", () => {
     const world = createTestWorld({
-      ship: {
-        ...createTestWorld().ship,
-        cargo: [{ goodId: "silk", quantity: 5, buyPrice: 1 }],
+      fleet: {
+        ...createTestWorld().fleet,
+        ships: [
+          {
+            ...createTestWorld().fleet.ships[0],
+            cargo: [{ goodId: "silk", quantity: 5, buyPrice: 1 }],
+          },
+        ],
       },
     });
     expect(world.player.exp).toBe(0);
@@ -192,9 +216,14 @@ describe("executeSell", () => {
     const price = getSellPrice("silk", world.player.currentPortId, world);
     const worldWithHighBuy = {
       ...world,
-      ship: {
-        ...world.ship,
-        cargo: [{ goodId: "silk", quantity: 5, buyPrice: price + 1000 }],
+      fleet: {
+        ...world.fleet,
+        ships: [
+          {
+            ...world.fleet.ships[0],
+            cargo: [{ goodId: "silk", quantity: 5, buyPrice: price + 1000 }],
+          },
+        ],
       },
     };
 

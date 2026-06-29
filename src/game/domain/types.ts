@@ -14,13 +14,32 @@ export interface CargoItem {
 
 // ---- 船只 ----
 
-export interface ShipState {
+export interface ShipEquipment {
+  readonly hullLevel: number; // 舱容等级
+  readonly sailLevel: number; // 速度等级
+  readonly armorLevel: number; // 耐久等级
+  readonly cannonLevel: number; // 攻击等级
+}
+
+export interface ShipInstance {
+  readonly id: string;
   readonly typeId: string;
-  readonly upgradeLevel: number;
-  readonly currentHp: number;
-  readonly maxHp: number;
-  readonly armamentLevel: 0 | 1 | 2;
+  readonly name: string;
+  readonly equipment: ShipEquipment;
+  readonly durability: number;
+  readonly maxDurability: number;
   readonly cargo: readonly CargoItem[];
+  readonly armamentLevel: 0 | 1 | 2;
+  readonly equippedItems: readonly string[];
+}
+
+export interface FleetState {
+  readonly ships: readonly ShipInstance[];
+  readonly activeShipId: string;
+  readonly maxShips: number;
+  readonly crew: number;
+  readonly maxCrew: number;
+  readonly gold: number;
 }
 
 // ---- 市场 ----
@@ -46,12 +65,8 @@ export interface VoyageState {
   readonly events: readonly VoyageEvent[];
   readonly armamentLevel: 0 | 1 | 2;
 }
-
-// ---- 玩家 ----
-
 export interface PlayerState {
   readonly name: string;
-  readonly gold: number;
   readonly currentPortId: string;
   readonly day: number;
   readonly level: number;
@@ -59,16 +74,11 @@ export interface PlayerState {
   readonly expToNext: number;
 }
 
-// ---- World（事实集合） ----
-
 export interface World {
   readonly player: PlayerState;
-  readonly ship: ShipState;
+  readonly fleet: FleetState;
   readonly market: MarketPriceState;
   readonly voyage: VoyageState | null;
-  // 后续 Phase 增加：
-  // quests: QuestState[]
-  // worldEvents: WorldEventState[]
 }
 
 // ---- 领域错误 ----

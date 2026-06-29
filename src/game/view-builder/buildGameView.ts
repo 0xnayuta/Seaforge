@@ -21,6 +21,7 @@ import type {
   CargoItemView,
   CargoView,
   CombatLogEntryView,
+  ComponentView,
   DestinationView,
   GoodView,
   HarborView,
@@ -36,8 +37,12 @@ import {
   getEffectiveCapacityForShip,
   getReachablePorts,
 } from "../domain/navigation";
-import type { ArmamentLevel } from "../domain/ship";
-import { ARMAMENT_LABELS } from "../domain/ship";
+import type { ArmamentLevel, ComponentType } from "../domain/ship";
+import {
+  ARMAMENT_LABELS,
+  COMPONENT_LABELS,
+  getActiveShip,
+} from "../domain/ship";
 import { getMaxCapacity, getUsedCapacity } from "../domain/trade";
 import type { VoyageEvent, World } from "../domain/types";
 
@@ -47,18 +52,19 @@ import type { VoyageEvent, World } from "../domain/types";
 
 export function buildHarborView(world: World): HarborView {
   const port = PORTS.find((p) => p.id === world.player.currentPortId);
-  const ship = SHIPS.find((s) => s.id === world.ship.typeId);
+  const activeShip = getActiveShip(world);
+  const ship = SHIPS.find((s) => s.id === activeShip.typeId);
   return {
     portName: port?.name ?? "未知",
     portDescription: port?.description ?? "",
     region: getRegionName(port?.regionId),
-    playerGold: world.player.gold,
+    playerGold: world.fleet.gold,
     cargoCount: getUsedCapacity(world),
     cargoCapacity: getMaxCapacity(world),
     currentDay: world.player.day,
     shipName: ship?.name ?? "未知",
-    shipCurrentHp: world.ship.currentHp,
-    shipMaxHp: world.ship.maxHp,
+    shipCurrentHp: activeShip.durability,
+    shipMaxHp: activeShip.maxDurability,
     playerLevel: world.player.level,
     playerExp: world.player.exp,
     playerExpToNext: world.player.expToNext,
@@ -68,9 +74,10 @@ export function buildHarborView(world: World): HarborView {
 export function buildMarketView(world: World): MarketView {
   const port = PORTS.find((p) => p.id === world.player.currentPortId);
   const portGoods = getPortGoods(world.player.currentPortId, world);
+  const activeShip = getActiveShip(world);
 
   const goods: GoodView[] = portGoods.map(({ good, buyPrice }) => {
-    const cargo = world.ship.cargo.find((c) => c.goodId === good.id);
+    const cargo = activeShip.cargo.find((c) => c.goodId === good.id);
     const inCargo = cargo?.quantity ?? 0;
     const sellPrice = getSellPrice(good.id, world.player.currentPortId, world);
     const estimatedProfit =
@@ -91,7 +98,7 @@ export function buildMarketView(world: World): MarketView {
       inCargo,
       cargoBuyPrice: cargo?.buyPrice,
       estimatedProfit,
-      canAfford: world.player.gold >= buyPrice,
+      canAfford: world.fleet.gold >= buyPrice,
       volume: good.volume,
       priceChangePercent,
     };
@@ -100,12 +107,12 @@ export function buildMarketView(world: World): MarketView {
   return {
     portName: port?.name ?? "未知",
     goods,
-    playerGold: world.player.gold,
+    playerGold: world.fleet.gold,
     cargoCount: getUsedCapacity(world),
     cargoCapacity: getEffectiveCapacityForShip(
-      world.ship.typeId,
+      activeShip.typeId,
       getMaxCapacity(world),
-      world.ship.armamentLevel,
+      activeShip.armamentLevel,
     ),
   };
 }
@@ -113,14 +120,16 @@ export function buildMarketView(world: World): MarketView {
 export function buildNavigationView(world: World): NavigationView {
   const port = PORTS.find((p) => p.id === world.player.currentPortId);
   const reachable = getReachablePorts(world);
+  const activeShip = getActiveShip(world);
   const hpRatio =
-    world.ship.maxHp > 0 ? world.ship.currentHp / world.ship.maxHp : 0;
+    activeShip.maxDurability > 0
+      ? activeShip.durability / activeShip.maxDurability
+      : 0;
 
-  // baseDangerScore = avgDanger × distance × SURVIVAL_DISTANCE_FACTOR × avgRegionModifier
   const depRegion = REGIONS.find((reg) => reg.id === port?.regionId);
   const depRegionMod = depRegion?.dangerModifier ?? 1.0;
   const destinations: DestinationView[] = reachable.map((r) => {
-    const estimatedProfit = world.ship.cargo.reduce((sum, c) => {
+    const estimatedProfit = activeShip.cargo.reduce((sum, c) => {
       const targetPrice = getSellPrice(c.goodId, r.port.id, world);
       return sum + (targetPrice - c.buyPrice) * c.quantity;
     }, 0);
@@ -145,13 +154,12 @@ export function buildNavigationView(world: World): NavigationView {
     };
   });
 
-  // 武装配置选项
-  const shipConfig = SHIPS.find((s) => s.id === world.ship.typeId);
+  const shipConfig = SHIPS.find((s) => s.id === activeShip.typeId);
   const maxCap = getMaxCapacity(world);
   const armamentOptions: ArmamentOptionView[] = shipConfig
     ? shipConfig.armamentTiers.map(([cargoRatio, defenseMultiplier], i) => {
         const effectiveCapacity = getEffectiveCapacityForShip(
-          world.ship.typeId,
+          activeShip.typeId,
           maxCap,
           i as ArmamentLevel,
         );
@@ -171,15 +179,16 @@ export function buildNavigationView(world: World): NavigationView {
     destinations,
     armamentOptions,
     currentCargoCount: getUsedCapacity(world),
-    currentArmament: world.ship.armamentLevel,
+    currentArmament: activeShip.armamentLevel,
     hpRatio,
   };
 }
 
 export function buildCargoView(world: World): CargoView {
-  const ship = SHIPS.find((s) => s.id === world.ship.typeId);
+  const activeShip = getActiveShip(world);
+  const ship = SHIPS.find((s) => s.id === activeShip.typeId);
 
-  const items: CargoItemView[] = world.ship.cargo.map((c) => {
+  const items: CargoItemView[] = activeShip.cargo.map((c) => {
     const good = GOODS.find((g) => g.id === c.goodId);
     const sellPrice = getSellPrice(c.goodId, world.player.currentPortId, world);
     return {
@@ -199,48 +208,80 @@ export function buildCargoView(world: World): CargoView {
     usedCapacity: getUsedCapacity(world),
     maxCapacity: getMaxCapacity(world),
     effectiveCapacity: getEffectiveCapacityForShip(
-      world.ship.typeId,
+      activeShip.typeId,
       getMaxCapacity(world),
-      world.ship.armamentLevel,
+      activeShip.armamentLevel,
     ),
     items,
   };
 }
 
+function buildComponentDescription(
+  component: ComponentType,
+  level: number,
+): string {
+  switch (component) {
+    case "hull":
+      return `舱容 ${10 + level * 20}%`;
+    case "sail":
+      return `速度 ${5 + level * 5}%`;
+    case "armor":
+      return `耐久上限 ${20 + level * 20}%`;
+    case "cannon":
+      return `攻击 ${10 + level * 10}%`;
+  }
+}
+
 export function buildShipView(world: World): ShipView {
-  const shipConfig = SHIPS.find((s) => s.id === world.ship.typeId);
+  const activeShip = getActiveShip(world);
+  const shipConfig = SHIPS.find((s) => s.id === activeShip.typeId);
   if (!shipConfig) throw new Error("无效船只");
 
-  const level = world.ship.upgradeLevel;
-  const canUpgrade = level < shipConfig.maxUpgradeLevel;
-  const upgradeCost = canUpgrade ? shipConfig.upgradeCosts[level] : null;
-
-  const missingHp = world.ship.maxHp - world.ship.currentHp;
+  const missing = activeShip.maxDurability - activeShip.durability;
   const repairCost =
-    missingHp > 0
+    missing > 0
       ? Math.ceil(
-          missingHp * shipConfig.repairCostPerHp * REPAIR_COST_MULTIPLIER,
+          missing * shipConfig.repairCostPerDurability * REPAIR_COST_MULTIPLIER,
         )
       : 0;
 
+  const components: ComponentView[] = (
+    ["hull", "sail", "armor", "cannon"] as ComponentType[]
+  ).map((component) => {
+    const equipKey =
+      component === "hull"
+        ? "hullLevel"
+        : component === "sail"
+          ? "sailLevel"
+          : component === "armor"
+            ? "armorLevel"
+            : "cannonLevel";
+    const level = activeShip.equipment[equipKey];
+    const maxLevel = shipConfig.maxComponentLevel;
+    const canUpgrade = level < maxLevel;
+    const cost = canUpgrade ? shipConfig.upgradeCosts[component][level] : null;
+
+    return {
+      id: component,
+      label: COMPONENT_LABELS[component],
+      level,
+      maxLevel,
+      nextCost: cost,
+      canUpgrade:
+        canUpgrade && world.fleet.gold >= (cost ?? Infinity) && !world.voyage,
+      upgradeDescription: buildComponentDescription(component, level + 1),
+    };
+  });
+
   return {
     shipName: shipConfig.name,
-    upgradeLevel: level,
-    maxUpgradeLevel: shipConfig.maxUpgradeLevel,
-    capacity: getMaxCapacity(world),
-    speed: shipConfig.speed,
-    playerGold: world.player.gold,
-    upgradeCost,
-    blockedByVoyage: !!world.voyage,
-    canUpgrade:
-      canUpgrade &&
-      world.player.gold >= (upgradeCost ?? Infinity) &&
-      !world.voyage,
-    currentHp: world.ship.currentHp,
-    maxHp: world.ship.maxHp,
+    fleetGold: world.fleet.gold,
+    durability: activeShip.durability,
+    maxDurability: activeShip.maxDurability,
     repairCost,
-    canRepair:
-      missingHp > 0 && world.player.gold >= repairCost && !world.voyage,
+    canRepair: missing > 0 && world.fleet.gold >= repairCost && !world.voyage,
+    blockedByVoyage: !!world.voyage,
+    components,
   };
 }
 
@@ -292,6 +333,7 @@ function buildEventView(event: VoyageEvent): VoyageEventView {
     combatLog,
   };
 }
+
 export function buildVoyageView(world: World): VoyageView {
   const voyage = world.voyage;
   if (!voyage) {

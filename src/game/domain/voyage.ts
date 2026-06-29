@@ -9,15 +9,12 @@ import { REGIONS } from "../../data/regions";
 import { applyCombatOutcome, resolveCombat } from "./combat";
 import { getEffectiveCapacityForShip } from "./navigation";
 import { gainExp } from "./player";
-import { getNearestPort } from "./ship";
+import { getActiveShip, getNearestPort } from "./ship";
 import { getMaxCapacity, getUsedCapacity } from "./trade";
 import type { CargoItem, VoyageEvent, VoyageState, World } from "./types";
 import { DomainError } from "./types";
 
-/**
- * 按区域调整事件概率权重。
- * 返回调整后的事件列表和调整后的总概率（用于每日触发判定）。
- */
+/** 按区域调整事件概率权重 */
 function adjustEventsByRegion(region: string): {
   events: readonly EventTemplate[];
   totalChance: number;
@@ -35,20 +32,20 @@ function isEventTriggered(roll: number, totalChance: number): boolean {
   return roll < totalChance;
 }
 
-/** 按权重选择事件模板，返回 null 表示无匹配 */
+/** 按权重选择事件模板 */
 function pickEvent(
   roll: number,
   events: readonly EventTemplate[],
 ): EventTemplate | null {
   let cumulative = 0;
-  for (const tmpl of events) {
-    cumulative += tmpl.chance;
-    if (roll < cumulative) return tmpl;
+  for (const e of events) {
+    cumulative += e.chance;
+    if (roll < cumulative) return e;
   }
   return null;
 }
 
-/** 创建战斗事件（数值由抵达时结算） */
+/** 创建战斗事件 */
 function createCombatEvent(day: number, tmpl: EventTemplate): VoyageEvent {
   return {
     day,
@@ -69,30 +66,28 @@ function createDefaultEvent(day: number, tmpl: EventTemplate): VoyageEvent {
       : 0;
   return { day, description: tmpl.triggerText, goldChange, cargoLoss };
 }
-/** 每天最多一个事件：按权重随机选择并生成，返回 null 表示今日无事 */
+
+/** 每天最多一个事件：按权重随机选择并生成 */
 function generateSingleDayEvent(
   day: number,
   events: readonly EventTemplate[],
   totalChance: number,
 ): VoyageEvent | null {
-  const roll = Math.random();
-  if (!isEventTriggered(roll, totalChance)) return null;
-
-  const tmpl = pickEvent(roll, events);
+  if (!isEventTriggered(Math.random(), totalChance)) return null;
+  const tmpl = pickEvent(Math.random() * totalChance, events);
   if (!tmpl) return null;
 
-  return tmpl.type === "combat"
-    ? createCombatEvent(day, tmpl)
-    : createDefaultEvent(day, tmpl);
+  if (tmpl.type === "combat") return createCombatEvent(day, tmpl);
+  return createDefaultEvent(day, tmpl);
 }
 
-/** 生成航行事件（在出航时一次性确定）。每天有概率触发 0-1 个事件。 */
+/** 生成航行事件 */
 export function generateVoyageEvents(
   world: World,
   travelDays: number,
 ): readonly VoyageEvent[] {
   const port = PORTS.find((p) => p.id === world.player.currentPortId);
-  const region = port?.regionId ?? "";
+  const region = port?.regionId ?? "unknown";
   const { events, totalChance } = adjustEventsByRegion(region);
 
   const result: VoyageEvent[] = [];
@@ -103,7 +98,7 @@ export function generateVoyageEvents(
   return result;
 }
 
-/** 随机从 cargo 中扣除指定数量货物（支持超额跨摊分） */
+/** 随机从 cargo 中扣除指定数量货物 */
 function subtractCargoLoss(
   cargo: readonly CargoItem[],
   lossAmount: number,
@@ -125,7 +120,8 @@ function subtractCargoLoss(
   }
   return result;
 }
-/** 断言查找结果不为空（配置数据必须存在） */
+
+/** 断言查找结果不为空 */
 function findOrThrow<T extends { id: string }>(
   items: readonly T[],
   id: string,
@@ -143,7 +139,6 @@ function applyCombatEvent(world: World, event: VoyageEvent): World {
 
   const progress = event.day / voyage.travelDays;
 
-  // 线性插值：当前海域危险度 × 港口危险度
   const depPort = findOrThrow(PORTS, voyage.fromPortId, "UNKNOWN_PORT");
   const arrPort = findOrThrow(PORTS, voyage.toPortId, "UNKNOWN_PORT");
   const depRegion = findOrThrow(REGIONS, depPort.regionId, "UNKNOWN_REGION");
@@ -161,7 +156,6 @@ function applyCombatEvent(world: World, event: VoyageEvent): World {
     world.voyage?.toPortId ?? world.player.currentPortId,
   );
 
-  // 将 combatOutcome 存入事件（view builder 读取展示）
   (event as VoyageEvent & { combatOutcome: typeof outcome }).combatOutcome =
     outcome;
 
@@ -173,23 +167,28 @@ function applyGoldChange(world: World, delta: number): World {
   if (delta === 0) return world;
   return {
     ...world,
-    player: { ...world.player, gold: Math.max(0, world.player.gold + delta) },
+    fleet: { ...world.fleet, gold: Math.max(0, world.fleet.gold + delta) },
   };
 }
 
 /** 应用货物损失 */
 function applyCargoLoss(world: World, loss: number): World {
-  if (loss <= 0 || world.ship.cargo.length === 0) return world;
+  const activeShip = getActiveShip(world);
+  if (loss <= 0 || activeShip.cargo.length === 0) return world;
   return {
     ...world,
-    ship: { ...world.ship, cargo: subtractCargoLoss(world.ship.cargo, loss) },
+    fleet: {
+      ...world.fleet,
+      ships: world.fleet.ships.map((s) =>
+        s.id === activeShip.id
+          ? { ...s, cargo: subtractCargoLoss(activeShip.cargo, loss) }
+          : s,
+      ),
+    },
   };
 }
-/**
- * 应用航行事件效果到 World（扣金币、丢失货物）。
- * 战斗事件在抵达时实时解析（考虑之前事件造成的 HP 变化）。
- * 在抵达时统一处理。
- */
+
+/** 应用航行事件效果到 World */
 export function applyVoyageEvents(
   world: World,
   events: readonly VoyageEvent[],
@@ -223,8 +222,9 @@ export function startVoyage(
   const { fromPortId, toPortId, travelDays, armamentLevel } = options;
   const usedCapacity = getUsedCapacity(world);
   const maxCapacity = getMaxCapacity(world);
+  const activeShip = getActiveShip(world);
   const effectiveCapacity = getEffectiveCapacityForShip(
-    world.ship.typeId,
+    activeShip.typeId,
     maxCapacity,
     armamentLevel,
   );

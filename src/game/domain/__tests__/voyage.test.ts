@@ -46,7 +46,7 @@ describe("applyVoyageEvents", () => {
 
     const result = applyVoyageEvents(world, events);
 
-    expect(result.player.gold).toBe(5000 + 100 - 50);
+    expect(result.fleet.gold).toBe(5000 + 100 - 50);
   });
 
   it("gold never goes below 0", () => {
@@ -57,7 +57,7 @@ describe("applyVoyageEvents", () => {
 
     const result = applyVoyageEvents(world, events);
 
-    expect(result.player.gold).toBe(0);
+    expect(result.fleet.gold).toBe(0);
   });
 
   it("cargo loss removes quantity from a cargo item", () => {
@@ -71,11 +71,11 @@ describe("applyVoyageEvents", () => {
     const result = applyVoyageEvents(world, events);
 
     // Math.random()=0 picks cargo[0] (silk, qty 5); remaining = 5-2 = 3
-    expect(result.ship.cargo).toHaveLength(2);
-    expect(result.ship.cargo[0].goodId).toBe("silk");
-    expect(result.ship.cargo[0].quantity).toBe(3);
-    expect(result.ship.cargo[1].goodId).toBe("spice");
-    expect(result.ship.cargo[1].quantity).toBe(3);
+    expect(result.fleet.ships[0].cargo).toHaveLength(2);
+    expect(result.fleet.ships[0].cargo[0].goodId).toBe("silk");
+    expect(result.fleet.ships[0].cargo[0].quantity).toBe(3);
+    expect(result.fleet.ships[0].cargo[1].goodId).toBe("spice");
+    expect(result.fleet.ships[0].cargo[1].quantity).toBe(3);
 
     vi.restoreAllMocks();
   });
@@ -91,21 +91,22 @@ describe("applyVoyageEvents", () => {
     const result = applyVoyageEvents(world, events);
 
     // silk qty 5 - 5 = 0 → item removed entirely
-    expect(result.ship.cargo).toHaveLength(1);
-    expect(result.ship.cargo[0].goodId).toBe("spice");
+    expect(result.fleet.ships[0].cargo).toHaveLength(1);
+    expect(result.fleet.ships[0].cargo[0].goodId).toBe("spice");
 
     vi.restoreAllMocks();
   });
 
   it("cargo loss does nothing when cargo is empty", () => {
     const world = createTestWorld({
-      ship: {
-        typeId: "sloop",
-        upgradeLevel: 0,
-        currentHp: 50,
-        maxHp: 50,
-        armamentLevel: 0,
-        cargo: [],
+      fleet: {
+        ...createTestWorld().fleet,
+        ships: [
+          {
+            ...createTestWorld().fleet.ships[0],
+            cargo: [],
+          },
+        ],
       },
     });
     const events: VoyageEvent[] = [
@@ -114,7 +115,7 @@ describe("applyVoyageEvents", () => {
 
     const result = applyVoyageEvents(world, events);
 
-    expect(result.ship.cargo).toHaveLength(0);
+    expect(result.fleet.ships[0].cargo).toHaveLength(0);
   });
 
   it("multiple events with gold changes accumulate correctly", () => {
@@ -127,7 +128,7 @@ describe("applyVoyageEvents", () => {
 
     const result = applyVoyageEvents(world, events);
 
-    expect(result.player.gold).toBe(5000 + 150 - 30 + 200);
+    expect(result.fleet.gold).toBe(5000 + 150 - 30 + 200);
   });
 
   it("grants EVENT_EXP per event", () => {

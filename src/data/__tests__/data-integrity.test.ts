@@ -164,7 +164,7 @@ describe("ships data integrity", () => {
     for (const ship of SHIPS) {
       expect(ship.speed).toBeGreaterThan(0);
       expect(ship.capacity).toBeGreaterThan(0);
-      expect(ship.baseHp).toBeGreaterThan(0);
+      expect(ship.baseDurability).toBeGreaterThan(0);
     }
   });
 

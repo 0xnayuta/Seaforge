@@ -162,50 +162,94 @@ describe("buildCargoView", () => {
 });
 
 describe("buildShipView", () => {
-  it("shows ship config and upgrade info", () => {
+  it("shows ship name and component levels", () => {
     const world = createTestWorld();
     const view = buildShipView(world);
 
     expect(view.shipName).toBe("单桅帆船");
-    expect(view.upgradeLevel).toBe(0);
-    expect(view.maxUpgradeLevel).toBeGreaterThan(0);
-    expect(view.capacity).toBe(30);
-    expect(view.speed).toBe(1.0);
+    expect(view.components).toHaveLength(4);
+    expect(view.components[0].id).toBe("hull");
+    expect(view.components[0].level).toBe(0);
+    expect(view.components[0].maxLevel).toBe(3);
+    expect(view.components[0].nextCost).toBe(500);
+    expect(view.durability).toBe(50);
+    expect(view.maxDurability).toBe(50);
   });
 
-  it("upgradeCost is available when under max level and can afford", () => {
+  it("component upgrade costs reflect current level", () => {
     const world = createTestWorld();
     const view = buildShipView(world);
 
-    expect(view.upgradeCost).toBe(500);
-    expect(view.canUpgrade).toBe(true);
+    expect(view.components[0].nextCost).toBe(500);
+    expect(view.components[0].canUpgrade).toBe(true);
   });
 
   it("canUpgrade false when gold insufficient", () => {
     const world = createTestWorld({
-      player: { name: "船长", gold: 100, currentPortId: "quanzhou", day: 1 },
-    });
-    const view = buildShipView(world);
-
-    expect(view.upgradeCost).toBe(500);
-    expect(view.canUpgrade).toBe(false);
-  });
-
-  it("upgradeCost null at max level", () => {
-    const world = createTestWorld({
-      ship: {
-        typeId: "sloop",
-        upgradeLevel: 3,
-        currentHp: 50,
-        maxHp: 50,
-        armamentLevel: 0,
-        cargo: [],
+      fleet: {
+        ships: [
+          {
+            id: "ship-1",
+            typeId: "sloop",
+            name: "单桅帆船",
+            equipment: {
+              hullLevel: 0,
+              sailLevel: 0,
+              armorLevel: 0,
+              cannonLevel: 0,
+            },
+            durability: 50,
+            maxDurability: 50,
+            cargo: [],
+            armamentLevel: 0,
+            equippedItems: [],
+          },
+        ],
+        activeShipId: "ship-1",
+        maxShips: 1,
+        crew: 3,
+        maxCrew: 6,
+        gold: 100,
       },
     });
     const view = buildShipView(world);
 
-    expect(view.upgradeCost).toBeNull();
-    expect(view.canUpgrade).toBe(false);
+    expect(view.components[0].nextCost).toBe(500);
+    expect(view.components[0].canUpgrade).toBe(false);
+  });
+
+  it("component nextCost null at max level", () => {
+    const world = createTestWorld({
+      fleet: {
+        ships: [
+          {
+            id: "ship-1",
+            typeId: "sloop",
+            name: "单桅帆船",
+            equipment: {
+              hullLevel: 3,
+              sailLevel: 3,
+              armorLevel: 3,
+              cannonLevel: 3,
+            },
+            durability: 50,
+            maxDurability: 50,
+            cargo: [],
+            armamentLevel: 0,
+            equippedItems: [],
+          },
+        ],
+        activeShipId: "ship-1",
+        maxShips: 1,
+        crew: 3,
+        maxCrew: 6,
+        gold: 5000,
+      },
+    });
+    const view = buildShipView(world);
+
+    expect(view.components[0].nextCost).toBeNull();
+    expect(view.components[0].canUpgrade).toBe(false);
   });
 });
 

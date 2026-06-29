@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { PORTS } from "../../data/ports";
 import { calcTravelDays } from "../../game/domain/navigation";
+import { getActiveShip } from "../../game/domain/ship";
 import { startVoyage } from "../../game/domain/voyage";
 import { prisma } from "../../lib/prisma";
 import { loadWorld, saveWorld } from "../../lib/repository";
@@ -23,18 +24,17 @@ export async function startTravel(formData: FormData): Promise<void> {
     const dy = fromPort.y - toPort.y;
     const distance = Math.round(Math.sqrt(dx * dx + dy * dy));
 
-    // 检查 HP（HP 为 0 不能出航）
-    if (world.ship.currentHp <= 0) throw new Error("船体严重损坏，无法出航");
+    const activeShip = getActiveShip(world);
+    if (activeShip.durability <= 0) throw new Error("船体严重损坏，无法出航");
 
     // 计算航行天数
     const travelDays = calcTravelDays(distance, world);
 
-    // 创建航行状态（含预生成事件 + 武装配置）
     const voyage = startVoyage(world, {
       fromPortId: world.player.currentPortId,
       toPortId: targetPortId,
       travelDays,
-      armamentLevel: world.ship.armamentLevel,
+      armamentLevel: activeShip.armamentLevel,
     });
 
     const newWorld: typeof world = {

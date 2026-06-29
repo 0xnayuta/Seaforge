@@ -1,6 +1,7 @@
 import { LEVEL_SPEED_PER_LEVEL, SPEED_BASE } from "../../data/formulas";
 import { PORTS, type PortConfig } from "../../data/ports";
 import { SHIPS } from "../../data/ships";
+import { getActiveShip } from "./ship";
 import type { World } from "./types";
 
 // ============================================================
@@ -34,13 +35,14 @@ export function getReachablePorts(
 
 /** 计算航行天数 */
 export function calcTravelDays(distance: number, world: World): number {
-  const ship = SHIPS.find((s) => s.id === world.ship.typeId);
-  if (!ship) return Infinity;
-  const speedBonus = 1 + world.player.level * LEVEL_SPEED_PER_LEVEL;
-  return Math.ceil(distance / (ship.speed * speedBonus * SPEED_BASE));
+  const activeShip = getActiveShip(world);
+  const shipConfig = SHIPS.find((s) => s.id === activeShip.typeId);
+  if (!shipConfig) return Infinity;
+  const baseSpeed =
+    shipConfig.speed * (1 + activeShip.equipment.sailLevel * 0.05);
+  const levelBonus = 1 + world.player.level * LEVEL_SPEED_PER_LEVEL;
+  return Math.ceil(distance / (baseSpeed * levelBonus * SPEED_BASE));
 }
-
-/** 执行到达：更新当前港口。天数推进由 advanceDay 处理 */
 export function arriveAtPort(
   world: World,
   targetPortId: string,

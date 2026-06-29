@@ -37,7 +37,7 @@ describe("resolveCombat", () => {
         armamentLevel: 0, // 满载 (1.0x)
       },
     });
-    damaged.ship.currentHp = 5; // 残血
+    damaged.fleet.ships[0].durability = 5; // 残血
 
     // RNG=0 → 最低分 → 全损
     const outcome = resolveCombat(damaged, 1.0, fixedRng(0));
@@ -57,7 +57,7 @@ describe("resolveCombat", () => {
         armamentLevel: 1, // 均衡
       },
     });
-    world.ship.currentHp = 25; // 半血
+    world.fleet.ships[0].durability = 25; // 半血
 
     // RNG low → 部分损失
     const outcome = resolveCombat(world, 1.0, fixedRng(0.05));
@@ -68,7 +68,7 @@ describe("resolveCombat", () => {
 
   it("returns victory with no damage for invalid ship", () => {
     const invalid = createTestWorld();
-    invalid.ship.typeId = "nonexistent";
+    invalid.fleet.ships[0].typeId = "nonexistent";
     const outcome = resolveCombat(invalid, 1.0, fixedRng(0));
     expect(outcome.result).toBe("victory");
     expect(outcome.hpDamage).toBe(0);
@@ -110,7 +110,7 @@ describe("resolveCombat", () => {
 describe("applyCombatOutcome", () => {
   it("totalLoss: HP→1, cargo cleared, voyage null, port changed", () => {
     const world = createTestWorld();
-    const cargoBefore = world.ship.cargo.length;
+    const cargoBefore = world.fleet.ships[0].cargo.length;
     expect(cargoBefore).toBeGreaterThan(0);
 
     const outcome = {
@@ -121,14 +121,14 @@ describe("applyCombatOutcome", () => {
     };
 
     const result = applyCombatOutcome(world, outcome, "quanzhou");
-    expect(result.ship.currentHp).toBe(1);
-    expect(result.ship.cargo).toHaveLength(0);
+    expect(result.fleet.ships[0].durability).toBe(1);
+    expect(result.fleet.ships[0].cargo).toHaveLength(0);
     expect(result.voyage).toBeNull();
   });
 
   it("partialLoss: reduces cargo and HP", () => {
     const world = createTestWorld();
-    const cargoBefore = world.ship.cargo.reduce(
+    const cargoBefore = world.fleet.ships[0].cargo.reduce(
       (sum, c) => sum + c.quantity,
       0,
     );
@@ -141,8 +141,8 @@ describe("applyCombatOutcome", () => {
     };
 
     const result = applyCombatOutcome(world, outcome, "quanzhou");
-    expect(result.ship.currentHp).toBe(40); // 50 - 10
-    const cargoAfter = result.ship.cargo.reduce(
+    expect(result.fleet.ships[0].durability).toBe(40); // 50 - 10
+    const cargoAfter = result.fleet.ships[0].cargo.reduce(
       (sum, c) => sum + c.quantity,
       0,
     );
@@ -160,7 +160,9 @@ describe("applyCombatOutcome", () => {
     };
 
     const result = applyCombatOutcome(world, outcome, "quanzhou");
-    expect(result.ship.currentHp).toBe(47); // 50 - 3
-    expect(result.ship.cargo).toHaveLength(world.ship.cargo.length);
+    expect(result.fleet.ships[0].durability).toBe(47); // 50 - 3
+    expect(result.fleet.ships[0].cargo).toHaveLength(
+      world.fleet.ships[0].cargo.length,
+    );
   });
 });

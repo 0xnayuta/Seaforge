@@ -8,8 +8,8 @@ import {
   TOTAL_LOSS_THRESHOLD,
 } from "../../data/formulas";
 import { SHIPS } from "../../data/ships";
-import { calcDefenseScore, takeDamage } from "./ship";
-import type { CargoItem, World } from "./types";
+import { calcDefenseScore, getActiveShip, takeDamage } from "./ship";
+import type { CargoItem, ShipInstance, World } from "./types";
 
 /** 战斗结果类型 */
 export type CombatResult = "victory" | "partialLoss" | "totalLoss";
@@ -26,31 +26,29 @@ export interface CombatOutcome {
 /** 随机因子来源（允许测试注入确定性值） */
 export type RngSource = () => number;
 
-/**
- * 解析战斗：根据武装配置、船体 HP、货载情况判定结果。
- */
+/** 解析战斗：根据武装配置、船体状态判定结果 */
 export function resolveCombat(
   world: World,
   difficulty: number,
   rng: RngSource = Math.random,
 ): CombatOutcome {
-  const shipConfig = SHIPS.find((s) => s.id === world.ship.typeId);
+  const activeShip = getActiveShip(world);
+  const shipConfig = SHIPS.find((s) => s.id === activeShip.typeId);
   if (!shipConfig) {
     return { result: "victory", hpDamage: 0, cargoLoss: 0, description: "" };
   }
 
-  const score = calcCombatScore(world, difficulty, rng, shipConfig);
+  const score = calcCombatScore(world, activeShip, difficulty, rng, shipConfig);
 
-  if (score < TOTAL_LOSS_THRESHOLD) return buildTotalLossOutcome(world);
+  if (score < TOTAL_LOSS_THRESHOLD) return buildTotalLossOutcome(activeShip);
   if (score < 50) return buildPartialLossOutcome(rng);
   return buildVictoryOutcome(rng);
 }
-/**
- * 计算战斗评分。
- * score = defScore × random(±40%) / difficulty
- */
+
+/** 计算战斗评分 */
 function calcCombatScore(
   world: World,
+  activeShip: ShipInstance,
   difficulty: number,
   rng: RngSource,
   shipConfig: (typeof SHIPS)[number],
@@ -59,7 +57,9 @@ function calcCombatScore(
   const defenseMultiplier = shipConfig.armamentTiers[armamentLevel][1];
 
   const hpRatio =
-    world.ship.maxHp > 0 ? world.ship.currentHp / world.ship.maxHp : 0;
+    activeShip.maxDurability > 0
+      ? activeShip.durability / activeShip.maxDurability
+      : 0;
 
   let score = calcDefenseScore(
     defenseMultiplier,
@@ -68,25 +68,23 @@ function calcCombatScore(
     COMBAT_HP_PENALTY_FACTOR,
   );
 
-  // 随机波动 ±40%
   score = score * (0.6 + rng() * 0.8);
-
-  // 难度系数（越高越难）
   score = score / difficulty;
 
   return score;
 }
-function buildTotalLossOutcome(world: World): CombatOutcome {
+
+function buildTotalLossOutcome(activeShip: ShipInstance): CombatOutcome {
   return {
     result: "totalLoss",
-    hpDamage: world.ship.currentHp,
+    hpDamage: activeShip.durability,
     cargoLoss: 0,
     allCargoLost: true,
     description: "海盗登船洗劫一空，船体严重损毁，勉强漂回港口……",
   };
 }
 
-/** 部分损失结果：HP 受损 + cargo 损失 */
+/** 部分损失结果 */
 function buildPartialLossOutcome(rng: RngSource): CombatOutcome {
   const hpDamage = Math.floor(
     COMBAT_BASE_DAMAGE_MIN +
@@ -104,7 +102,7 @@ function buildPartialLossOutcome(rng: RngSource): CombatOutcome {
   };
 }
 
-/** 胜利结果：微量随机 HP 损失 */
+/** 胜利结果 */
 function buildVictoryOutcome(rng: RngSource): CombatOutcome {
   const hpDamage = Math.floor(rng() * 5);
   return {
@@ -115,33 +113,40 @@ function buildVictoryOutcome(rng: RngSource): CombatOutcome {
   };
 }
 
-/**
- * 应用战斗结果到 World。
- * 全损：HP→1，清空 cargo，回最近港口。
- * 部分/胜利：仅扣 HP 和 cargo。
- */
+/** 应用战斗结果到 World */
 export function applyCombatOutcome(
   world: World,
   outcome: CombatOutcome,
   nearestPortId: string,
 ): World {
-  let result = takeDamage(world, outcome.hpDamage);
+  const activeShip = getActiveShip(world);
+  let result = takeDamage(world, activeShip.id, outcome.hpDamage);
 
   if (outcome.result === "totalLoss") {
     result = {
       ...result,
-      ship: { ...result.ship, currentHp: 1, cargo: [] },
+      fleet: {
+        ...result.fleet,
+        ships: result.fleet.ships.map((s) =>
+          s.id === activeShip.id ? { ...s, durability: 1, cargo: [] } : s,
+        ),
+      },
       player: { ...result.player, currentPortId: nearestPortId },
       voyage: null,
     };
   } else if (outcome.cargoLoss > 0) {
     const remainingCargo = subtractCargoLoss(
-      result.ship.cargo,
+      activeShip.cargo,
       outcome.cargoLoss,
     );
     result = {
       ...result,
-      ship: { ...result.ship, cargo: remainingCargo },
+      fleet: {
+        ...result.fleet,
+        ships: result.fleet.ships.map((s) =>
+          s.id === activeShip.id ? { ...s, cargo: remainingCargo } : s,
+        ),
+      },
     };
   }
 
