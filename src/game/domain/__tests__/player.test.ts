@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "bun:test";
 import { GOODS } from "../../../data/goods";
 import { PORTS } from "../../../data/ports";
 import { getBasePriceFor } from "../market";
-import { advanceDay, createDefaultWorld } from "../player";
+import { advanceDay, createDefaultWorld, gainExp } from "../player";
 import { createTestWorld } from "./helpers";
 
 describe("createDefaultWorld", () => {
@@ -176,5 +176,54 @@ describe("createDefaultWorld", () => {
     expect(changed).toBe(true);
 
     vi.restoreAllMocks();
+  });
+});
+
+describe("gainExp", () => {
+  it("adds exp to player and triggers level up at threshold", () => {
+    const world = createDefaultWorld();
+    expect(world.player.level).toBe(1);
+    expect(world.player.exp).toBe(0);
+
+    // 增加正好足够升级的经验
+    const leveled = gainExp(world, 100);
+    expect(leveled.player.level).toBe(2);
+    expect(leveled.player.exp).toBe(0);
+    expect(leveled.player.expToNext).toBe(130); // BASE_EXP * (1 + 2 * 0.15) = 100 * 1.3 = 130
+  });
+
+  it("preserves excess exp across level up", () => {
+    const world = createDefaultWorld();
+    const leveled = gainExp(world, 150);
+    expect(leveled.player.level).toBe(2);
+    expect(leveled.player.exp).toBe(50); // 150 - 100 = 50
+  });
+
+  it("supports multi-level gain", () => {
+    const world = createDefaultWorld();
+    const leveled = gainExp(world, 300);
+    expect(leveled.player.level).toBe(3);
+    // expToNext for level 1 = 100, level 2 = 130
+    // 300 - 100 - 130 = 70
+    expect(leveled.player.exp).toBe(70);
+  });
+
+  it("returns same world when amount is 0", () => {
+    const world = createDefaultWorld();
+    const result = gainExp(world, 0);
+    expect(result).toBe(world);
+  });
+
+  it("returns same world when amount is negative", () => {
+    const world = createDefaultWorld();
+    const result = gainExp(world, -50);
+    expect(result).toBe(world);
+  });
+
+  it("does not mutate the original world", () => {
+    const world = createDefaultWorld();
+    gainExp(world, 100);
+    expect(world.player.level).toBe(1);
+    expect(world.player.exp).toBe(0);
   });
 });

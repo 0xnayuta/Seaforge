@@ -173,4 +173,36 @@ describe("executeSell", () => {
 
     expect(result.profit).toBe(expectedProfit);
   });
+
+  it("should grant experience on profitable sell", () => {
+    const world = createTestWorld({
+      ship: {
+        ...createTestWorld().ship,
+        cargo: [{ goodId: "silk", quantity: 5, buyPrice: 1 }],
+      },
+    });
+    expect(world.player.exp).toBe(0);
+
+    const result = executeSell(world, { goodId: "silk", quantity: 3 });
+    expect(result.world.player.exp).toBeGreaterThan(0);
+  });
+
+  it("should not grant experience on loss-making sell", () => {
+    const world = createTestWorld();
+    const price = getSellPrice("silk", world.player.currentPortId, world);
+    const worldWithHighBuy = {
+      ...world,
+      ship: {
+        ...world.ship,
+        cargo: [{ goodId: "silk", quantity: 5, buyPrice: price + 1000 }],
+      },
+    };
+
+    const result = executeSell(worldWithHighBuy, {
+      goodId: "silk",
+      quantity: 3,
+    });
+    expect(result.profit).toBeLessThan(0);
+    expect(result.world.player.exp).toBe(0);
+  });
 });

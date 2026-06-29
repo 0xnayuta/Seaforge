@@ -1,3 +1,4 @@
+import { BASE_EXP } from "../data/formulas";
 import { createDefaultWorld } from "../game/domain/player";
 import type { World } from "../game/domain/types";
 import type { PrismaTransactionClient } from "../types/prisma";
@@ -15,9 +16,16 @@ export async function loadWorld(tx: PrismaTransactionClient): Promise<World> {
     where: { slot: AUTO_SAVE_SLOT },
   });
   if (!save) return createDefaultWorld();
-
   try {
-    return JSON.parse(save.data) as World;
+    const data = JSON.parse(save.data) as World;
+    // Phase 2.1: 旧存档补全等级字段
+    if (data.player.level == null) {
+      return {
+        ...data,
+        player: { ...data.player, level: 1, exp: 0, expToNext: BASE_EXP },
+      };
+    }
+    return data;
   } catch {
     // 存档数据损坏，重置为新世界
     return createDefaultWorld();

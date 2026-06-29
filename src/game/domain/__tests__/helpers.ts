@@ -17,6 +17,9 @@ export function createTestWorld(overrides?: Partial<World>): World {
       gold: 5000,
       currentPortId: "quanzhou",
       day: 1,
+      level: 1,
+      exp: 0,
+      expToNext: 100,
     },
     ship: {
       typeId: "sloop",
@@ -43,6 +46,9 @@ export function createEmptyWorld(overrides?: Partial<World>): World {
       gold: 10000,
       currentPortId: "malacca",
       day: 1,
+      level: 1,
+      exp: 0,
+      expToNext: 100,
     },
     ship: {
       typeId: "sloop",
