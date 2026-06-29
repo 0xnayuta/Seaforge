@@ -5,10 +5,7 @@ import { MarketPanel } from "../../components/MarketPanel";
 import { loadMarketView } from "./actions";
 
 export default function MarketPage() {
-  const [view, loadAction, isPending] = useActionState(
-    loadMarketView,
-    null,
-  );
+  const [view, loadAction, isPending] = useActionState(loadMarketView, null);
 
   if (!view) {
     return (

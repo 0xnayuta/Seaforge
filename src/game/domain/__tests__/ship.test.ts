@@ -1,5 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { getNearestPort, repairShip, setArmamentLevel, takeDamage, upgradeShip } from "../ship";
+import {
+  getNearestPort,
+  repairShip,
+  setArmamentLevel,
+  takeDamage,
+  upgradeShip,
+} from "../ship";
 import { createTestWorld } from "./helpers";
 
 describe("takeDamage", () => {

@@ -120,10 +120,7 @@ export function repairShip(world: World): World {
 /**
  * 设置武装等级。航海中拒绝更改（抛 DomainError）。
  */
-export function setArmamentLevel(
-  world: World,
-  level: 0 | 1 | 2,
-): World {
+export function setArmamentLevel(world: World, level: 0 | 1 | 2): World {
   if (world.voyage) throw new DomainError("IN_VOYAGE");
   return {
     ...world,
