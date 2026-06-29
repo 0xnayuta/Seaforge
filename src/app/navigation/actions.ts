@@ -1,7 +1,7 @@
 "use server";
-import { DomainError } from "../../game/domain/types";
-
+import { setArmamentLevel } from "../../game/domain/ship";
 import { buildNavigationView } from "../../game/view-builder/buildGameView";
+import { withTransaction } from "../../lib/with-transaction";
 import { prisma } from "../../lib/prisma";
 import { loadWorld } from "../../lib/repository";
 import type { NavigationView } from "../../types/game-view";
@@ -11,23 +11,12 @@ export async function loadNavigationView(): Promise<NavigationView> {
   const world = await loadWorld(prisma);
   return buildNavigationView(world);
 }
-/** 更新武装等级。航海中拒绝更改（抛 DomainError）。 */
-
+/** 更新武装等级（通过 HOF `withTransaction` 管道）。 */
 export async function updateArmamentLevel(
   level: 0 | 1 | 2,
 ): Promise<NavigationView> {
-  return await prisma.$transaction(async (tx) => {
-    const world = await loadWorld(tx);
-    if (world.voyage) throw new DomainError("IN_VOYAGE");
-    const newWorld = {
-      ...world,
-      ship: { ...world.ship, armamentLevel: level },
-    };
-    await tx.save.upsert({
-      where: { slot: 0 },
-      update: { data: JSON.stringify(newWorld) },
-      create: { slot: 0, data: JSON.stringify(newWorld) },
-    });
-    return buildNavigationView(newWorld);
-  });
+  return withTransaction(
+    (w) => setArmamentLevel(w, level),
+    buildNavigationView,
+  )();
 }

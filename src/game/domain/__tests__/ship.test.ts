@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { getNearestPort, repairShip, takeDamage, upgradeShip } from "../ship";
+import { getNearestPort, repairShip, setArmamentLevel, takeDamage, upgradeShip } from "../ship";
 import { createTestWorld } from "./helpers";
 
 describe("takeDamage", () => {
@@ -112,5 +112,33 @@ describe("upgradeShip", () => {
       },
     });
     expect(() => upgradeShip(voyaging)).toThrow("IN_VOYAGE");
+  });
+});
+
+describe("setArmamentLevel", () => {
+  it("sets armament level on the ship", () => {
+    const world = createTestWorld();
+    const result = setArmamentLevel(world, 2);
+    expect(result.ship.armamentLevel).toBe(2);
+  });
+
+  it("does not mutate the original world", () => {
+    const world = createTestWorld();
+    setArmamentLevel(world, 2);
+    expect(world.ship.armamentLevel).toBe(0);
+  });
+
+  it("throws IN_VOYAGE when sailing", () => {
+    const voyaging = createTestWorld({
+      voyage: {
+        fromPortId: "quanzhou",
+        toPortId: "malacca",
+        departureDay: 1,
+        travelDays: 4,
+        events: [],
+        armamentLevel: 0,
+      },
+    });
+    expect(() => setArmamentLevel(voyaging, 1)).toThrow("IN_VOYAGE");
   });
 });

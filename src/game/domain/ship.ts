@@ -118,6 +118,20 @@ export function repairShip(world: World): World {
 }
 
 /**
+ * 设置武装等级。航海中拒绝更改（抛 DomainError）。
+ */
+export function setArmamentLevel(
+  world: World,
+  level: 0 | 1 | 2,
+): World {
+  if (world.voyage) throw new DomainError("IN_VOYAGE");
+  return {
+    ...world,
+    ship: { ...world.ship, armamentLevel: level },
+  };
+}
+
+/**
  * 获取最近港口 id（用于全损回港）。
  * 坐标距离对称，始终返回出发港。
  * （旧 ROUTES 表同向等距，行为不变）
