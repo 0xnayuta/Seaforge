@@ -1,9 +1,9 @@
 "use server";
 import { setArmamentLevel } from "../../game/domain/ship";
 import { buildNavigationView } from "../../game/view-builder/buildGameView";
-import { withTransaction } from "../../lib/with-transaction";
 import { prisma } from "../../lib/prisma";
 import { loadWorld } from "../../lib/repository";
+import { withTransaction } from "../../lib/with-transaction";
 import type { NavigationView } from "../../types/game-view";
 
 /** 加载航海图视图（读档 + 组装 View）。无副作用。 */
