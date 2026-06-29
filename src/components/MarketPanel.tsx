@@ -166,49 +166,49 @@ export function MarketPanel({ view, onRefresh }: MarketPanelProps) {
           <button
             type="button"
             onClick={() => toggleSort("name")}
-            className="text-left hover:text-gold-400 transition-colors"
+            className="text-left cursor-pointer hover:text-gold-400 transition-colors"
           >
             商品{sortIndicator("name")}
           </button>
           <button
             type="button"
             onClick={() => toggleSort("category")}
-            className="text-left hover:text-gold-400 transition-colors"
+            className="text-left cursor-pointer hover:text-gold-400 transition-colors"
           >
             分类{sortIndicator("category")}
           </button>
           <button
             type="button"
             onClick={() => toggleSort("volume")}
-            className="text-center hover:text-gold-400 transition-colors"
+            className="text-center cursor-pointer hover:text-gold-400 transition-colors"
           >
             占用舱容{sortIndicator("volume")}
           </button>
           <button
             type="button"
             onClick={() => toggleSort("buyPrice")}
-            className="text-center hover:text-gold-400 transition-colors"
+            className="text-center cursor-pointer hover:text-gold-400 transition-colors"
           >
             买入价{sortIndicator("buyPrice")}
           </button>
           <button
             type="button"
             onClick={() => toggleSort("sellPrice")}
-            className="text-center hover:text-gold-400 transition-colors"
+            className="text-center cursor-pointer hover:text-gold-400 transition-colors"
           >
             卖出价{sortIndicator("sellPrice")}
           </button>
           <button
             type="button"
             onClick={() => toggleSort("estimatedProfit")}
-            className="text-center hover:text-gold-400 transition-colors"
+            className="text-center cursor-pointer hover:text-gold-400 transition-colors"
           >
             预期利润{sortIndicator("estimatedProfit")}
           </button>
           <button
             type="button"
             onClick={() => toggleSort("inCargo")}
-            className="text-center hover:text-gold-400 transition-colors"
+            className="text-center cursor-pointer hover:text-gold-400 transition-colors"
           >
             持有{sortIndicator("inCargo")}
           </button>

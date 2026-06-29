@@ -56,6 +56,9 @@ export function NavigationPanel({ view }: NavigationPanelProps) {
     if (!sortColumn || !sortDir) return 0;
     let cmp = 0;
     switch (sortColumn) {
+      case "portName":
+        cmp = a.portName.localeCompare(b.portName);
+        break;
       case "region":
         cmp = a.region.localeCompare(b.region);
         break;
@@ -116,7 +119,13 @@ export function NavigationPanel({ view }: NavigationPanelProps) {
       {/* 目的地列表 */}
       <div className="rounded-lg border border-ocean-600 bg-ocean-800/80 overflow-hidden">
         <div className="grid grid-cols-8 gap-2 border-b border-ocean-600 bg-ocean-700/60 px-4 py-2 text-xs font-semibold text-parchment-dark uppercase tracking-wider">
-          <span className="col-span-2">目的地</span>
+          <button
+            type="button"
+            onClick={() => toggleSort("portName")}
+            className="col-span-2 text-left cursor-pointer hover:text-gold-400 transition-colors"
+          >
+            目的地{sortIndicator("portName")}
+          </button>
           <button
             type="button"
             onClick={() => toggleSort("region")}
