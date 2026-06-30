@@ -6,7 +6,6 @@ import {
   sellEquipmentAction,
   unequipItemAction,
 } from "../app/actions/equipment";
-import { EQUIPMENTS } from "../data/equipment";
 import { SHIP_SELL_RATIO } from "../data/formulas";
 import { SHIPS } from "../data/ships";
 import type { ComponentView, ShipyardView } from "../types/game-view";
@@ -340,72 +339,72 @@ export function ShipyardPanel({
             )}
 
             {/* 可装配列表 (从舰队装备包中选择) */}
-            {selectedShipDetail.equippedItems.length < 3 &&
-              !blockedByVoyage && (
-                <div className="space-y-2 pt-1">
-                  <h5 className="text-[11px] font-medium text-gold-400">
-                    可装配装备
-                  </h5>
-                  {selectedShipDetail.fleetInventory.length === 0 ? (
-                    <p className="text-xs text-parchment-dark">
-                      仓库中无可用装备。请在港口铁匠铺购买。
-                    </p>
-                  ) : (
-                    <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                      {selectedShipDetail.fleetInventory.map((item, index) => {
-                        // 校验是否同类型已装备
-                        const isSameTypeEquipped =
-                          selectedShipDetail.equippedItems.some(
-                            (eq) => eq.type === item.type,
-                          );
-                        const equipConfig = EQUIPMENTS.find(
-                          (e) => e.id === item.id,
+            {!blockedByVoyage && (
+              <div className="space-y-2 pt-1">
+                <h5 className="text-[11px] font-medium text-gold-400">
+                  可装配装备
+                </h5>
+                {selectedShipDetail.fleetInventory.length === 0 ? (
+                  <p className="text-xs text-parchment-dark">
+                    仓库中无可用装备。请在港口铁匠铺购买。
+                  </p>
+                ) : (
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {selectedShipDetail.fleetInventory.map((item, index) => {
+                      const isSameTypeEquipped =
+                        selectedShipDetail.equippedItems.some(
+                          (eq) => eq.type === item.type,
                         );
-                        const sellPrice = equipConfig
-                          ? Math.floor(equipConfig.price * 0.5)
-                          : 0;
+                      const slotsFull =
+                        selectedShipDetail.equippedItems.length >= 3;
 
-                        return (
-                          <div
-                            key={`${item.id}-${index}`}
-                            className="flex items-center justify-between rounded border border-ocean-700/60 bg-ocean-700/20 p-2 text-xs"
-                          >
-                            <div>
-                              <span className="font-semibold text-parchment flex items-center gap-1">
-                                {item.name}
-                                <span className="rounded bg-ocean-700 px-1 py-0.5 text-[10px] text-parchment-dark">
-                                  {item.typeLabel}
-                                </span>
+                      return (
+                        <div
+                          key={`${item.id}-${index}`}
+                          className="flex items-center justify-between rounded border border-ocean-700/60 bg-ocean-700/20 p-2 text-xs"
+                        >
+                          <div>
+                            <span className="font-semibold text-parchment flex items-center gap-1">
+                              {item.name}
+                              <span className="rounded bg-ocean-700 px-1 py-0.5 text-[10px] text-parchment-dark">
+                                {item.typeLabel}
                               </span>
-                              <p className="text-parchment-dark text-[10px] mt-0.5">
-                                {item.effectDescription}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                disabled={isPending || isSameTypeEquipped}
-                                onClick={() => handleEquipItem(item.id)}
-                                className="rounded bg-gold-500 px-2.5 py-1 text-[11px] font-bold text-ocean-900 hover:bg-gold-400 transition-colors disabled:opacity-50"
-                              >
-                                {isSameTypeEquipped ? "类型冲突" : "装配"}
-                              </button>
-                              <button
-                                type="button"
-                                disabled={isPending || isEquipmentPending}
-                                onClick={() => handleSellEquipment(item.id)}
-                                className="rounded border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-[11px] text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
-                              >
-                                出售 ({sellPrice.toLocaleString()})
-                              </button>
-                            </div>
+                            </span>
+                            <p className="text-parchment-dark text-[10px] mt-0.5">
+                              {item.effectDescription}
+                            </p>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              disabled={
+                                isPending || slotsFull || isSameTypeEquipped
+                              }
+                              onClick={() => handleEquipItem(item.id)}
+                              className="rounded bg-gold-500 px-2.5 py-1 text-[11px] font-bold text-ocean-900 hover:bg-gold-400 transition-colors disabled:opacity-50"
+                            >
+                              {slotsFull
+                                ? "槽位已满"
+                                : isSameTypeEquipped
+                                  ? "类型冲突"
+                                  : "装配"}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isPending || isEquipmentPending}
+                              onClick={() => handleSellEquipment(item.id)}
+                              className="rounded border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-[11px] text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                            >
+                              出售 ({item.sellPrice.toLocaleString()})
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* 出售当前选定船只 */}

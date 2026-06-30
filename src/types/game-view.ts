@@ -110,6 +110,7 @@ export interface EquippedItemView {
   readonly type: string;
   readonly typeLabel: string;
   readonly effectDescription: string;
+  readonly sellPrice: number;
 }
 
 export interface ShipView {

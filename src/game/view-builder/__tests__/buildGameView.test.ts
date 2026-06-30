@@ -197,11 +197,17 @@ describe("buildShipyardView", () => {
 });
 
 describe("buildShipView", () => {
-  it("shows ship name and component levels", () => {
+  it("shows ship name, component levels and durability", () => {
     const world = createTestWorld();
     const view = buildShipView(world);
 
     expect(view.shipName).toBe("单桅帆船");
+    expect(view.components).toHaveLength(4);
+    expect(view.components[0].id).toBe("hull");
+    expect(view.components[0].level).toBe(0);
+    expect(view.components[0].maxLevel).toBe(3);
+    expect(view.durability).toBe(50);
+    expect(view.maxDurability).toBe(50);
   });
 
   it("component upgrade costs reflect current level", () => {

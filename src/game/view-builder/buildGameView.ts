@@ -272,6 +272,9 @@ export function buildShipView(world: World, targetShipId?: string): ShipView {
     };
   });
 
+  const sellPrice = (eq: { price: number } | undefined) =>
+    eq ? Math.floor(eq.price * 0.5) : 0;
+
   const equippedItems = (activeShip.equippedItems || []).map((itemId) => {
     const eq = EQUIPMENTS.find((e) => e.id === itemId);
     return {
@@ -280,6 +283,7 @@ export function buildShipView(world: World, targetShipId?: string): ShipView {
       type: eq?.type ?? "special",
       typeLabel: eq ? EQUIPMENT_TYPE_LABELS[eq.type] : "未知",
       effectDescription: eq ? getEquipmentEffectDescription(eq) : "",
+      sellPrice: sellPrice(eq),
     };
   });
 
@@ -291,6 +295,7 @@ export function buildShipView(world: World, targetShipId?: string): ShipView {
       type: eq?.type ?? "special",
       typeLabel: eq ? EQUIPMENT_TYPE_LABELS[eq.type] : "未知",
       effectDescription: eq ? getEquipmentEffectDescription(eq) : "",
+      sellPrice: sellPrice(eq),
     };
   });
 
