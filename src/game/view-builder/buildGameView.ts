@@ -4,6 +4,11 @@
 // ============================================================
 
 import {
+  EQUIPMENT_TYPE_LABELS,
+  EQUIPMENTS,
+  getEquipmentEffectDescription,
+} from "../../data/equipment";
+import {
   BASE_HIRE_COST,
   REPAIR_COST_MULTIPLIER,
   SURVIVAL_DISTANCE_FACTOR,
@@ -12,6 +17,11 @@ import { CATEGORY_LABEL, GOODS } from "../../data/goods";
 import { PORTS } from "../../data/ports";
 import { REGIONS } from "../../data/regions";
 import { SHIPS } from "../../data/ships";
+import {
+  getShipCargoCapacity,
+  getShipDefenseMultiplier,
+  getShipSpeed,
+} from "../domain/equipment";
 
 function getRegionName(regionId: string | undefined): string {
   return REGIONS.find((r) => r.id === regionId)?.name ?? "";
@@ -111,6 +121,18 @@ export function buildMarketView(world: World): MarketView {
     };
   });
 
+  const availableEquipments = EQUIPMENTS.filter((e) =>
+    e.sellPortIds.includes(world.player.currentPortId),
+  ).map((e) => ({
+    id: e.id,
+    name: e.name,
+    type: e.type,
+    typeLabel: EQUIPMENT_TYPE_LABELS[e.type],
+    effectDescription: getEquipmentEffectDescription(e),
+    price: e.price,
+    canAfford: world.fleet.gold >= e.price,
+  }));
+
   return {
     portName: port?.name ?? "未知",
     goods,
@@ -121,6 +143,8 @@ export function buildMarketView(world: World): MarketView {
       getMaxCapacity(world),
       activeShip.armamentLevel,
     ),
+    availableEquipments,
+    fleetInventory: world.fleet.inventory || [],
   };
 }
 
@@ -261,6 +285,28 @@ export function buildShipView(world: World, targetShipId?: string): ShipView {
     };
   });
 
+  const equippedItems = (activeShip.equippedItems || []).map((itemId) => {
+    const eq = EQUIPMENTS.find((e) => e.id === itemId);
+    return {
+      id: itemId,
+      name: eq?.name ?? "未知",
+      type: eq?.type ?? "special",
+      typeLabel: eq ? EQUIPMENT_TYPE_LABELS[eq.type] : "未知",
+      effectDescription: eq ? getEquipmentEffectDescription(eq) : "",
+    };
+  });
+
+  const fleetInventory = (world.fleet.inventory || []).map((itemId) => {
+    const eq = EQUIPMENTS.find((e) => e.id === itemId);
+    return {
+      id: itemId,
+      name: eq?.name ?? "未知",
+      type: eq?.type ?? "special",
+      typeLabel: eq ? EQUIPMENT_TYPE_LABELS[eq.type] : "未知",
+      effectDescription: eq ? getEquipmentEffectDescription(eq) : "",
+    };
+  });
+
   return {
     shipName: shipConfig.name,
     fleetGold: world.fleet.gold,
@@ -270,6 +316,8 @@ export function buildShipView(world: World, targetShipId?: string): ShipView {
     canRepair: missing > 0 && world.fleet.gold >= repairCost && !world.voyage,
     blockedByVoyage: !!world.voyage,
     components,
+    equippedItems,
+    fleetInventory,
   };
 }
 
@@ -283,21 +331,17 @@ function buildFleetShipSummaryView(
 ): FleetShipSummaryView {
   const shipConfig = SHIPS.find((s) => s.id === ship.typeId);
   const typeName = shipConfig?.name ?? "未知";
-  const cargoCapacity = shipConfig
-    ? Math.floor(shipConfig.capacity * (1 + ship.equipment.hullLevel * 0.2))
-    : 0;
+  const cargoCapacity = shipConfig ? getShipCargoCapacity(ship, shipConfig) : 0;
 
   const cargoUsed = ship.cargo.reduce((sum, c) => {
     const good = GOODS.find((g) => g.id === c.goodId);
     return sum + (good?.volume ?? 0) * c.quantity;
   }, 0);
 
-  const speed = shipConfig
-    ? shipConfig.speed * (1 + ship.equipment.sailLevel * 0.05)
-    : 0;
+  const speed = shipConfig ? getShipSpeed(ship, shipConfig) : 0;
 
   const defenseMultiplier = shipConfig
-    ? shipConfig.armamentTiers[ship.armamentLevel][1]
+    ? getShipDefenseMultiplier(ship, shipConfig)
     : 1.0;
 
   const cargo: CargoItemView[] = ship.cargo.map((c) => {
