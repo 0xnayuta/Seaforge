@@ -6,28 +6,27 @@ import {
   sellEquipment,
   unequipItem,
 } from "../../game/domain/equipment";
-import {
-  buildMarketView,
-  buildShipyardView,
-} from "../../game/view-builder/buildGameView";
+import { buildShipyardView } from "../../game/view-builder/buildGameView";
 import { getErrorMessage } from "../../lib/domain-errors";
 import { prisma } from "../../lib/prisma";
 import { loadWorld, saveWorld } from "../../lib/repository";
-import type { MarketView, ShipyardView } from "../../types/game-view";
+import type { ShipyardView } from "../../types/game-view";
 import type { PrismaTransactionClient } from "../../types/prisma";
 
 export async function buyEquipmentAction(
   formData: FormData,
-): Promise<MarketView> {
+): Promise<ShipyardView> {
   const equipmentId = formData.get("equipmentId") as string;
+  const shipId = formData.get("shipId") as string;
   if (!equipmentId) throw new Error("未选择装备");
+  if (!shipId) throw new Error("未指定船只");
 
   try {
     return await prisma.$transaction(async (tx: PrismaTransactionClient) => {
       const world = await loadWorld(tx);
       const nextWorld = buyEquipment(world, equipmentId);
       await saveWorld(tx, nextWorld);
-      return buildMarketView(nextWorld);
+      return buildShipyardView(nextWorld, shipId);
     });
   } catch (e) {
     throw new Error(getErrorMessage(e));
@@ -36,16 +35,18 @@ export async function buyEquipmentAction(
 
 export async function sellEquipmentAction(
   formData: FormData,
-): Promise<MarketView> {
+): Promise<ShipyardView> {
   const equipmentId = formData.get("equipmentId") as string;
+  const shipId = formData.get("shipId") as string;
   if (!equipmentId) throw new Error("未选择装备");
+  if (!shipId) throw new Error("未指定船只");
 
   try {
     return await prisma.$transaction(async (tx: PrismaTransactionClient) => {
       const world = await loadWorld(tx);
       const nextWorld = sellEquipment(world, equipmentId);
       await saveWorld(tx, nextWorld);
-      return buildMarketView(nextWorld);
+      return buildShipyardView(nextWorld, shipId);
     });
   } catch (e) {
     throw new Error(getErrorMessage(e));
