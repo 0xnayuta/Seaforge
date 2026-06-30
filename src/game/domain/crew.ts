@@ -4,6 +4,7 @@ import {
   CREW_UPKEEP_PER_DAY,
 } from "../../data/formulas";
 import { SHIPS } from "../../data/ships";
+import { getShipCargoCapacity } from "./equipment";
 import type { ShipInstance, World } from "./types";
 import { DomainError } from "./types";
 
@@ -16,9 +17,7 @@ export function getMaxCrewCapacity(ships: readonly ShipInstance[]): number {
   const totalCapacity = ships.reduce((sum, ship) => {
     const shipConfig = SHIPS.find((s) => s.id === ship.typeId);
     if (!shipConfig) return sum;
-    const capacity = Math.floor(
-      shipConfig.capacity * (1 + ship.equipment.hullLevel * 0.2),
-    );
+    const capacity = getShipCargoCapacity(ship, shipConfig);
     return sum + capacity;
   }, 0);
   return Math.floor(totalCapacity / CREW_PER_SLOT);

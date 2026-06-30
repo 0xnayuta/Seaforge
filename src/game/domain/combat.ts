@@ -12,6 +12,7 @@ import {
 } from "../../data/formulas";
 import { SHIPS } from "../../data/ships";
 import { calcMinCrewForFleet } from "./crew";
+import { getShipDefenseMultiplier } from "./equipment";
 import { calcDefenseScore, getActiveShip, takeDamage } from "./ship";
 import type { CargoItem, ShipInstance, World } from "./types";
 /** 战斗结果类型 */
@@ -72,7 +73,7 @@ function calcCombatScore(
     if (!ship) continue;
     const cfg = SHIPS.find((s) => s.id === ship.typeId);
     if (!cfg) continue;
-    const defenseMultiplier = cfg.armamentTiers[ship.armamentLevel][1];
+    const defenseMultiplier = getShipDefenseMultiplier(ship, cfg);
     const hpRatio =
       ship.maxDurability > 0 ? ship.durability / ship.maxDurability : 0;
     totalDefenseMultiplier += defenseMultiplier;

@@ -1,6 +1,7 @@
 import { LEVEL_SPEED_PER_LEVEL, SPEED_BASE } from "../../data/formulas";
 import { PORTS, type PortConfig } from "../../data/ports";
 import { SHIPS } from "../../data/ships";
+import { getShipDefenseMultiplier, getShipSpeed } from "./equipment";
 import { getActiveShip } from "./ship";
 import type { World } from "./types";
 
@@ -44,7 +45,7 @@ export function calcFleetTravelDays(
     if (!ship) return null;
     const shipConfig = SHIPS.find((s) => s.id === ship.typeId);
     if (!shipConfig) return null;
-    return shipConfig.speed * (1 + ship.equipment.sailLevel * 0.05);
+    return getShipSpeed(ship, shipConfig);
   });
   const validSpeeds = speeds.filter((s): s is number => s !== null);
   if (validSpeeds.length !== shipIds.length) return Infinity;
@@ -66,7 +67,7 @@ export function getFleetCombatPower(world: World, shipIds: string[]): number {
     if (!ship) continue;
     const shipConfig = SHIPS.find((s) => s.id === ship.typeId);
     if (!shipConfig) continue;
-    const defenseMultiplier = shipConfig.armamentTiers[ship.armamentLevel][1];
+    const defenseMultiplier = getShipDefenseMultiplier(ship, shipConfig);
     total += ship.equipment.cannonLevel * defenseMultiplier;
   }
   return total;

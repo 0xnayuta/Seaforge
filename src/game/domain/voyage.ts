@@ -16,6 +16,7 @@ import { REGIONS } from "../../data/regions";
 import { SHIPS } from "../../data/ships";
 import { applyCombatOutcome, resolveCombat } from "./combat";
 import { calcMinCrewForFleet } from "./crew";
+import { getFleetPirateEvasion, getShipCargoCapacity } from "./equipment";
 import { getEffectiveCapacityForShip } from "./navigation";
 import { gainExp } from "./player";
 import { getActiveShip, getNearestPort, takeDamage } from "./ship";
@@ -149,6 +150,21 @@ function applyCombatEvent(world: World, event: VoyageEvent): World {
   const voyage = world.voyage;
   if (!voyage) throw new DomainError("IN_VOYAGE");
 
+  // 判定是否成功回避海盗
+  const evasionChance = getFleetPirateEvasion(world, voyage.fleetShipIds);
+  if (Math.random() < evasionChance) {
+    const outcome = {
+      result: "victory" as const,
+      hpDamage: 0,
+      cargoLoss: 0,
+      crewLoss: 0,
+      description: "舰队在航行中遭遇海盗，但凭借装备成功避开了海盗袭击！",
+    };
+    (event as VoyageEvent & { combatOutcome: typeof outcome }).combatOutcome =
+      outcome;
+    (event as { description: string }).description += " (成功回避海盗袭击)";
+    return world;
+  }
   const progress = event.day / voyage.travelDays;
 
   const depPort = findOrThrow(PORTS, voyage.fromPortId, "UNKNOWN_PORT");
@@ -347,9 +363,7 @@ export function startVoyage(
 
     const shipConfig = SHIPS.find((s) => s.id === ship.typeId);
     if (!shipConfig) throw new DomainError("INVALID_SHIP");
-    const maxCapForShip = Math.floor(
-      shipConfig.capacity * (1 + ship.equipment.hullLevel * 0.2),
-    );
+    const maxCapForShip = getShipCargoCapacity(ship, shipConfig);
     const effectiveCapacity = getEffectiveCapacityForShip(
       ship.typeId,
       maxCapForShip,

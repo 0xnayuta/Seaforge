@@ -51,6 +51,7 @@ export function createDefaultWorld(): World {
       crew: defaultShip.baseCrew,
       maxCrew: getMaxCrewCapacity(initialShips),
       gold: STARTING_GOLD,
+      inventory: [],
     },
     market: initMarketPrices(),
     voyage: null,

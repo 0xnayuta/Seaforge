@@ -1,6 +1,7 @@
 import { LEVEL_EXP_RATIO } from "../../data/formulas";
 import { GOODS } from "../../data/goods";
 import { SHIPS } from "../../data/ships";
+import { getShipCargoCapacity } from "./equipment";
 import { applyTradeImpact, getBuyPrice, getSellPrice } from "./market";
 import { gainExp } from "./player";
 import { getActiveShip } from "./ship";
@@ -25,7 +26,7 @@ export function getMaxCapacity(world: World): number {
   const ship = getActiveShip(world);
   const shipConfig = SHIPS.find((s) => s.id === ship.typeId);
   if (!shipConfig) return 0;
-  return Math.floor(shipConfig.capacity * (1 + ship.equipment.hullLevel * 0.2));
+  return getShipCargoCapacity(ship, shipConfig);
 }
 
 // ---- 买入 ----

@@ -52,6 +52,7 @@ function migrateOldShipToFleet(parsed: Record<string, unknown>): World {
       crew: shipConfig?.baseCrew ?? 3,
       maxCrew: (shipConfig?.baseCrew ?? 3) * 2,
       gold: (player.gold as number) ?? 5000,
+      inventory: [],
     },
     market:
       parsed.market as unknown as import("../game/domain/types").MarketPriceState,
@@ -73,13 +74,24 @@ export async function loadWorld(tx: PrismaTransactionClient): Promise<World> {
       return migrateOldShipToFleet(parsed);
     }
 
-    const data = parsed as unknown as World;
+    let data = parsed as unknown as World;
 
     // Phase 2.1: Complement level fields
     if (data.player.level == null) {
-      return {
+      data = {
         ...data,
         player: { ...data.player, level: 1, exp: 0, expToNext: BASE_EXP },
+      };
+    }
+
+    // Phase 2.5: Ensure fleet has inventory
+    if (data.fleet && data.fleet.inventory == null) {
+      data = {
+        ...data,
+        fleet: {
+          ...data.fleet,
+          inventory: [],
+        },
       };
     }
 

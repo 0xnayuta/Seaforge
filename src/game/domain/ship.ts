@@ -253,6 +253,9 @@ export function sellShip(world: World, shipId: string): World {
   if (!ship) throw new DomainError("INVALID_SHIP");
 
   if (ship.cargo.length > 0) throw new DomainError("SHIP_HAS_CARGO");
+  if (ship.equippedItems && ship.equippedItems.length > 0) {
+    throw new DomainError("SHIP_HAS_EQUIPMENT");
+  }
 
   const shipConfig = SHIPS.find((s) => s.id === ship.typeId);
   if (!shipConfig) throw new DomainError("INVALID_SHIP");
