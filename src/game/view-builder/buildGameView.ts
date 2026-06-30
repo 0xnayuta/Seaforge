@@ -17,17 +17,20 @@ function getRegionName(regionId: string | undefined): string {
 }
 
 import type {
-  ArmamentOptionView,
+  AvailableShipView,
   CargoItemView,
   CargoView,
   CombatLogEntryView,
   ComponentView,
   DestinationView,
+  FleetShipSummaryView,
+  FleetView,
   GoodView,
   HarborView,
   MarketView,
   NavigationView,
   ShipView,
+  ShipyardView,
   VoyageEventView,
   VoyageView,
 } from "../../types/game-view";
@@ -37,14 +40,14 @@ import {
   getEffectiveCapacityForShip,
   getReachablePorts,
 } from "../domain/navigation";
-import type { ArmamentLevel, ComponentType } from "../domain/ship";
+import type { ComponentType } from "../domain/ship";
 import {
   ARMAMENT_LABELS,
   COMPONENT_LABELS,
   getActiveShip,
 } from "../domain/ship";
 import { getMaxCapacity, getUsedCapacity } from "../domain/trade";
-import type { VoyageEvent, World } from "../domain/types";
+import type { ShipInstance, VoyageEvent, World } from "../domain/types";
 
 // ============================================================
 // 主入口
@@ -121,10 +124,6 @@ export function buildNavigationView(world: World): NavigationView {
   const port = PORTS.find((p) => p.id === world.player.currentPortId);
   const reachable = getReachablePorts(world);
   const activeShip = getActiveShip(world);
-  const hpRatio =
-    activeShip.maxDurability > 0
-      ? activeShip.durability / activeShip.maxDurability
-      : 0;
 
   const depRegion = REGIONS.find((reg) => reg.id === port?.regionId);
   const depRegionMod = depRegion?.dangerModifier ?? 1.0;
@@ -154,33 +153,13 @@ export function buildNavigationView(world: World): NavigationView {
     };
   });
 
-  const shipConfig = SHIPS.find((s) => s.id === activeShip.typeId);
-  const maxCap = getMaxCapacity(world);
-  const armamentOptions: ArmamentOptionView[] = shipConfig
-    ? shipConfig.armamentTiers.map(([cargoRatio, defenseMultiplier], i) => {
-        const effectiveCapacity = getEffectiveCapacityForShip(
-          activeShip.typeId,
-          maxCap,
-          i as ArmamentLevel,
-        );
-
-        return {
-          level: i,
-          label: ARMAMENT_LABELS[i],
-          cargoRatio,
-          defenseMultiplier,
-          effectiveCapacity,
-        };
-      })
-    : [];
-
   return {
     currentPortName: port?.name ?? "未知",
     destinations,
-    armamentOptions,
     currentCargoCount: getUsedCapacity(world),
-    currentArmament: activeShip.armamentLevel,
-    hpRatio,
+    fleetShips: world.fleet.ships.map((ship) =>
+      buildFleetShipSummaryView(world, ship),
+    ),
   };
 }
 
@@ -232,8 +211,11 @@ function buildComponentDescription(
   }
 }
 
-export function buildShipView(world: World): ShipView {
-  const activeShip = getActiveShip(world);
+export function buildShipView(world: World, targetShipId?: string): ShipView {
+  const activeShip = targetShipId
+    ? (world.fleet.ships.find((s) => s.id === targetShipId) ??
+      getActiveShip(world))
+    : getActiveShip(world);
   const shipConfig = SHIPS.find((s) => s.id === activeShip.typeId);
   if (!shipConfig) throw new Error("无效船只");
 
@@ -282,6 +264,123 @@ export function buildShipView(world: World): ShipView {
     canRepair: missing > 0 && world.fleet.gold >= repairCost && !world.voyage,
     blockedByVoyage: !!world.voyage,
     components,
+  };
+}
+
+// ============================================================
+// 舰队视图辅助函数
+// ============================================================
+
+function buildFleetShipSummaryView(
+  world: World,
+  ship: ShipInstance,
+): FleetShipSummaryView {
+  const shipConfig = SHIPS.find((s) => s.id === ship.typeId);
+  const typeName = shipConfig?.name ?? "未知";
+  const cargoCapacity = shipConfig
+    ? Math.floor(shipConfig.capacity * (1 + ship.equipment.hullLevel * 0.1))
+    : 0;
+
+  const cargoUsed = ship.cargo.reduce((sum, c) => {
+    const good = GOODS.find((g) => g.id === c.goodId);
+    return sum + (good?.volume ?? 0) * c.quantity;
+  }, 0);
+
+  const speed = shipConfig
+    ? shipConfig.speed * (1 + ship.equipment.sailLevel * 0.05)
+    : 0;
+
+  const defenseMultiplier = shipConfig
+    ? shipConfig.armamentTiers[ship.armamentLevel][1]
+    : 1.0;
+
+  const cargo: CargoItemView[] = ship.cargo.map((c) => {
+    const good = GOODS.find((g) => g.id === c.goodId);
+    const goodName = good?.name ?? "未知";
+    const category = good ? CATEGORY_LABEL[good.category] : "未知";
+    const volume = good?.volume ?? 1;
+    const sellPrice = getSellPrice(c.goodId, world.player.currentPortId, world);
+    const estimatedProfit = (sellPrice - c.buyPrice) * c.quantity;
+
+    return {
+      goodId: c.goodId,
+      goodName,
+      quantity: c.quantity,
+      category,
+      buyPrice: c.buyPrice,
+      sellPrice,
+      volume,
+      estimatedProfit,
+    };
+  });
+
+  return {
+    id: ship.id,
+    name: ship.name,
+    typeName,
+    durability: ship.durability,
+    maxDurability: ship.maxDurability,
+    cargoUsed,
+    cargoCapacity,
+    speed,
+    isActive: ship.id === world.fleet.activeShipId,
+    armamentLevel: ship.armamentLevel,
+    armamentLabel: ARMAMENT_LABELS[ship.armamentLevel],
+    defenseMultiplier,
+    cargo,
+  };
+}
+
+export function buildFleetView(world: World): FleetView {
+  const ships: FleetShipSummaryView[] = world.fleet.ships.map((ship) =>
+    buildFleetShipSummaryView(world, ship),
+  );
+
+  return {
+    ships,
+    maxShips: world.fleet.maxShips,
+    fleetGold: world.fleet.gold,
+    blockedByVoyage: !!world.voyage,
+  };
+}
+
+export function buildShipyardView(
+  world: World,
+  selectedShipId?: string,
+): ShipyardView {
+  const ships: FleetShipSummaryView[] = world.fleet.ships.map((ship) =>
+    buildFleetShipSummaryView(world, ship),
+  );
+
+  const targetShipId = selectedShipId ?? world.fleet.activeShipId;
+  const selectedShip =
+    world.fleet.ships.find((s) => s.id === targetShipId) ??
+    getActiveShip(world);
+
+  const selectedShipDetail = buildShipView(world, selectedShip.id);
+
+  const availableShips: AvailableShipView[] = SHIPS.filter(
+    (s) =>
+      s.sellPortIds.length > 0 &&
+      s.sellPortIds.includes(world.player.currentPortId),
+  ).map((s) => ({
+    typeId: s.id,
+    name: s.name,
+    capacity: s.capacity,
+    speed: s.speed,
+    price: s.basePrice,
+    canAfford: world.fleet.gold >= s.basePrice,
+    fleetFull: world.fleet.ships.length >= world.fleet.maxShips,
+  }));
+
+  return {
+    ships,
+    selectedShipId: selectedShip.id,
+    selectedShipDetail,
+    availableShips,
+    maxShips: world.fleet.maxShips,
+    fleetGold: world.fleet.gold,
+    blockedByVoyage: !!world.voyage,
   };
 }
 
@@ -343,8 +442,7 @@ export function buildVoyageView(world: World): VoyageView {
       travelDays: 0,
       isUnderway: false,
       events: [],
-      armamentLevel: 0,
-      armamentLabel: "",
+      fleetShipCount: 0,
     };
   }
 
@@ -357,7 +455,6 @@ export function buildVoyageView(world: World): VoyageView {
     travelDays: voyage.travelDays,
     isUnderway: true,
     events: voyage.events.map(buildEventView),
-    armamentLevel: voyage.armamentLevel,
-    armamentLabel: ARMAMENT_LABELS[voyage.armamentLevel],
+    fleetShipCount: voyage.fleetShipIds ? voyage.fleetShipIds.length : 1,
   };
 }

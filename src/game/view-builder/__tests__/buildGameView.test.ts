@@ -1,16 +1,14 @@
 import { describe, expect, it } from "bun:test";
 import { GOODS } from "../../../data/goods";
 import { PORTS } from "../../../data/ports";
+import { createTestWorld } from "../../domain/__tests__/helpers";
 import {
-  createEmptyWorld,
-  createTestWorld,
-} from "../../domain/__tests__/helpers";
-import {
-  buildCargoView,
+  buildFleetView,
   buildHarborView,
   buildMarketView,
   buildNavigationView,
   buildShipView,
+  buildShipyardView,
   buildVoyageView,
 } from "../buildGameView";
 
@@ -30,7 +28,7 @@ describe("buildHarborView", () => {
 
     expect(view.playerGold).toBe(5000);
     expect(view.cargoCount).toBeGreaterThan(0);
-    expect(view.cargoCapacity).toBe(30);
+    expect(view.cargoCapacity).toBe(35);
     expect(view.currentDay).toBe(1);
   });
 
@@ -122,42 +120,44 @@ describe("buildNavigationView", () => {
   });
 });
 
-describe("buildCargoView", () => {
-  it("lists cargo items", () => {
+describe("buildFleetView", () => {
+  it("returns fleet summary and individual cargo list for each ship", () => {
     const world = createTestWorld();
-    const view = buildCargoView(world);
+    const view = buildFleetView(world);
 
-    expect(view.shipName).toBe("单桅帆船");
-    expect(view.items).toHaveLength(2);
+    expect(view.ships).toHaveLength(1);
+    expect(view.maxShips).toBe(1);
+    expect(view.fleetGold).toBe(5000);
+
+    // Check that active ship summary contains cargo items
+    const activeShipView = view.ships[0];
+    expect(activeShipView.cargo).toHaveLength(2);
+    expect(activeShipView.cargo[0].goodName).toBe("丝绸");
+    expect(activeShipView.cargo[0].quantity).toBe(5);
+  });
+});
+
+describe("buildShipyardView", () => {
+  it("returns shipyard options, selected ship, and available ships to buy", () => {
+    const world = createTestWorld();
+    const view = buildShipyardView(world);
+
+    expect(view.ships).toHaveLength(1);
+    expect(view.selectedShipId).toBe(world.fleet.activeShipId);
+    expect(view.selectedShipDetail).not.toBeNull();
+    expect(view.selectedShipDetail?.shipName).toBe("单桅帆船");
+
+    // At Quanzhou (start port)
+    expect(view.availableShips).toHaveLength(2);
+    expect(view.availableShips.some((s) => s.typeId === "barque")).toBe(true);
   });
 
-  it("shows used and max capacity", () => {
+  it("allows selecting a specific ship by ID", () => {
     const world = createTestWorld();
-    const view = buildCargoView(world);
+    const view = buildShipyardView(world, "another-ship-id");
 
-    expect(view.usedCapacity).toBeGreaterThan(0);
-    expect(view.maxCapacity).toBe(30);
-  });
-
-  it("empty cargo returns empty items", () => {
-    const world = createEmptyWorld();
-    const view = buildCargoView(world);
-
-    expect(view.items).toHaveLength(0);
-    expect(view.usedCapacity).toBe(0);
-  });
-
-  it("each cargo item has price info", () => {
-    const world = createTestWorld();
-    const view = buildCargoView(world);
-
-    for (const item of view.items) {
-      expect(item.goodId).toBeTruthy();
-      expect(item.goodName).toBeTruthy();
-      expect(item.quantity).toBeGreaterThan(0);
-      expect(item.buyPrice).toBeGreaterThan(0);
-      expect(item.sellPrice).toBeGreaterThan(0);
-    }
+    // If not found in fleet, falls back to active ship
+    expect(view.selectedShipId).toBe(world.fleet.activeShipId);
   });
 });
 

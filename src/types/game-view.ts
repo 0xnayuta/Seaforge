@@ -42,14 +42,6 @@ export interface GoodView {
   readonly cargoBuyPrice?: number; // 持仓加权平均买入价（仅当 inCargo > 0 时有值）
   readonly estimatedProfit?: number; // 当前港口预期利润
 }
-/** 武装配置选项 */
-export interface ArmamentOptionView {
-  readonly level: number;
-  readonly label: string;
-  readonly cargoRatio: number;
-  readonly defenseMultiplier: number;
-  readonly effectiveCapacity: number;
-}
 
 export interface DestinationView {
   readonly portId: string;
@@ -65,10 +57,8 @@ export interface DestinationView {
 export interface NavigationView {
   readonly currentPortName: string;
   readonly destinations: DestinationView[];
-  readonly armamentOptions: ArmamentOptionView[];
   readonly currentCargoCount: number;
-  readonly currentArmament: 0 | 1 | 2;
-  readonly hpRatio: number;
+  readonly fleetShips: FleetShipSummaryView[];
 }
 
 /** 船舱页（/cargo） */
@@ -110,6 +100,52 @@ export interface ShipView {
   readonly blockedByVoyage: boolean;
   readonly components: ComponentView[];
 }
+
+/** 舰队中单艘船只摘要 */
+export interface FleetShipSummaryView {
+  readonly id: string;
+  readonly name: string;
+  readonly typeName: string;
+  readonly durability: number;
+  readonly maxDurability: number;
+  readonly cargoUsed: number;
+  readonly cargoCapacity: number;
+  readonly speed: number;
+  readonly isActive: boolean;
+  readonly armamentLevel: number;
+  readonly armamentLabel: string;
+  readonly defenseMultiplier: number;
+  readonly cargo: readonly CargoItemView[];
+}
+
+/** 当前港口可购买的船只 */
+export interface AvailableShipView {
+  readonly typeId: string;
+  readonly name: string;
+  readonly capacity: number;
+  readonly speed: number;
+  readonly price: number;
+  readonly canAfford: boolean;
+  readonly fleetFull: boolean;
+}
+
+/** 舰队管理页（/fleet） */
+export interface FleetView {
+  readonly ships: FleetShipSummaryView[];
+  readonly maxShips: number;
+  readonly fleetGold: number;
+  readonly blockedByVoyage: boolean;
+}
+
+export interface ShipyardView {
+  readonly ships: FleetShipSummaryView[];
+  readonly selectedShipId: string;
+  readonly selectedShipDetail: ShipView | null;
+  readonly availableShips: AvailableShipView[];
+  readonly maxShips: number;
+  readonly fleetGold: number;
+  readonly blockedByVoyage: boolean;
+}
 /** 航行中页（/voyage） */
 /** 战斗日志条目 */
 export interface CombatLogEntryView {
@@ -134,6 +170,5 @@ export interface VoyageView {
   readonly travelDays: number;
   readonly isUnderway: boolean;
   readonly events: VoyageEventView[];
-  readonly armamentLevel: number;
-  readonly armamentLabel: string;
+  readonly fleetShipCount: number;
 }
