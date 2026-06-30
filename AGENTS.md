@@ -30,10 +30,11 @@
 ```
 src/
 ├── app/                          # Next.js App Router（路由 + Server Actions）
-│   ├── page.tsx                  # 港口总览 (/)
+│   ├── page.tsx                  # 港口总览 (/) — 有存档时显示港口，无存档时显示存档选择器
 │   ├── layout.tsx                # 根布局（导航栏 + 主内容区）
 │   ├── HarborDashboard.tsx       # 港口总览 UI 组件
 │   ├── NewGameForm.tsx           # 无存档时的"开始航海"按钮
+│   ├── SaveSlotList.tsx          # 存档槽位选择/管理 UI 组件（启动页 + /saves 共用）
 │   ├── market/
 │   │   ├── page.tsx              # 交易所 (/market)
 │   │   └── actions.ts            # loadMarketView
@@ -49,10 +50,13 @@ src/
 │   ├── voyage/
 │   │   ├── page.tsx              # 航行中 (/voyage)
 │   │   └── actions.ts            # loadVoyageView / completeVoyage
+│   ├── saves/
+│   │   └── page.tsx              # 存档管理 (/saves)
 │   └── actions/
 │       ├── trade.ts              # 买卖 Server Actions (buyGoods / sellGoods)
 │       ├── travel.ts             # 航行 Server Action (startTravel)
-│       └── new-game.ts           # 新游戏 Server Action (createNewGame)
+│       ├── new-game.ts           # 新游戏 Server Action (createNewGame)
+│       └── save.ts               # 存档管理 Server Actions (manualSave / loadSaveSlot / deleteSaveSlot)
 ├── components/                   # React 组件（纯渲染，不含游戏规则）
 │   ├── ui/                       # 通用 UI 组件
 │   │   ├── GameCard.tsx
@@ -82,20 +86,18 @@ src/
 │   ├── goods.ts                  # 商品配置（16 商品，四大品类）
 │   ├── ships.ts                  # 船只配置（2 船只）
 │   ├── events.ts                 # 随机事件配置
-│   ├── formulas.ts               # 公式常量（航速系数、价格波动系数、回归率）
-│   ├── regions.ts                # 区域配置（5 区域：东亚、印度洋、非洲、地中海、北海）
-│   └── __tests__/
 ├── lib/                          # 基础设施
 │   ├── prisma.ts                 # Prisma 单例
-│   ├── repository.ts             # loadWorld / saveWorld
+│   ├── repository.ts             # loadWorld / saveWorld / loadWorldFromSlot / saveWorldToSlot / listSaves / deleteSave
 │   ├── domain-errors.ts          # DomainError → 中文消息映射
-│   └── with-transaction.ts       # HOF 事务管道（withActionState / withTransaction）
+│   ├── with-transaction.ts       # HOF 事务管道（withActionState / withTransaction）
+│   └── __tests__/
 ├── types/                        # 共享类型
 │   ├── game-view.ts              # GameView 类型
 │   └── prisma.ts                 # PrismaTransactionClient 类型
 └── e2e/                          # Playwright E2E 测试
 prisma/
-├── schema.prisma                 # 存档表（Save + JSON 列模式）
+├── schema.prisma                 # 存档表（Save + JSON 列模式，slot 0=自动 / 1-3=手动）
 └── migrations/
 ```
 

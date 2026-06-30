@@ -1,6 +1,6 @@
 ---
 status: draft
-last_verified: 2026-06-26
+last_verified: 2026-06-30
 ---
 
 # Phase 2：系统深度扩展
@@ -421,40 +421,48 @@ interface FleetState {
 
 ---
 
-### Phase 2.6：存档管理增强
+### Phase 2.6：存档管理增强 ✓ 已实现
 
 多手动存档位 + 存档信息预览 + 删除存档。全文档系统变更，与舰队架构解耦。
 
 #### 功能
 
-|功能|说明|
-|---|---|
-|多存档位|3 个手动存档槽位 + 1 个自动存档槽位|
-|存档信息|槽位显示：玩家等级、舰队规模（船数）、金币、当前港口、天数|
-|存/读档|港口页面可手动存档到指定槽位；启动时选择槽位读取|
-|删除存档|可删除指定槽位|
-|自动存档|每次关键操作后自动存入自动存档槽位，不覆盖手动存档|
+|功能|说明|状态|
+|---|---|---|
+|多存档位|3 个手动存档槽位 + 1 个自动存档槽位|✓|
+|存档信息|槽位显示：玩家等级、舰队规模（船数）、金币、当前港口、天数|✓|
+|存/读档|港口页面可手动存档到指定槽位；启动时选择槽位读取|✓|
+|删除存档|可删除指定槽位|✓|
+|自动存档|每次关键操作后自动存入自动存档槽位，不覆盖手动存档|✓（原有机制不变）|
 
 #### UI 变更
 
-|页面|变更|
-|---|---|
-|启动页|从自动读档改为「选择存档槽位」列表 + 新游戏按钮|
-|`/` 设置入口|港口页面新增「存档管理」入口|
-|存档弹窗|选择槽位 → 覆盖确认 → 成功提示|
+|页面|变更|状态|
+|---|---|---|
+|启动页|从自动读档改为「选择存档槽位」列表 + 新游戏按钮|✓|
+|`/` 设置入口|港口页面新增「存档管理」入口（快捷操作区 + `/saves` 路由）|✓|
+|存档管理页|`/saves` 页面：槽位列表 + 存入/覆盖确认 + 读取 + 删除|✓|
 
 **关联文件：**
-- `prisma/schema.prisma` — `Save` 模型新增 `slot` 字段（0=自动, 1-3=手动）
-- `src/lib/repository.ts` — 新增 `listSaves`、`deleteSave`
-- `src/app/actions/save.ts` — 新增 `manualSave` Server Action
+- `prisma/schema.prisma` — `Save` 模型 `slot` 字段注释更新（0=自动, 1-3=手动）
+- `src/lib/repository.ts` — 新增 `loadWorldFromSlot`、`saveWorldToSlot`、`listSaves`、`deleteSave`；重构 `parseSaveData` 提取迁移逻辑
+- `src/types/prisma.ts` — `PrismaTransactionClient` 新增 `findMany`、`delete` 方法
+- `src/types/game-view.ts` — 新增 `SaveSlotView` 类型
+- `src/game/view-builder/buildGameView.ts` — 新增 `buildSaveSlotViews` 函数
+- `src/app/actions/save.ts` — 新增 `manualSave`、`loadSaveSlot`、`deleteSaveSlot` Server Actions
+- `src/app/SaveSlotList.tsx` — 新增存档槽位选择/管理客户端组件
+- `src/app/saves/page.tsx` — 新增存档管理页面
+- `src/app/page.tsx` — 无自动存档时显示存档槽位选择器
+- `src/app/HarborDashboard.tsx` — 新增「存档管理」快捷入口
 
 #### 测试覆盖
 
-|范围|内容|
-|---|---|
-|集成测试|多 slot 读写互不干扰|
-||手动存档 + 自动存档共存|
-||删除存档后对应 slot 可用|
+|范围|内容|状态|
+|---|---|---|
+|单元测试|`buildSaveSlotViews`：空槽位、有效存档、多槽位独立、旧格式兼容、损坏 JSON|✓|
+|集成测试|多 slot 读写互不干扰|✓|
+||手动存档 + 自动存档共存|✓|
+||删除存档后对应 slot 可用|✓|
 
 ---
 
