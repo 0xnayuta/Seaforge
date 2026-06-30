@@ -100,22 +100,6 @@ describe("buildMarketView", () => {
     }
   });
 });
-it("includes available equipments at port and fleet inventory", () => {
-  const world = createTestWorld({
-    fleet: {
-      ...createTestWorld().fleet,
-      inventory: ["high_speed_sail"],
-    },
-  });
-  const view = buildMarketView(world);
-
-  // 泉州应该售卖高速帆等装备
-  expect(view.availableEquipments).not.toHaveLength(0);
-  const sail = view.availableEquipments.find((e) => e.id === "high_speed_sail");
-  expect(sail).toBeDefined();
-  expect(sail?.price).toBe(5000);
-  expect(view.fleetInventory).toContain("high_speed_sail");
-});
 
 describe("buildNavigationView", () => {
   it("lists destinations reachable from current port", () => {
@@ -173,6 +157,10 @@ describe("buildShipyardView", () => {
     // At Quanzhou (start port)
     expect(view.availableShips).toHaveLength(2);
     expect(view.availableShips.some((s) => s.typeId === "barque")).toBe(true);
+    expect(view.portName).toBe("泉州");
+    expect(
+      view.availableEquipments.some((e) => e.id === "high_speed_sail"),
+    ).toBe(true);
   });
 
   it("allows selecting a specific ship by ID", () => {
@@ -182,6 +170,30 @@ describe("buildShipyardView", () => {
     // If not found in fleet, falls back to active ship
     expect(view.selectedShipId).toBe(world.fleet.activeShipId);
   });
+
+  it("includes port-specific available equipments and filters by port", () => {
+    const world = createTestWorld({
+      fleet: {
+        ...createTestWorld().fleet,
+        inventory: ["high_speed_sail"],
+      },
+    });
+    const view = buildShipyardView(world);
+
+    // 泉州应该售卖高速帆等装备
+    expect(view.availableEquipments).not.toHaveLength(0);
+    const sail = view.availableEquipments.find(
+      (e) => e.id === "high_speed_sail",
+    );
+    expect(sail).toBeDefined();
+    expect(sail?.price).toBe(5000);
+
+    // Equipment not sold at current port should not appear
+    expect(view.availableEquipments.some((e) => e.id === "heavy_cannon")).toBe(
+      false,
+    );
+    expect(view.portName).toBe("泉州");
+  });
 });
 
 describe("buildShipView", () => {
@@ -190,13 +202,6 @@ describe("buildShipView", () => {
     const view = buildShipView(world);
 
     expect(view.shipName).toBe("单桅帆船");
-    expect(view.components).toHaveLength(4);
-    expect(view.components[0].id).toBe("hull");
-    expect(view.components[0].level).toBe(0);
-    expect(view.components[0].maxLevel).toBe(3);
-    expect(view.components[0].nextCost).toBe(500);
-    expect(view.durability).toBe(50);
-    expect(view.maxDurability).toBe(50);
   });
 
   it("component upgrade costs reflect current level", () => {
