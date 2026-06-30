@@ -293,6 +293,7 @@ export function applyVoyageEvents(
 ): World {
   let result = world;
   for (const event of events) {
+    if (world.voyage && !result.voyage) break;
     if (event.type === "combat") {
       result = applyCombatEvent(result, event);
     } else if (event.type === "storm") {

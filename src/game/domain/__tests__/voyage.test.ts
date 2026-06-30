@@ -239,6 +239,60 @@ describe("applyVoyageEvents", () => {
 
     randomSpy.mockRestore();
   });
+
+  it("breaks early if flagship sinks mid-voyage and subsequent events occur", () => {
+    const randomSpy = vi.spyOn(Math, "random");
+    randomSpy.mockReturnValueOnce(0.9); // no crew loss triggers
+    randomSpy.mockReturnValueOnce(1.0); // max damage = 20
+
+    const world = createTestWorld({
+      fleet: {
+        ships: [
+          {
+            ...createTestWorld().fleet.ships[0],
+            durability: 15, // drops below 0 with 20 damage
+          },
+        ],
+        activeShipId: "ship-1",
+        maxShips: 1,
+        crew: 5,
+        maxCrew: 10,
+        gold: 1000,
+      },
+      voyage: {
+        fromPortId: "quanzhou",
+        toPortId: "malacca",
+        departureDay: 1,
+        travelDays: 5,
+        events: [],
+        fleetShipIds: ["ship-1"],
+      },
+    });
+
+    const events: VoyageEvent[] = [
+      {
+        day: 1,
+        description: "狂风暴雨",
+        goldChange: 0,
+        cargoLoss: 0,
+        type: "storm",
+      },
+      {
+        day: 2,
+        description: "海盗袭击",
+        goldChange: 0,
+        cargoLoss: 0,
+        type: "combat",
+      },
+    ];
+
+    // Should execute without throwing DomainError "IN_VOYAGE"
+    const result = applyVoyageEvents(world, events);
+    expect(result.voyage).toBeNull();
+    expect(result.fleet.ships[0].durability).toBe(1);
+
+    randomSpy.mockRestore();
+  });
 });
 
 describe("generateVoyageEvents", () => {
