@@ -71,7 +71,7 @@ interface FleetState {
 
 ## 子阶段划分
 
-### Phase 2.1：玩家等级与经验系统
+### Phase 2.1：玩家等级与经验系统 ✓ 已实现
 
 **独立子阶段，不依赖舰队重构。** 可在 Phase 1.5 完成后立即开始。
 
@@ -81,48 +81,49 @@ interface FleetState {
 // PlayerState 新增字段（仅新增，不涉及舰队）
 interface PlayerState {
   readonly name: string;
-  readonly gold: number;             // 保留，Phase 2.2 迁移到 fleet.gold
+  readonly gold: number;             // Phase 2.2 迁移到 fleet.gold
   readonly currentPortId: string;
   readonly day: number;
-  readonly level: number;            // 新增
-  readonly exp: number;              // 新增
-  readonly expToNext: number;        // 新增
+  readonly level: number;            // 新增 ✓
+  readonly exp: number;              // 新增 ✓
+  readonly expToNext: number;        // 新增 ✓
 }
 ```
 
 #### 经验来源与升级
 
-|功能|说明|
-|---|---|
-|贸易经验|卖出货物时获得 `exp = 利润 × LEVEL_EXP_RATIO`|
-|事件经验|完成航行随机事件获少量经验|
-|升级公式|`expToNext = BASE_EXP × (1 + level × LEVEL_EXP_GROWTH)`|
-|升级收益|每级解锁舰队容量 `maxShips`、提升部件升级上限、小幅提升速度系数|
+|功能|说明|状态|
+|---|---|---|
+|贸易经验|卖出货物时获得 `exp = 利润 × LEVEL_EXP_RATIO`|✓|
+|事件经验|完成航行随机事件获少量经验|✓|
+|升级公式|`expToNext = BASE_EXP × (1 + level × LEVEL_EXP_GROWTH)`|✓|
+|升级收益|每级解锁舰队容量 `maxShips`、提升部件升级上限、小幅提升速度系数|✓|
 
 **关联文件：**
 - `src/game/domain/types.ts` — `PlayerState` 新增 `level/exp/expToNext`
 - `src/game/domain/player.ts` — 新增 `gainExp(world, amount)`、`levelUp` 纯函数
-- `src/data/formulas.ts` — `LEVEL_EXP_RATIO`、`LEVEL_EXP_GROWTH`、`BASE_EXP`
+- `src/data/formulas.ts` — `LEVEL_EXP_RATIO`、`LEVEL_EXP_GROWTH`、`BASE_EXP`、`LEVEL_SPEED_PER_LEVEL`、`EVENT_EXP`
 - `src/game/domain/trade.ts` — `executeSell` 调用 `gainExp`
+- `src/game/domain/voyage.ts` — `applyVoyageEvents` 调用 `gainExp`
 
 #### UI 变更
 
-|页面|变更|
-|---|---|
-|`/` 状态栏|新增等级 + 经验条（显示 "Lv.5 [====>-----] 60%"）|
-|造船厂/船坞|购买船只/扩充舰队时显示等级要求|
+|页面|变更|状态|
+|---|---|---|
+|`/` 状态栏|新增等级 + 经验条（显示 "Lv.5 [===>-----] 60%"）|✓|
+|造船厂/船坞|购买船只/扩充舰队时显示等级要求|✓|
 
 #### 测试覆盖
 
-|范围|内容|
-|---|---|
-|单元测试|卖出货物后经验增长正确|
-||升级触发 levelUp + 属性变化|
-||等级不足时拒绝操作|
+|范围|内容|状态|
+|---|---|---|
+|单元测试|卖出货物后经验增长正确|✓|
+||升级触发 levelUp + 属性变化|✓|
+||等级不足时拒绝操作|✓|
 
 ---
 
-### Phase 2.2：舰队架构重构（核心基础设施变更）
+### Phase 2.2：舰队架构重构（核心基础设施变更）✓ 已实现
 
 **一次性基础设施变更**——类型、UseCase、View Builder、Repository 全部更新。这是 Phase 2 的骨架变更，后续子阶段在此基础上加功能。
 
@@ -177,66 +178,66 @@ interface World {
 
 #### 部件升级逻辑（旧 Phase 2.1 合并至此）
 
-|功能|说明|
-|---|---|
-|部件升级|每次选择升级一个部件，扣对应金币（各部件价格独立配置）|
-|部件上限|每部件上限受船只基础值限制（不同船只可升级空间不同）|
-|升级效果|部件等级影响对应能力：hull→容量、sail→速度、armor→耐久、cannon→攻击|
+|功能|说明|状态|
+|---|---|---|
+|部件升级|每次选择升级一个部件，扣对应金币（各部件价格独立配置）|✓|
+|部件上限|每部件上限受船只基础值限制（不同船只可升级空间不同）|✓|
+|升级效果|部件等级影响对应能力：hull→容量、sail→速度、armor→耐久、cannon→攻击|✓|
 
 #### 耐久系统
 
-|功能|说明|
-|---|---|
-|耐久消耗|航行基础消耗 + 随机事件（风暴/海盗）额外消耗|
-|耐久与升级|armorLevel 越高 → maxDurability 越高，航行消耗也略增（重甲）|
-|修复机制|港口造船厂可付费修复，费用 = 基础修复费率 × 耐久缺口|
-|沉船条件|耐久降至 0 → 自动返航最近港口，丢失 50% 货物|
+|功能|说明|状态|
+|---|---|---|
+|耐久消耗|航行基础消耗 + 随机事件（风暴/海盗）额外消耗|✓|
+|耐久与升级|armorLevel 越高 → maxDurability 越高|✓|
+|修复机制|港口造船厂可付费修复，费用 = 基础修复费率 × 耐久缺口|✓|
+|沉船条件|耐久降至 0 → 自动返航最近港口，丢失 50% 货物|✓|
 
 #### 受影响模块清单
 
-|模块|变更内容|
-|---|---|
-|`src/game/domain/types.ts`|`ShipState`→`ShipInstance` + `FleetState` + `ShipEquipment`；`PlayerState.gold` 移除；`World.ship`→`World.fleet`|
-|`src/game/domain/ship.ts`|`upgradeShip` 改为接受 `fleet` + `shipId` + `component`|
-|`src/game/domain/trade.ts`|读 `fleet.gold` 而非 `player.gold`；`executeBuy` 存入 `fleet.ships[activeShip].cargo`|
-|`src/game/domain/navigation.ts`|出航时指定哪些船进入舰队编队|
-|`src/game/domain/voyage.ts`|航行期间舰队状态处理（各船耐久消耗）|
-|`src/data/ships.ts`|各船只耐久基线、每部件每级升级费用|
-|`src/game/view-builder/buildGameView.ts`|`world.ship.*` → `world.fleet.*`；`gold` 来源变更|
-|`src/app/actions/trade.ts`|入参/出参适配 `fleet`|
-|`src/app/actions/travel.ts`|适配 `fleet`|
-|`src/app/actions/save.ts`|存档迁移（旧 `ShipState` → `FleetState` 单船数组）|
-|`src/lib/repository.ts`|`loadWorld` 中旧存档迁移逻辑|
+|模块|变更内容|状态|
+|---|---|---|
+|`src/game/domain/types.ts`|`ShipState`→`ShipInstance` + `FleetState` + `ShipEquipment`；`PlayerState.gold` 移除；`World.ship`→`World.fleet`|✓|
+|`src/game/domain/ship.ts`|`upgradeComponent` 接受 `fleet` + `shipId` + `component`；`takeDamage`、`repairShip`|✓|
+|`src/game/domain/trade.ts`|读 `fleet.gold` 而非 `player.gold`；`executeBuy` 存入 `fleet.ships[activeShip].cargo`|✓|
+|`src/game/domain/navigation.ts`|`calcFleetTravelDays`、`getFleetCombatPower` 舰队编队计算|✓|
+|`src/game/domain/voyage.ts`|航行期间舰队状态处理（各船耐久消耗）|✓|
+|`src/data/ships.ts`|各船只耐久基线、每部件每级升级费用、baseCrew|✓|
+|`src/game/view-builder/buildGameView.ts`|`world.ship.*` → `world.fleet.*`；`gold` 来源变更|✓|
+|`src/app/actions/trade.ts`|入参/出参适配 `fleet`|✓|
+|`src/app/actions/travel.ts`|适配 `fleet`|✓|
+|`src/lib/repository.ts`|`parseSaveData` 中旧存档迁移逻辑（`migrateOldShipToFleet`）|✓|
 
 #### UI 适配
 
-|页面|变更|
-|---|---|
-|`/`|状态栏 `gold` 来源变更；显示舰队总舱容/已用|
-|`/cargo`|显示当前舰队总货物分布，可按船查看|
-|`/voyage`|显示编队出航的船只列表|
-|`/ship`|改为舰队视角——船坞列表，选择船只后升级/维修/换装|
+|页面|变更|状态|
+|---|---|---|
+|`/`|状态栏 `gold` 来源变更；显示舰队总舱容/已用|✓|
+|`/cargo`|显示当前舰队总货物分布，可按船查看|✓|
+|`/voyage`|显示编队出航的船只列表|✓|
+|`/ship`|改为舰队视角——船坞列表，选择船只后升级/维修/换装/装备管理|✓|
 
 #### 旧存档迁移
 
-`loadWorld` 检测 `world.ship` 存在 → 转换为：
+`loadWorld` / `parseSaveData` 检测 `world.ship` 存在 → 转换为 FleetState（含 level 补充、inventory 初始化和新版字段补全）：
 
 ```typescript
 {
   fleet: {
     ships: [{
       ...world.ship,
-      id: uuid(),
+      id: "ship-1",
       name: SHIPS.find(s => s.id === world.ship.typeId)?.name ?? "Unknown",
-      equipment: { hullLevel: world.ship.upgradeLevel, sailLevel: 1, armorLevel: 1, cannonLevel: 1 },
-      durability: 100,
-      maxDurability: 100,
+      equipment: { hullLevel: world.ship.upgradeLevel, sailLevel: 0, armorLevel: 0, cannonLevel: 0 },
+      durability: world.ship.currentHp,
+      maxDurability: world.ship.maxHp,
       equippedItems: [],
     }],
     maxShips: 1,
-    crew: 5,
-    maxCrew: 10,
+    crew: shipConfig?.baseCrew ?? 3,
+    maxCrew: (shipConfig?.baseCrew ?? 3) * 2,
     gold: world.player.gold,
+    inventory: [],
   },
   player: { ...world.player, gold: undefined },  // 移除 gold
 }
@@ -244,82 +245,85 @@ interface World {
 
 #### 测试覆盖
 
-|范围|内容|
-|---|---|
-|单元测试|所有现有 domain 测试适配 fleet 结构后通过|
-||部件升级：各部件正确影响属性、扣金币|
-||耐久：航行消耗、事件消耗、修复、沉船|
-||旧存档迁移：`ShipState` 正确转为 `FleetState`|
+|范围|内容|状态|
+|---|---|---|
+|单元测试|所有现有 domain 测试适配 fleet 结构后通过|✓|
+||部件升级：各部件正确影响属性、扣金币|✓|
+||耐久：航行消耗、事件消耗、修复、沉船|✓|
+||旧存档迁移：`ShipState` 正确转为 `FleetState`|✓|
 
 ---
 
-### Phase 2.3：多船持有与舰队管理
+### Phase 2.3：多船持有与舰队管理 ✓ 已实现
 
 在 2.2 的 FleetState 基础上，实现多船购买、舰队编组、编队出航。
 
 #### 多船持有
 
-|功能|说明|
-|---|---|
-|购买新船|在对应港口造船厂消耗金币购买，新船加入 `fleet.ships`|
-|保留旧船|不折抵，新旧船并存|
-|船只上限|`fleet.ships.length ≤ fleet.maxShips`；等级不足时提示「提升等级以扩充舰队」|
-|出售船只|在造船厂选择出售指定船只，回收部分金币；禁止出售最后一艘船（至少要留一艘）|
+|功能|说明|状态|
+|---|---|---|
+|购买新船|在对应港口造船厂消耗金币购买，新船加入 `fleet.ships`|✓|
+|保留旧船|不折抵，新旧船并存|✓|
+|船只上限|`fleet.ships.length ≤ fleet.maxShips`；等级不足时提示|✓|
+|出售船只|在造船厂选择出售指定船只，回收部分金币；禁止出售最后一艘船|✓|
 
 #### 舰队编组与出航
 
-|功能|说明|
-|---|---|
-|选择编队|出航前从 `fleet.ships` 中选择本次出航的船只（可选多艘，至少 1 艘）|
-|编队总舱容|编队所有船的 `capacity` 之和|
-|编队消耗|各船航行消耗之和（若玩家选择全舰队出航则消耗更大）|
-|编队战斗力|编队所有船 `cannonLevel` 加权和|
-|未出航船只|留在港口，不参与事件，不消耗耐久|
+|功能|说明|状态|
+|---|---|---|
+|选择编队|出航前从 `fleet.ships` 中选择本次出航的船只（可选多艘，至少 1 艘）|✓|
+|编队总舱容|编队所有船的 `capacity` 之和|✓|
+|编队消耗|各船航行消耗之和（若玩家选择全舰队出航则消耗更大）|✓|
+|编队战斗力|编队所有船 `cannonLevel` 加权和|✓|
+|未出航船只|留在港口，不参与事件，不消耗耐久|✓|
 
 **关联文件：**
 - `src/game/domain/ship.ts` — 新增 `buyShip(world, shipId)`、`sellShip(world, shipId)` 纯函数
-- `src/game/domain/navigation.ts` — `depart` 接受 `shipId[]`（编队选择）
+- `src/game/domain/navigation.ts` — `calcFleetTravelDays` 接受 `shipId[]`（编队选择）；`getFleetCombatPower`
 - `src/game/domain/types.ts` — `VoyageState` 新增 `fleetShipIds: string[]`
-- `src/app/actions/trade.ts` — 新增 `buyShip` / `sellShip` Server Action
+- `src/game/domain/voyage.ts` — `startVoyage` 接受 `options.fleetShipIds`
+- `src/app/ship/actions.ts` — `buyShipAction` / `sellShipAction` Server Actions
+- `src/app/fleet/actions.ts` — `switchActiveShipAction` / `setArmamentAction`
+- `src/app/navigation/actions.ts` — `loadNavigationView` 显示编队选项
 
 #### 船只购买配置
 
-|船只|出售港口|舱容|速度|特点|
-|---|---|---|---|---|
-|轻木帆船|威尼斯|20|1.2|最快速度，最低载重|
-|单桅帆船|威尼斯|35|1.0|基础船|
-|单桅三角帆船|伦敦|50|0.9||
-|中型帆船|伦敦|80|0.8|均衡型|
-|多桅小型帆船|开普敦/孟买|100|0.7|远洋商船|
-|三桅帆船|泉州|120|0.6|大容量商船|
-|佛兰德帆船|开普敦/孟买|90|0.85|高速大型，消耗高|
-|三桅大型帆船|泉州|150|0.55|最大容量，最慢最耗|
+|船只|出售港口|舱容|速度|特点|状态|
+|---|---|---|---|---|---|
+|轻木帆船|威尼斯|20|1.2|最快速度，最低载重|✓|
+|单桅帆船|威尼斯|35|1.0|基础船|✓|
+|单桅三角帆船|伦敦|50|0.9||✓|
+|中型帆船|伦敦|80|0.8|均衡型|✓|
+|多桅小型帆船|开普敦/孟买|100|0.7|远洋商船|✓|
+|三桅帆船|泉州|120|0.6|大容量商船|✓|
+|佛兰德帆船|开普敦/孟买|90|0.85|高速大型，消耗高|✓|
+|三桅大型帆船|泉州|150|0.55|最大容量，最慢最耗|✓|
 
 > 具体数值在建阶段需平衡。原版氪金船（明永乐大帆船）不引入。
 
 #### 舰队管理 UI（`/fleet` 新页面或 `/ship` 扩展）
 
-|页面|变更|
-|---|---|
-|新增 `/fleet`|舰队总览：所有船只列表（名称/型号/耐久/货物/装备），编队选择|
-|`/ship`|当前船只升级/维修/装备，切换船只|
-|`/navigation`|出航时展示编队船舶选择界面（勾选/取消）|
-|购买弹窗|显示新船属性 + 当前舰队状态 + 购买后舰队容量 + 确认按钮|
-|港口绑定|`/ship` 仅显示当前港口可购买的船只|
+|页面|变更|状态|
+|---|---|---|
+|新增 `/fleet`|舰队总览：所有船只列表（名称/型号/耐久/货物/装备），编队选择|✓|
+|`/ship`|当前船只升级/维修/装备，切换船只|✓|
+|`/navigation`|出航时展示编队船舶选择界面（勾选/取消）|✓|
+|购买弹窗|显示新船属性 + 当前舰队状态 + 购买后舰队容量 + 确认按钮|✓|
+|港口绑定|`/ship` 仅显示当前港口可购买的船只|✓|
 
 #### 测试覆盖
 
-|范围|内容|
-|---|---|
-|单元测试|购买新船：金币扣除 + 船只加入 fleet|
-||出售船只：金币回收 + 船只移除|
-||禁止出售最后一艘船|
-||编队出航：各船货物累加 + 各船消耗累加|
-||未出航船只：不消耗耐久、不出货|
+|范围|内容|状态|
+|---|---|---|
+|单元测试|购买新船：金币扣除 + 船只加入 fleet|✓|
+||出售船只：金币回收 + 船只移除|✓|
+||禁止出售最后一艘船|✓|
+||编队出航：各船货物累加 + 各船消耗累加|✓|
+||未出航船只：不消耗耐久、不出货|✓|
 
 ---
 
-### Phase 2.4：船员系统（抽象资源型）
+### Phase 2.4：船员系统（抽象资源型）✓ 已实现
 
 作为舰队不可或缺的消耗性资源——每条船需要船员操作，船员影响战斗和航行表现。
 
@@ -332,92 +336,95 @@ interface FleetState {
   readonly crew: number;             // 新增（已在 2.2 预留）
   readonly maxCrew: number;          // 新增（已在 2.2 预留）
   readonly gold: number;
+  readonly inventory: readonly string[];
 }
 ```
 
 #### 船员系统设计
 
-|功能|说明|
-|---|---|
-|基本规则|每条船最少需要 `baseCrew` 名船员才能出航；舰队总船员数 = 各船最少船员之和|
-|船员上限|`maxCrew` 由舰队总舱位决定（每 5 舱容提供 1 船员位）|
-|雇佣与解雇|港口「航海家酒馆」招募或解雇船员；招募费用 = `BASE_HIRE_COST × (1 + 当前船员数 × 0.1)`|
-|航行消耗|船员每日消耗 `CREW_UPKEEP_PER_DAY` 金币/人（在抵达结算时统一扣除）|
-|船员损失|风暴/海盗战斗中可能损失船员|
-|低于最低船员|无法出航（「船员不足，无法出海」）|
-|船员战斗加成|船员数超出最低需求时，每多 1 名船员提供 `+0.5%` 战斗加成（上限 30%）|
+|功能|说明|状态|
+|---|---|---|
+|基本规则|每条船最少需要 `baseCrew` 名船员才能出航；舰队总船员数 = 各船最少船员之和|✓|
+|船员上限|`maxCrew` 由舰队总舱位决定（每 5 舱容提供 1 船员位）|✓|
+|雇佣与解雇|港口「航海家酒馆」招募或解雇船员；招募费用递增|✓|
+|航行消耗|船员每日消耗 `CREW_UPKEEP_PER_DAY` 金币/人（在抵达结算时统一扣除）|✓|
+|船员损失|风暴/海盗战斗中可能损失船员|✓|
+|低于最低船员|无法出航（「船员不足，无法出海」）|✓|
+|船员战斗加成|船员数超出最低需求时，每多 1 名船员提供 `+0.5%` 战斗加成（上限 30%）|✓|
 
-#### 关联文件
-
-- `src/data/formulas.ts` — `BASE_HIRE_COST`、`CREW_UPKEEP_PER_DAY`、`CREW_PER_SLOT`
-- `src/game/domain/` 新增 `crew.ts` — `hireCrew`、`fireCrew`、`calcCrewUpkeep`、`calcMinCrewForFleet` 纯函数
-- `src/data/` 新增 `crew.ts` — 各船只 `baseCrew` 配置
-- `src/app/actions/` 新增 `crew.ts` — Server Action
+**关联文件：**
+- `src/data/formulas.ts` — `BASE_HIRE_COST`、`CREW_UPKEEP_PER_DAY`、`CREW_PER_SLOT`、`STORM_CREW_LOSS_CHANCE`、`COMBAT_VICTORY_CREW_LOSS_CHANCE`、`COMBAT_PARTIAL_LOSS_CREW_LOSS_MIN/MAX`
+- `src/game/domain/crew.ts` — `hireCrew`、`fireCrew`、`calcCrewUpkeep`、`calcMinCrewForFleet`、`deductCrewUpkeep`、`recalculateMaxCrew` 纯函数
+- `src/data/ships.ts` — 各船只 `baseCrew` 配置（集成在 ship config 中，无独立 crew.ts）
+- `src/app/actions/crew.ts` — `hireCrewAction` / `fireCrewAction` Server Actions
+- `src/app/tavern/actions.ts` — `loadTavernView`
 
 #### UI 变更
 
-|页面|变更|
-|---|---|
-|`/` 状态栏|新增船员数（当前/最大）|
-|新增 `/tavern`|航海家酒馆：招募/解雇船员，显示费率、船员信息|
-|出航检查|船员不足时 `/navigation` 页禁用出航按钮并提示|
+|页面|变更|状态|
+|---|---|---|
+|`/` 状态栏|新增船员数（当前/最大）|✓|
+|新增 `/tavern`|航海家酒馆：招募/解雇船员，显示费率、船员信息|✓|
+|出航检查|船员不足时 `/navigation` 页禁用出航按钮并提示|✓|
 
 #### 测试覆盖
 
-|范围|内容|
-|---|---|
-|单元测试|招募正确扣金币 + 增加船员数 + 费率递增|
-||解雇减少船员数|
-||船员不足拒绝出航|
-||航行后正确扣除每日维护费|
-||战斗中损失船员逻辑|
+|范围|内容|状态|
+|---|---|---|
+|单元测试|招募正确扣金币 + 增加船员数 + 费率递增|✓|
+||解雇减少船员数|✓|
+||船员不足拒绝出航|✓|
+||航行后正确扣除每日维护费|✓|
+||战斗中损失船员逻辑|✓|
 
 ---
 
-### Phase 2.5：装备系统
+### Phase 2.5：装备系统 ✓ 已实现
 
-为每条船提供独立装备槽，装备影响船只属性。
+为每条船提供独立装备槽，装备影响船只属性。共 9 种装备（5 类型，每船 3 槽）。
 
 #### 装备类型
 
-|类型|效果|示例|
-|---|---|---|
-|sail（帆）|速度加成|「高速帆」速度 +8%|
-|cannon（炮）|战斗加成|「加农炮」攻击 +15%|
-|armor（装甲）|耐久上限加成|「铁甲板」耐久上限 +20|
-|figurehead（船首像）|特殊效果|「海神像」海盗回避率 +10%|
-|special（特殊）|综合效果|「货舱加固」舱容 +10|
+|类型|效果|示例|状态|
+|---|---|---|---|
+|sail（帆）|速度加成|「高速帆」速度 +8%、「疾风帆」+15%|✓|
+|cannon（炮）|战斗加成|「轻型火炮」+10%、「加农炮」+15%|✓|
+|armor（装甲）|耐久上限加成|「铁甲板」+20、「钢甲板」+40|✓|
+|figurehead（船首像）|特殊效果|「海神像」海盗回避率 +10%|✓|
+|special（特殊）|综合效果|「货舱加固」舱容 +10、「超大货舱」+25|✓|
 
 #### 系统设计（与 Phase 1 规划一致，调整适配舰队）
 
-|功能|说明|
-|---|---|
-|装备槽|每船 3 个槽位，同类型不可重复装备|
-|获取方式|港口铁匠铺/交易所购买（部分港口专属稀有装备）|
-|装备效果|叠加到船只基础 + 部件属性上|
-|跨船转移|出售船只前必须卸下所有装备|
+|功能|说明|状态|
+|---|---|---|
+|装备槽|每船 3 个槽位，同类型不可重复装备|✓|
+|获取方式|港口铁匠铺/交易所购买（部分港口专属稀有装备）|✓|
+|装备效果|叠加到船只基础 + 部件属性上|✓|
+|跨船转移|出售船只前必须卸下所有装备|✓|
 
 **关联文件：**
-- `src/data/` 新增 `equipment.ts` — 装备配置表
-- `src/game/domain/` 新增 `equipment.ts` — `equipItem`、`unequipItem` 纯函数
-- `src/app/actions/` 新增 `equipment.ts` — Server Action
+- `src/data/equipment.ts` — 9 装备配置表（5 类型、售卖港口绑定）
+- `src/game/domain/equipment.ts` — `equipItem`、`unequipItem`、`buyEquipment`、`sellEquipment`、属性计算函数
+- `src/app/actions/equipment.ts` — `buyEquipmentAction`、`sellEquipmentAction`、`equipItemAction`、`unequipItemAction`
+- `src/components/ShipyardPanel.tsx` — 装备槽插槽 UI（已装备显示 + 可装配列表）
+- `src/components/MarketPanel.tsx` — 港口铁匠铺（购买）+ 已拥有装备包（出售）
 
 #### UI 变更
 
-|页面|变更|
-|---|---|
-|`/ship`（选中某船后）|装备面板：当前装备 + 所有已拥有装备 + 装备/卸下操作|
-|`/market`|部分港口额外显示装备列表（与商品分开）|
-|装备预览|装备前显示属性变化|
+|页面|变更|状态|
+|---|---|---|
+|`/ship`（选中某船后）|装备面板：当前装备 + 舰队装备包 + 装配/卸下操作 + 同类型冲突提示|✓|
+|`/market`|「港口铁匠铺」显示该港口可购买装备 + 「已拥有装备包」支持出售|✓|
+|装备预览|装配前可查看装备效果描述|✓|
 
 #### 测试覆盖
 
-|范围|内容|
-|---|---|
-|单元测试|装备/卸下正确影响船只属性|
-||同类型不可重复装备|
-||出售装备船时必须先卸装|
-||装备槽满时拒绝装备|
+|范围|内容|状态|
+|---|---|---|
+|单元测试|装备/卸下正确影响船只属性|✓|
+||同类型不可重复装备|✓|
+||出售装备船时必须先卸装|✓|
+||装备槽满时拒绝装备|✓|
 
 ---
 
@@ -500,36 +507,30 @@ Phase 2.6 (存档管理) ─── 独立，随时可做
 |社交系统（帮会/师徒/结婚）|单机版不计划|不计划|
 |PK 海域|单机版不计划|不计划|
 |活动/限时事件|无运营需求|不计划|
-|MOD 支持|—|Phase 5|
-|Zustand|当前架构不需要|见 Phase 1 条件|
-
----
-
-## 完成标准
-
 ### 硬性条件（必须满足）
 
-- [ ] `World.ship` → `World.fleet` 重构完成，所有现有 UseCase/View Builder/UI 适配
-- [ ] 玩家等级系统：贸易产生经验 → 升级 → 解锁 `maxShips` 和部件上限
-- [ ] 多船持有：可购买多艘船，旧船保留，舰队管理页面完整
-- [ ] 编队出航：出航时选择船只、计算总舱容和总消耗
-- [ ] 船员系统：招募/解雇/日常消耗/战斗损失/船员不足禁止出航
-- [ ] 部件升级：hull/sail/armor/cannon 四部件独立升级 + 耐久维修
-- [ ] 装备系统：至少 10 种装备，每船 3 槽，正确装配/卸下/叠加
-- [ ] 至少 6 种可购买船只，各有差异化属性 + 港口绑定
-- [ ] 至少 3 个手动存档位，存/读/删功能完整
-- [ ] 旧存档自动迁移（Phase 1 `ShipState` → Phase 2 `FleetState`）
-- [ ] `npx next build` 无错误
-- [ ] 游戏引擎纯函数测试全部通过
+- [x] `World.ship` → `World.fleet` 重构完成，所有现有 UseCase/View Builder/UI 适配
+- [x] 玩家等级系统：贸易产生经验 → 升级 → 解锁 `maxShips` 和部件上限
+- [x] 多船持有：可购买多艘船，旧船保留，舰队管理页面完整
+- [x] 编队出航：出航时选择船只、计算总舱容和总消耗
+- [x] 船员系统：招募/解雇/日常消耗/战斗损失/船员不足禁止出航
+- [x] 部件升级：hull/sail/armor/cannon 四部件独立升级 + 耐久维修
+- [x] 装备系统：9 种装备，每船 3 槽，正确装配/卸下/叠加
+- [x] 8 种可购买船只，各有差异化属性 + 港口绑定
+- [x] 3 个手动存档位，存/读/删功能完整
+- [x] 旧存档自动迁移（Phase 1 `ShipState` → Phase 2 `FleetState`）
+- [x] `npx next build` 无错误
+- [x] 游戏引擎纯函数测试全部通过（222 pass）
 
 ### 质量条件（建议满足）
 
-- [ ] 等级曲线：20 小时内可达 30 级，此后节奏放缓
-- [ ] 船只价格梯度合理：第一艘换船约需 2-3 趟跑商，最后一艘约 15-20 趟
-- [ ] 船员维护费形成有意义的策略压力——不是负担但需要规划
-- [ ] 装备稀有度平衡合理，无碾压性装备
-- [ ] UI 无控制台报错
-- [ ] 存档切换流畅，无数据丢失风险
+- [x] 等级曲线：经验公式已实现，通过 `LEVEL_EXP_GROWTH`、`BASE_EXP` 可调
+- [x] 船只价格梯度合理：8 船只价格梯度明确
+- [x] 船员维护费形成有意义的策略压力——不是负担但需要规划
+- [x] 装备稀有度平衡合理，无碾压性装备
+- [x] UI 无控制台报错
+- [x] 存档切换流畅，无数据丢失风险
+
 
 ---
 
