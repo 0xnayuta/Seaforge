@@ -1,6 +1,12 @@
 "use client";
 import { useState, useTransition } from "react";
-import { equipItemAction, unequipItemAction } from "../app/actions/equipment";
+import {
+  buyEquipmentAction,
+  equipItemAction,
+  sellEquipmentAction,
+  unequipItemAction,
+} from "../app/actions/equipment";
+import { EQUIPMENTS } from "../data/equipment";
 import { SHIP_SELL_RATIO } from "../data/formulas";
 import { SHIPS } from "../data/ships";
 import type { ComponentView, ShipyardView } from "../types/game-view";
@@ -30,6 +36,7 @@ export function ShipyardPanel({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  const [isEquipmentPending, setIsEquipmentPending] = useState(false);
   const handleAction = (
     action: (formData: FormData) => Promise<ShipyardView>,
     errorPrefix: string,
@@ -100,6 +107,41 @@ export function ShipyardPanel({
         setDisplayView(nextView);
       } catch (e) {
         setError(e instanceof Error ? e.message : "卸下失败");
+      }
+    });
+  };
+  const handleBuyEquipment = async (equipmentId: string) => {
+    setIsEquipmentPending(true);
+    setError(null);
+    startTransition(async () => {
+      try {
+        const fd = new FormData();
+        fd.set("equipmentId", equipmentId);
+        fd.set("shipId", selectedShipId);
+        const nextView = await buyEquipmentAction(fd);
+        setDisplayView(nextView);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "购买装备失败");
+      } finally {
+        setIsEquipmentPending(false);
+      }
+    });
+  };
+
+  const handleSellEquipment = async (equipmentId: string) => {
+    setIsEquipmentPending(true);
+    setError(null);
+    startTransition(async () => {
+      try {
+        const fd = new FormData();
+        fd.set("equipmentId", equipmentId);
+        fd.set("shipId", selectedShipId);
+        const nextView = await sellEquipmentAction(fd);
+        setDisplayView(nextView);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "出售装备失败");
+      } finally {
+        setIsEquipmentPending(false);
       }
     });
   };
@@ -306,7 +348,7 @@ export function ShipyardPanel({
                   </h5>
                   {selectedShipDetail.fleetInventory.length === 0 ? (
                     <p className="text-xs text-parchment-dark">
-                      仓库中无可用装备。请先在交易所购买。
+                      仓库中无可用装备。请在港口铁匠铺购买。
                     </p>
                   ) : (
                     <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
@@ -316,6 +358,12 @@ export function ShipyardPanel({
                           selectedShipDetail.equippedItems.some(
                             (eq) => eq.type === item.type,
                           );
+                        const equipConfig = EQUIPMENTS.find(
+                          (e) => e.id === item.id,
+                        );
+                        const sellPrice = equipConfig
+                          ? Math.floor(equipConfig.price * 0.5)
+                          : 0;
 
                         return (
                           <div
@@ -333,14 +381,24 @@ export function ShipyardPanel({
                                 {item.effectDescription}
                               </p>
                             </div>
-                            <button
-                              type="button"
-                              disabled={isPending || isSameTypeEquipped}
-                              onClick={() => handleEquipItem(item.id)}
-                              className="rounded bg-gold-500 px-2.5 py-1 text-[11px] font-bold text-ocean-900 hover:bg-gold-400 transition-colors disabled:opacity-50"
-                            >
-                              {isSameTypeEquipped ? "类型冲突" : "装配"}
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                disabled={isPending || isSameTypeEquipped}
+                                onClick={() => handleEquipItem(item.id)}
+                                className="rounded bg-gold-500 px-2.5 py-1 text-[11px] font-bold text-ocean-900 hover:bg-gold-400 transition-colors disabled:opacity-50"
+                              >
+                                {isSameTypeEquipped ? "类型冲突" : "装配"}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={isPending || isEquipmentPending}
+                                onClick={() => handleSellEquipment(item.id)}
+                                className="rounded border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-[11px] text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                              >
+                                出售 ({sellPrice.toLocaleString()})
+                              </button>
+                            </div>
                           </div>
                         );
                       })}
@@ -383,6 +441,50 @@ export function ShipyardPanel({
           没有可查看的船只详情
         </div>
       )}
+
+      {/* 港口铁匠铺 */}
+      <div className="rounded-lg border border-ocean-600 bg-ocean-800/80 p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-gold-400">港口铁匠铺</h3>
+        {displayView.availableEquipments.length === 0 ? (
+          <p className="text-xs text-parchment-dark">
+            该港口铁匠铺暂无多余装备出售。
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {displayView.availableEquipments.map((eq) => (
+              <div
+                key={eq.id}
+                className="flex items-center justify-between border-b border-ocean-700/50 pb-2 text-sm"
+              >
+                <div>
+                  <div className="font-semibold text-parchment flex items-center gap-2">
+                    {eq.name}
+                    <span className="rounded bg-ocean-700 px-1.5 py-0.5 text-xs text-parchment-dark">
+                      {eq.typeLabel}
+                    </span>
+                  </div>
+                  <p className="text-xs text-parchment-dark mt-0.5">
+                    {eq.effectDescription}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-gold-400 font-medium">
+                    {eq.price.toLocaleString()} 金币
+                  </span>
+                  <button
+                    type="button"
+                    disabled={!eq.canAfford || isEquipmentPending || isPending}
+                    onClick={() => handleBuyEquipment(eq.id)}
+                    className="rounded bg-gold-500 px-3 py-1.5 text-xs font-bold text-ocean-900 hover:bg-gold-400 transition-colors disabled:opacity-50"
+                  >
+                    购买
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* 可购买的船只 */}
       {displayView.availableShips.length > 0 && (
