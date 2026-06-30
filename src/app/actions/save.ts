@@ -14,11 +14,18 @@ import type { PrismaTransactionClient } from "../../types/prisma";
  * 手动存档：将当前自动存档（槽位 0）的游戏状态保存到指定手动槽位（1-3）。
  * 覆盖该槽位原有数据。
  */
-export async function manualSave(formData: FormData): Promise<void> {
+
+/** 解析并校验槽位编号 */
+function parseSlot(formData: FormData, min: number, max: number): number {
   const slot = Number(formData.get("slot"));
-  if (!Number.isInteger(slot) || slot < 1 || slot > 3) {
+  if (!Number.isInteger(slot) || slot < min || slot > max) {
     throw new Error("无效的存档槽位");
   }
+  return slot;
+}
+
+export async function manualSave(formData: FormData): Promise<void> {
+  const slot = parseSlot(formData, 1, 3);
 
   await prisma.$transaction(async (tx: PrismaTransactionClient) => {
     const world = await loadWorldFromSlot(tx, AUTO_SAVE_SLOT);
@@ -31,10 +38,7 @@ export async function manualSave(formData: FormData): Promise<void> {
  * 加载后跳转到港口页。
  */
 export async function loadSaveSlot(formData: FormData): Promise<void> {
-  const slot = Number(formData.get("slot"));
-  if (!Number.isInteger(slot) || slot < 0 || slot > 3) {
-    throw new Error("无效的存档槽位");
-  }
+  const slot = parseSlot(formData, 0, 3);
 
   await prisma.$transaction(async (tx: PrismaTransactionClient) => {
     const world = await loadWorldFromSlot(tx, slot);
@@ -49,10 +53,6 @@ export async function loadSaveSlot(formData: FormData): Promise<void> {
  * 删除自动存档（槽位 0）将结束当前游戏。
  */
 export async function deleteSaveSlot(formData: FormData): Promise<void> {
-  const slot = Number(formData.get("slot"));
-  if (!Number.isInteger(slot) || slot < 0 || slot > 3) {
-    throw new Error("无效的存档槽位");
-  }
-
+  const slot = parseSlot(formData, 0, 3);
   await deleteSave(slot);
 }
