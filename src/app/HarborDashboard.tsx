@@ -110,6 +110,15 @@ export function HarborDashboard({ view }: { view: HarborView }) {
           <div className="font-semibold text-gold-400">舰队</div>
           <div className="mt-1 text-xs text-parchment-dark">管理舰队</div>
         </a>
+        <a
+          href="/saves"
+          className="col-span-2 rounded-lg border border-ocean-600 bg-ocean-700/60 p-3 text-center text-sm hover:bg-ocean-700 transition-colors"
+        >
+          <div className="font-semibold text-gold-400">存档管理</div>
+          <div className="mt-1 text-xs text-parchment-dark">
+            手动存档、读取与删除
+          </div>
+        </a>
       </div>
     </div>
   );
