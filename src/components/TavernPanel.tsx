@@ -254,7 +254,7 @@ export function TavernPanel({
                   <button
                     type="submit"
                     disabled={isPending}
-                    className="flex-1 rounded bg-red-500 py-1.5 text-xs font-bold text-parchment hover:bg-red-400 transition-colors disabled:opacity-50"
+                    className="flex-1 rounded border border-red-500/40 bg-red-500/10 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
                   >
                     解雇
                   </button>
