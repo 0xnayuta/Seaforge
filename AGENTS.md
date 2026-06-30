@@ -36,11 +36,11 @@ src/
 │   ├── NewGameForm.tsx           # 无存档时的"开始航海"按钮
 │   ├── SaveSlotList.tsx          # 存档槽位选择/管理 UI 组件（启动页 + /saves 共用）
 │   ├── market/
-│   │   ├── page.tsx              # 交易所 (/market)
+│   │   ├── page.tsx              # 交易所 (/market) — 仅货物交易
 │   │   └── actions.ts            # loadMarketView
 │   ├── ship/
-│   │   ├── page.tsx              # 造船厂 (/ship)
-│   │   └── actions.ts            # loadShipView / upgradeShipAction / repairShipAction
+│   │   ├── page.tsx              # 造船厂 (/ship) — 船只管理 + 装备购买/装卸
+│   │   └── actions.ts            # loadShipyardView / buyShipAction / sellShipAction / upgradeComponentAction / repairShipAction
 │   ├── cargo/
 │   │   ├── page.tsx              # 船舱 (/cargo)
 │   │   └── actions.ts            # loadCargoView
@@ -54,6 +54,7 @@ src/
 │   │   └── page.tsx              # 存档管理 (/saves)
 │   └── actions/
 │       ├── trade.ts              # 买卖 Server Actions (buyGoods / sellGoods)
+│       ├── equipment.ts          # 装备 Server Actions (buyEquipmentAction / sellEquipmentAction / equipItemAction / unequipItemAction)
 │       ├── travel.ts             # 航行 Server Action (startTravel)
 │       ├── new-game.ts           # 新游戏 Server Action (createNewGame)
 │       └── save.ts               # 存档管理 Server Actions (manualSave / loadSaveSlot / deleteSaveSlot)
@@ -86,6 +87,10 @@ src/
 │   ├── goods.ts                  # 商品配置（16 商品，四大品类）
 │   ├── ships.ts                  # 船只配置（2 船只）
 │   ├── events.ts                 # 随机事件配置
+│   ├── equipment.ts              # 装备配置（9 装备，5 类型，售卖港口绑定）
+│   ├── formulas.ts               # 公式常量（航速系数、价格波动系数、回归率）
+│   ├── regions.ts                # 区域配置（5 区域：东亚、印度洋、非洲、地中海、北海）
+│   └── __tests__/
 ├── lib/                          # 基础设施
 │   ├── prisma.ts                 # Prisma 单例
 │   ├── repository.ts             # loadWorld / saveWorld / loadWorldFromSlot / saveWorldToSlot / listSaves / deleteSave

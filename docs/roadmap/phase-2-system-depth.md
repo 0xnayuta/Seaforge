@@ -398,7 +398,7 @@ interface FleetState {
 |功能|说明|状态|
 |---|---|---|
 |装备槽|每船 3 个槽位，同类型不可重复装备|✓|
-|获取方式|港口铁匠铺/交易所购买（部分港口专属稀有装备）|✓|
+|获取方式|港口铁匠铺/造船厂购买（部分港口专属稀有装备）|✓|
 |装备效果|叠加到船只基础 + 部件属性上|✓|
 |跨船转移|出售船只前必须卸下所有装备|✓|
 
@@ -406,9 +406,7 @@ interface FleetState {
 - `src/data/equipment.ts` — 9 装备配置表（5 类型、售卖港口绑定）
 - `src/game/domain/equipment.ts` — `equipItem`、`unequipItem`、`buyEquipment`、`sellEquipment`、属性计算函数
 - `src/app/actions/equipment.ts` — `buyEquipmentAction`、`sellEquipmentAction`、`equipItemAction`、`unequipItemAction`
-- `src/components/ShipyardPanel.tsx` — 装备槽插槽 UI（已装备显示 + 可装配列表）
-- `src/components/MarketPanel.tsx` — 港口铁匠铺（购买）+ 已拥有装备包（出售）
-
+- `src/components/ShipyardPanel.tsx` — 装备购买/出售 + 装备槽插槽 UI（已装备显示 + 可装配/出售列表）
 #### UI 变更
 
 |页面|变更|状态|

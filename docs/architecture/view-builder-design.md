@@ -1,6 +1,6 @@
 ---
 status: current
-last_verified: 2026-06-25
+last_verified: 2026-06-30
 ---
 
 # View Builder 设计
