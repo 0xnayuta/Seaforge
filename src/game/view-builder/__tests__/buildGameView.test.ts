@@ -7,6 +7,7 @@ import {
   buildHarborView,
   buildMarketView,
   buildNavigationView,
+  buildSaveSlotViews,
   buildShipView,
   buildShipyardView,
   buildTavernView,
@@ -392,5 +393,105 @@ describe("buildTavernView", () => {
     expect(view.ships).toHaveLength(1);
     expect(view.ships[0].typeName).toBe("单桅帆船");
     expect(view.ships[0].baseCrew).toBe(3);
+  });
+});
+
+describe("buildSaveSlotViews", () => {
+  it("returns 4 slots (0-3) even with no saves", () => {
+    const views = buildSaveSlotViews([]);
+    expect(views).toHaveLength(4);
+    expect(views.map((v) => v.slot)).toEqual([0, 1, 2, 3]);
+    for (const v of views) {
+      expect(v.exists).toBe(false);
+      expect(v.updatedAt).toBe("");
+    }
+  });
+
+  it("extracts preview info from a valid save", () => {
+    const world = createTestWorld();
+    const updatedAt = new Date("2025-06-30T12:00:00Z");
+    const views = buildSaveSlotViews([
+      { slot: 0, data: JSON.stringify(world), updatedAt },
+    ]);
+
+    const auto = views[0];
+    expect(auto.exists).toBe(true);
+    expect(auto.slotName).toBe("自动存档");
+    expect(auto.playerLevel).toBe(1);
+    expect(auto.shipCount).toBe(1);
+    expect(auto.gold).toBe(5000);
+    expect(auto.currentPortName).toBe("泉州");
+    expect(auto.day).toBe(1);
+    expect(auto.updatedAt).toBe(updatedAt.toISOString());
+  });
+
+  it("handles manual slots independently", () => {
+    const world1 = createTestWorld();
+    const world2 = createTestWorld({
+      player: { ...world1.player, level: 5, day: 10, currentPortId: "london" },
+      fleet: { ...world1.fleet, gold: 9999 },
+    });
+
+    const views = buildSaveSlotViews([
+      { slot: 0, data: JSON.stringify(world1), updatedAt: new Date() },
+      { slot: 2, data: JSON.stringify(world2), updatedAt: new Date() },
+    ]);
+
+    expect(views[0].exists).toBe(true);
+    expect(views[1].exists).toBe(false);
+    expect(views[2].exists).toBe(true);
+    expect(views[2].playerLevel).toBe(5);
+    expect(views[2].day).toBe(10);
+    expect(views[2].gold).toBe(9999);
+    expect(views[2].currentPortName).toBe("伦敦");
+    expect(views[3].exists).toBe(false);
+  });
+
+  it("handles old save format with ship instead of fleet", () => {
+    const oldSave = {
+      player: {
+        name: "旧玩家",
+        gold: 3000,
+        currentPortId: "quanzhou",
+        day: 5,
+      },
+      ship: {
+        typeId: "sloop",
+        upgradeLevel: 1,
+        currentHp: 40,
+        maxHp: 50,
+        cargo: [],
+        armamentLevel: 0,
+      },
+      market: { prices: {} },
+      voyage: null,
+    };
+
+    const views = buildSaveSlotViews([
+      { slot: 1, data: JSON.stringify(oldSave), updatedAt: new Date() },
+    ]);
+
+    const slot1 = views[1];
+    expect(slot1.exists).toBe(true);
+    expect(slot1.shipCount).toBe(1); // old ship format → 1 ship
+    expect(slot1.gold).toBe(3000); // fallback to player.gold
+    expect(slot1.currentPortName).toBe("泉州");
+    expect(slot1.day).toBe(5);
+  });
+
+  it("handles corrupted JSON gracefully as empty slot", () => {
+    const views = buildSaveSlotViews([
+      { slot: 0, data: "{invalid json", updatedAt: new Date() },
+    ]);
+
+    expect(views[0].exists).toBe(false);
+  });
+
+  it("assigns correct slot names", () => {
+    const views = buildSaveSlotViews([]);
+    expect(views[0].slotName).toBe("自动存档");
+    expect(views[1].slotName).toBe("存档位 1");
+    expect(views[2].slotName).toBe("存档位 2");
+    expect(views[3].slotName).toBe("存档位 3");
   });
 });
