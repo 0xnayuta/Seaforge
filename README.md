@@ -2,7 +2,15 @@
 
 Seaforge 是一款单人离线航海贸易经营游戏。灵感来源于 QQ 家园《纵横四海》——仅借鉴核心玩法，不复制原内容。
 
-> 🚧 Phase 1 MVP（原型开发阶段）
+---
+
+## 项目状态
+
+| 阶段 | 状态 |
+|------|------|
+| Phase 1 MVP（核心循环） | ✅ 已完成 |
+| Phase 2 系统深度（舰队/船员/装备/存档） | ✅ 已完成 |
+| Phase 3 内容深度（任务/称号/战斗增强） | 🚧 进行中 |
 
 ---
 
@@ -77,28 +85,56 @@ bun run docs:check   # 涉及文档变更时执行
 src/
 ├── app/                        # Next.js 页面 + Server Actions
 │   ├── page.tsx                # 港口总览 (/)
+│   ├── layout.tsx              # 根布局（导航栏 + 主内容区）
+│   ├── HarborDashboard.tsx     # 港口总览 UI 组件
+│   ├── NewGameForm.tsx         # 新游戏按钮
+│   ├── SaveSlotList.tsx        # 存档槽位管理组件
 │   ├── market/                 # 交易所 (/market)
 │   ├── cargo/                  # 船舱 (/cargo)
 │   ├── navigation/             # 航海图 (/navigation)
-│   ├── ship/                   # 造船厂 (/ship)
+│   ├── ship/                   # 造船厂 (/ship) — 船只管理 + 装备装卸
 │   ├── voyage/                 # 航行中 (/voyage)
-│   └── actions/                # Server Actions（存档、贸易、航行）
+│   ├── fleet/                  # 舰队总览 (/fleet) — 编队管理
+│   ├── tavern/                 # 航海家酒馆 (/tavern) — 船员招募
+│   ├── saves/                  # 存档管理 (/saves)
+│   └── actions/                # Server Actions（贸易、航行、船员、装备、存档）
 ├── game/                       # 游戏引擎（纯函数，不依赖框架）
-│   ├── domain/                 # 领域逻辑（价格、买卖、航行、船只）
-│   ├── application/            # UseCase 编排（buy / sell / travel）
+│   ├── domain/                 # 领域逻辑（价格、买卖、航行、舰队、战斗、船员、装备）
+│   │   └── __tests__/          # 154 个单元测试
 │   └── view-builder/           # World → GameView 转换器
-├── data/                       # 游戏数据配置（港口、商品、船只、公式）
-│   ├── ports.ts                # 3 港口：泉州、长崎、马六甲
-│   ├── goods.ts                # 5 商品：丝绸、瓷器、香料、木材、玉石
-│   ├── ships.ts                # 2 船只
-│   └── formulas.ts             # 公式常量（航速系数、波动系数、回归率）
-├── lib/                        # 基础设施（Prisma 单例、repository、DomainError 映射）
-├── types/                      # 共享类型（World、GameView、Action 入参/出参）
+├── data/                       # 游戏数据配置（所有数值可调）
+│   ├── ports.ts                # 12 港口 × 5 区域
+│   ├── goods.ts                # 19 商品，四大品类（食品/纺织品/工艺/原料）
+│   ├── ships.ts                # 8 船只，各绑定出售港口
+│   ├── equipment.ts            # 9 装备，5 类型，港口绑定
+│   ├── events.ts               # 随机事件配置
+│   ├── formulas.ts             # 公式常量
+│   ├── regions.ts              # 区域配置
+│   └── __tests__/              # 数据完整性测试
+├── lib/                        # 基础设施
+│   ├── prisma.ts               # Prisma 单例
+│   ├── repository.ts           # 存档读写（多 slot 支持）
+│   ├── domain-errors.ts        # DomainError → 中文消息映射
+│   ├── with-transaction.ts     # 事务管道 HOF
+│   └── __tests__/
+├── types/                      # 共享类型（GameView、Prisma）
 ├── components/                 # React UI 组件（纯渲染）
-│   └── ui/                     # 通用组件（Button、Modal、QuantityInput、Toast）
+│   ├── ui/                     # 通用组件（GameCard、Modal、QuantityInput）
+│   ├── MarketPanel.tsx
+│   ├── CargoHold.tsx
+│   ├── NavigationPanel.tsx
+│   ├── ShipyardPanel.tsx
+│   ├── FleetPanel.tsx
+│   ├── VoyageScreen.tsx
+│   ├── TavernPanel.tsx
+│   ├── GoodsTable.tsx
+│   ├── BuyModal.tsx
+│   ├── SellModal.tsx
+│   ├── DestinationsTable.tsx
+│   └── DepartureConfirmModal.tsx
 └── e2e/                        # Playwright E2E 测试
 prisma/
-├── schema.prisma               # 存档表（Save + JSON 列模式）
+├── schema.prisma               # 存档表（Save + JSON 列，0=自动 / 1-3=手动）
 └── migrations/                 # 迁移历史
 ```
 
@@ -106,14 +142,18 @@ prisma/
 
 ```
 docs/
-├── adr/                        # 架构决策记录（ADR-0001 ~ 0003）
-├── architecture/               # 系统架构设计（Clean Architecture Lite、数据流、路由）
-├── specifications/             # 功能规格说明（World 定义、存档系统）
-├── guides/                     # 开发规范（Prisma、状态管理、项目结构）
-├── roadmap/                    # 路线图（Phase 1 MVP）
+├── adr/                        # 架构决策记录（ADR-0001 ~ 0004）
+├── architecture/               # 系统架构设计
+├── specifications/             # 功能规格说明
+├── guides/                     # 开发规范
+├── roadmap/                    # 路线图（Phase 1 ~ 5）
+├── reference/                  # 原版游戏调研
+├── issues/                     # 待解决问题
+├── audits/                     # 审计记录
+├── archive/                    # 已归档文档
+├── assets/                     # 资源文件
 └── README.md                   # 文档索引中心
 ```
-
 详见：[`docs/README.md`](docs/README.md)
 
 ---
@@ -125,10 +165,9 @@ docs/
 ```
 UI (React Components)
   → Server Actions（编排入口）
-    → Application Layer（UseCases）
-      → Domain / Game Engine（src/game/ 纯函数）
-        → View Builder（World → GameView，只读）
-        → Repository（Prisma → SQLite）
+  → Domain / Game Engine（src/game/ 纯函数）
+    → View Builder（World → GameView，只读）
+    → Repository（Prisma → SQLite）
 ```
 
 **依赖方向：** 外层依赖内层，内层不感知外层。
@@ -141,7 +180,7 @@ UI (React Components)
 | R2 | World 只保存游戏事实，不保存 UI 状态 | [`world-definition.md`](docs/specifications/world-definition.md) |
 | R3 | 所有写操作必须在 `prisma.$transaction` 内原子执行 | [`prisma-usage.md`](docs/guides/prisma-usage.md) |
 | R4 | Server Action 只编排，不实现业务规则 | [`clean-architecture-lite.md`](docs/architecture/clean-architecture-lite.md) |
-| R7 | MVP 阶段禁止引入 Zustand | [`state-management.md`](docs/guides/state-management.md) |
+| R7 | 禁止引入 Zustand（当前架构不需要） | [`state-management.md`](docs/guides/state-management.md) |
 
 完整规则表（R1-R10）见：[`AGENTS.md`](AGENTS.md) §2.1
 
@@ -164,7 +203,7 @@ UI (React Components)
 ## 测试
 
 ```bash
-# 单元测试（83 个，覆盖 domain 纯函数 + View Builder）
+# 单元测试（225 个，覆盖 domain + view builder + lib）
 bun run test
 
 # E2E 测试（4 个场景，需先初始化测试数据库）
@@ -178,7 +217,7 @@ bunx playwright test
 
 - **严格 TypeScript**：`strict: true`。禁止 `any` 类型
 - **Domain 错误处理**：领域层抛 `DomainError(code)`，`lib/domain-errors.ts` 映射为中文消息
-- **文件命名**：`game/domain/` 用 kebab-case、`components/` 用 PascalCase、`game/application/` 用 `.usecase.ts` 后缀
+- **文件命名**：`game/domain/` 用 kebab-case、`components/` 用 PascalCase
 - **测试覆盖**：Domain 纯函数和 View Builder 必须有单元测试
 
 完整开发规范见：[`AGENTS.md`](AGENTS.md)
