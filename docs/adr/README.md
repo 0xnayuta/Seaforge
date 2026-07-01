@@ -1,5 +1,5 @@
 ---
-status: draft
+status: proposed
 last_verified: 2026-06-25
 ---
 
