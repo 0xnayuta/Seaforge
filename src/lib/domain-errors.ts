@@ -26,6 +26,10 @@ const ERROR_MAP: Record<string, string> = {
   EQUIPMENT_SLOT_FULL: "装备槽已满（每艘船最多装备3件）",
   DUPLICATE_EQUIPMENT_TYPE: "同类型装备不可重复装配",
   SHIP_HAS_EQUIPMENT: "出售船只前必须先卸下所有装备",
+  INSUFFICIENT_ATTRIBUTE_POINTS: "属性分配点不足",
+  ITEM_NOT_FOUND: "背包中未找到该物品",
+  ITEM_NOT_EQUIPPABLE: "该物品无法装备在人物身上",
+  EQUIPMENT_SLOT_INVALID: "无效的装备位置",
 };
 
 /** 将领域层的 DomainError 转为用户可读的中文错误消息 */

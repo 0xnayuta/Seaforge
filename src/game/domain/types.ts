@@ -12,6 +12,24 @@ export interface CargoItem {
   readonly buyPrice: number; // 每单位买入价
 }
 
+export interface ItemInstance {
+  readonly uid: string; // 唯一 ID（uuid）
+  readonly itemId: string; // 配置 ID（对应 items.ts）
+  readonly quantity: number; // 数量（消耗品/材料）
+  readonly durability?: number; // 当前耐久（装备专用）
+  readonly maxDurability?: number; // 耐久上限（装备专用）
+  readonly upgradeLevel?: number; // 强化等级（装备专用）
+  readonly affixes?: readonly string[]; // 词缀 ID 列表（预留）
+  readonly equippedSlot?: string; // 已装备时标记装备位名称
+}
+
+export interface CharacterEquipment {
+  readonly weapon: string | null; // uid of ItemInstance or null
+  readonly armor: string | null; // uid of ItemInstance or null
+  readonly accessory1: string | null; // uid of ItemInstance or null
+  readonly accessory2: string | null; // uid of ItemInstance or null
+}
+
 // ---- 船只 ----
 
 export interface ShipEquipment {
@@ -40,7 +58,8 @@ export interface FleetState {
   readonly crew: number;
   readonly maxCrew: number;
   readonly gold: number;
-  readonly inventory: readonly string[];
+  readonly inventory: readonly ItemInstance[];
+  readonly shipEquipmentInventory: readonly string[];
 }
 
 // ---- 市场 ----
@@ -73,6 +92,15 @@ export interface PlayerState {
   readonly level: number;
   readonly exp: number;
   readonly expToNext: number;
+  // 核心属性
+  readonly str: number;
+  readonly dex: number;
+  readonly int: number;
+  readonly fth: number;
+  readonly arc: number;
+  readonly attributePoints: number;
+  // 装备栏
+  readonly equipment: CharacterEquipment;
 }
 
 export interface World {
@@ -119,4 +147,8 @@ export type DomainErrorCode =
   | "EQUIPMENT_NOT_FOUND"
   | "EQUIPMENT_SLOT_FULL"
   | "DUPLICATE_EQUIPMENT_TYPE"
-  | "SHIP_HAS_EQUIPMENT";
+  | "SHIP_HAS_EQUIPMENT"
+  | "INSUFFICIENT_ATTRIBUTE_POINTS"
+  | "ITEM_NOT_FOUND"
+  | "ITEM_NOT_EQUIPPABLE"
+  | "EQUIPMENT_SLOT_INVALID";

@@ -113,3 +113,28 @@ export const COMBAT_VICTORY_CREW_LOSS_CHANCE = 0.2;
 /// 战斗部分损失时损失船员的范围
 export const COMBAT_PARTIAL_LOSS_CREW_LOSS_MIN = 1;
 export const COMBAT_PARTIAL_LOSS_CREW_LOSS_MAX = 3;
+
+// ============================================================
+// RPG 属性与战斗常量
+// ============================================================
+
+/// 升级获得的可分配属性点数
+export const ATTRIBUTE_POINTS_PER_LEVEL = 3;
+
+/// 属性软上限区间及收益率
+export const SOFT_CAP_BRACKETS = [
+  { min: 0, max: 20, rate: 1.0 },
+  { min: 20, max: 40, rate: 0.75 },
+  { min: 40, max: 60, rate: 0.5 },
+  { min: 60, max: 80, rate: 0.25 },
+  { min: 80, max: 999, rate: 0.1 },
+] as const;
+
+/// 属性补正系数（装备 Attribute Scaling）
+export const SCALING_COEFFICIENTS = {
+  normal: 0.0,
+  good: 0.25,
+  excellent: 0.5,
+  rare: 0.75,
+  legendary: 1.0,
+} as const;
