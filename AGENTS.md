@@ -1,25 +1,25 @@
-# AGENTS.md — 开发与协同约束规范
 
-## 1. 项目概述
+## 1. 项目边界与目录职责
 
-### 1.1 项目简述
+### 1.1 项目概述
 
-| 属性 | 内容 |
+|属性|内容|
 |---|---|
-| 项目名称 | 纵横四海 (Seaforge) |
-| 项目类型 | 单人离线航海贸易经营游戏 |
-| 目标平台 | PC |
-| 状态 | Phase 3 内容深度（Content Depth）— 进行中 |
+|项目名称|纵横四海 (Seaforge)|
+|项目类型|单人离线航海贸易经营 × **RPG**。贸易是经济轴，RPG 是成长轴|
+|灵感来源|QQ家园《纵横四海》— 借鉴核心玩法；《艾尔登法环》— 属性 Build 与装备收集；《BLACK SOULS》— 回合制策略战斗|
+|目标平台|PC|
+|状态|Phase 2.5 人物与物品底层 — 待开工|
 
-**核心循环：**
+**核心循环（双轴）：**
 
 ```
-查看港口价格 → 购买商品 → 选择目的港
-  → 航行（触发随机事件）→ 抵达港口
-  → 出售商品 → 获得利润 → 升级船只 → 继续贸易
+经济轴：贸易 → 赚钱 → 购买装备/补给 → 继续贸易
+成长轴：战斗/任务/副本 → 经验/装备 → 提升人物属性 → 挑战更难内容
+交汇点：贸易赚钱支撑装备消费，人物成长解锁高收益贸易路线
 ```
 
-**非目标：** 非复刻版、非即时反应、非社交、非剧情驱动、非 MMORPG。
+**非目标：** 非复刻版、非即时反应、非社交、非 MMORPG、非动作游戏、非生存游戏、非基地建设、非无缝开放世界、无实时等待。
 
 详见 `docs/specifications/project-positioning.md`
 
@@ -220,9 +220,9 @@ bun run docs:check     # 文档元数据合规校验（必须通过）
 | `docs/specifications/project-positioning.md` | 项目定位、核心循环、非目标 | — |
 | `docs/specifications/world-definition.md` | World 定义、包含/不包含内容、原则 | R2 |
 | `docs/specifications/save-system.md` | 存档设计、Prisma 模型、操作 API | R9 |
-| `docs/roadmap/phase-1-mvp.md` | Phase 1 MVP 范围、交付清单、完成标准 | — |
-| `docs/roadmap/phase-2-system-depth.md` | Phase 2 系统深度路线图 | — |
-| `docs/roadmap/phase-3-content-depth.md` | Phase 3 内容深度路线图（进行中） | — |
+| `docs/roadmap/phase-3-rpg-foundation.md` | Phase 3 RPG 底层（人物/物品/NPC/战斗）路线图 | — |
+| `docs/roadmap/phase-4-content-depth.md` | Phase 4 内容深度（称号/副本/合成）路线图 | — |
+| `docs/roadmap/phase-5-extension.md` | Phase 5 扩展（房屋/宠物/MOD）路线图 | — |
 | `docs/adr/ADR-0001-server-action-as-entry-point.md` | Server Action 作为权威入口的决策 | — |
 | `docs/adr/ADR-0002-save-and-json-column.md` | Save + JSON 列模式的决策 | — |
 | `docs/adr/ADR-0003-world-and-gameview-separation.md` | World 和 GameView 分离的决策 | — |
