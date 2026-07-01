@@ -130,6 +130,12 @@ function worldWithCombat(combat: PersonCombatState = makeCombat()): World {
           typeId: "sloop",
           name: "单桅帆船",
           durability: 100,
+          equipment: {
+            hullLevel: 0,
+            sailLevel: 0,
+            armorLevel: 0,
+            cannonLevel: 0,
+          },
           maxDurability: 100,
           cargo: [{ goodId: "silk", quantity: 5, buyPrice: 102 }],
           armamentLevel: 0,
@@ -153,6 +159,8 @@ function worldWithCombat(combat: PersonCombatState = makeCombat()): World {
       fleetShipIds: ["ship-1"],
     },
     combat,
+    npcRelations: {},
+    activeQuests: [],
   };
 }
 
@@ -223,7 +231,7 @@ describe("calcPersonDamage", () => {
   // ── blind ──
   it("misses when attacker is blind and rng < 0.5", () => {
     const attacker = part({
-      statuses: [{ type: "blind", duration: 2 }],
+      statuses: [{ type: "blind" as const, duration: 2 }],
     });
     const result = calcPersonDamage(attacker, part(), null, fixedRng(0.3));
     expect(result.isDodged).toBe(true);
@@ -233,7 +241,7 @@ describe("calcPersonDamage", () => {
   it("blind attacker can still hit when rng >= 0.5", () => {
     const attacker = part({
       atk: 20,
-      statuses: [{ type: "blind", duration: 2 }],
+      statuses: [{ type: "blind" as const, duration: 2 }],
     });
     const result = calcPersonDamage(
       attacker,
@@ -258,7 +266,7 @@ describe("calcPersonDamage", () => {
     const frozenDef = part({
       spd: 50,
       luk: 30,
-      statuses: [{ type: "freeze", duration: 2 }],
+      statuses: [{ type: "freeze" as const, duration: 2 }],
     });
     const slowAtk = part({ spd: 1, luk: 0 });
     const result = calcPersonDamage(slowAtk, frozenDef, null, fixedRng(0.01));
@@ -269,7 +277,7 @@ describe("calcPersonDamage", () => {
     const asleepDef = part({
       spd: 50,
       luk: 30,
-      statuses: [{ type: "sleep", duration: 2 }],
+      statuses: [{ type: "sleep" as const, duration: 2 }],
     });
     const slowAtk = part({ spd: 1, luk: 0 });
     const result = calcPersonDamage(slowAtk, asleepDef, null, fixedRng(0.01));
@@ -326,7 +334,7 @@ describe("calcPersonDamage", () => {
         def: 10,
         spd: 1,
         luk: 0,
-        statuses: [{ type: "freeze", duration: 2 }],
+        statuses: [{ type: "freeze" as const, duration: 2 }],
       }),
       null,
       fixedRng(1),
@@ -397,10 +405,12 @@ describe("executePersonCombatAction", () => {
   });
 
   it("throws NOT_YOUR_TURN when it is not the player's turn", () => {
-    const combat = makeCombat();
-    // make enemy go first
-    combat.turnOrder = ["enemy-1", "player"];
-    combat.currentTurnIndex = 0;
+    const base = makeCombat();
+    const combat = {
+      ...base,
+      turnOrder: ["enemy-1", "player"],
+      currentTurnIndex: 0,
+    };
     const w = worldWithCombat(combat);
 
     expect(() => executePersonCombatAction(w, { type: "attack" })).toThrow(
@@ -411,11 +421,15 @@ describe("executePersonCombatAction", () => {
     );
   });
   it("processes a basic attack and enemy counter-turn, advancing the round", () => {
-    const combat = makeCombat();
-    const player = combat.participants.find((p) => p.id === "player")!;
-    // Freeze prevents evasion of the enemy's counterattack; duration 2 ensures
-    // it survives the player's turn-start decrement and lasts through the enemy turn.
-    player.statuses = [{ type: "freeze", duration: 2 }];
+    const base = makeCombat();
+    const combat = {
+      ...base,
+      participants: base.participants.map((p) =>
+        p.id === "player"
+          ? { ...p, statuses: [{ type: "freeze" as const, duration: 2 }] }
+          : p,
+      ),
+    };
     const w = worldWithCombat(combat);
     const result = executePersonCombatAction(w, { type: "attack" });
 
@@ -464,9 +478,13 @@ describe("executePersonCombatAction", () => {
   });
 
   it("dodge throws INSUFFICIENT_MP when player has < 5 MP", () => {
-    const combat = makeCombat();
-    const player = combat.participants.find((p) => p.id === "player")!;
-    player.mp = 3; // not enough
+    const base = makeCombat();
+    const combat = {
+      ...base,
+      participants: base.participants.map((p) =>
+        p.id === "player" ? { ...p, mp: 3 } : p,
+      ),
+    };
     const w = worldWithCombat(combat);
 
     expect(() => executePersonCombatAction(w, { type: "dodge" })).toThrow(
@@ -494,9 +512,13 @@ describe("executePersonCombatAction", () => {
   });
 
   it("parry throws INSUFFICIENT_MP when player has < 8 MP", () => {
-    const combat = makeCombat();
-    const player = combat.participants.find((p) => p.id === "player")!;
-    player.mp = 5;
+    const base = makeCombat();
+    const combat = {
+      ...base,
+      participants: base.participants.map((p) =>
+        p.id === "player" ? { ...p, mp: 5 } : p,
+      ),
+    };
     const w = worldWithCombat(combat);
 
     expect(() => executePersonCombatAction(w, { type: "parry" })).toThrow(
@@ -506,9 +528,13 @@ describe("executePersonCombatAction", () => {
 
   // ── skill: heal ──
   it("uses a heal skill to restore HP", () => {
-    const combat = makeCombat();
-    const player = combat.participants.find((p) => p.id === "player")!;
-    player.hp = 50; // damage the player so heal is meaningful
+    const base = makeCombat();
+    const combat = {
+      ...base,
+      participants: base.participants.map((p) =>
+        p.id === "player" ? { ...p, hp: 50 } : p,
+      ),
+    };
     const w = worldWithCombat(combat);
 
     const result = executePersonCombatAction(w, {
@@ -533,9 +559,15 @@ describe("executePersonCombatAction", () => {
 
   // ── skill: damage ──
   it("uses a damage skill (fireball) against enemy", () => {
-    const combat = makeCombat();
-    const enemy = combat.participants.find((p) => p.id === "enemy-1")!;
-    enemy.statuses = [{ type: "freeze", duration: 1 }]; // freeze prevents evasion
+    const base = makeCombat();
+    const combat = {
+      ...base,
+      participants: base.participants.map((p) =>
+        p.id === "enemy-1"
+          ? { ...p, statuses: [{ type: "freeze" as const, duration: 1 }] }
+          : p,
+      ),
+    };
     const w = worldWithCombat(combat);
 
     const result = executePersonCombatAction(w, {
@@ -574,9 +606,13 @@ describe("executePersonCombatAction", () => {
 
   // ── skill: insufficient MP ──
   it("throws INSUFFICIENT_MP when player lacks MP for skill cost", () => {
-    const combat = makeCombat();
-    const player = combat.participants.find((p) => p.id === "player")!;
-    player.mp = 5; // fireball costs 10
+    const base = makeCombat();
+    const combat = {
+      ...base,
+      participants: base.participants.map((p) =>
+        p.id === "player" ? { ...p, mp: 5 } : p,
+      ),
+    };
     const w = worldWithCombat(combat);
 
     expect(() =>
@@ -589,9 +625,15 @@ describe("executePersonCombatAction", () => {
 
   // ── silence ──
   it("throws SILENCED when using a magical skill while silenced", () => {
-    const combat = makeCombat();
-    const player = combat.participants.find((p) => p.id === "player")!;
-    player.statuses = [{ type: "silence", duration: 2 }];
+    const base = makeCombat();
+    const combat = {
+      ...base,
+      participants: base.participants.map((p) =>
+        p.id === "player"
+          ? { ...p, statuses: [{ type: "silence" as const, duration: 2 }] }
+          : p,
+      ),
+    };
     const w = worldWithCombat(combat);
 
     expect(() =>
@@ -603,9 +645,15 @@ describe("executePersonCombatAction", () => {
   });
 
   it("does NOT throw SILENCED for non-magical skills (physical)", () => {
-    const combat = makeCombat();
-    const player = combat.participants.find((p) => p.id === "player")!;
-    player.statuses = [{ type: "silence", duration: 2 }];
+    const base = makeCombat();
+    const combat = {
+      ...base,
+      participants: base.participants.map((p) =>
+        p.id === "player"
+          ? { ...p, statuses: [{ type: "silence" as const, duration: 2 }] }
+          : p,
+      ),
+    };
     const w = worldWithCombat(combat);
 
     // heavy_strike is physical type, should work even when silenced
@@ -623,9 +671,15 @@ describe("executePersonCombatAction", () => {
 
   // ── freeze ──
   it("freeze causes player to skip action and status tick still happens", () => {
-    const combat = makeCombat();
-    const player = combat.participants.find((p) => p.id === "player")!;
-    player.statuses = [{ type: "freeze", duration: 2 }];
+    const base = makeCombat();
+    const combat = {
+      ...base,
+      participants: base.participants.map((p) =>
+        p.id === "player"
+          ? { ...p, statuses: [{ type: "freeze" as const, duration: 2 }] }
+          : p,
+      ),
+    };
     const w = worldWithCombat(combat);
 
     const result = executePersonCombatAction(w, { type: "attack" });
@@ -638,9 +692,15 @@ describe("executePersonCombatAction", () => {
 
   // ── sleep ──
   it("sleep causes player to skip action", () => {
-    const combat = makeCombat();
-    const player = combat.participants.find((p) => p.id === "player")!;
-    player.statuses = [{ type: "sleep", duration: 2 }];
+    const base = makeCombat();
+    const combat = {
+      ...base,
+      participants: base.participants.map((p) =>
+        p.id === "player"
+          ? { ...p, statuses: [{ type: "sleep" as const, duration: 2 }] }
+          : p,
+      ),
+    };
     const w = worldWithCombat(combat);
 
     const result = executePersonCombatAction(w, { type: "attack" });
@@ -651,12 +711,48 @@ describe("executePersonCombatAction", () => {
     expect(msgs).toContain("睡眠");
   });
 
+  it("sleep is removed when the sleeping target takes damage", () => {
+    const base = makeCombat();
+    const combat = {
+      ...base,
+      participants: base.participants.map((p) =>
+        p.id === "enemy-1"
+          ? {
+              ...p,
+              statuses: [{ type: "sleep" as const, duration: 3 }],
+              hp: 999,
+            }
+          : p,
+      ),
+    };
+    const w = worldWithCombat(combat);
+    const result = executePersonCombatAction(w, { type: "attack" });
+
+    expect(result.combat).not.toBeNull();
+    const updatedEnemy = result.combat!.participants.find(
+      (p) => p.id === "enemy-1",
+    )!;
+    // Sleep should be removed because enemy was hit
+    expect(updatedEnemy.statuses.some((s) => s.type === "sleep")).toBe(false);
+    const msgs = result.combat!.logs.map((l) => l.message).join(" ");
+    expect(msgs).toContain("从梦中痛醒");
+  });
+
   // ── victory ──
   it("results in victory when all enemies die, granting 50 EXP", () => {
-    const combat = makeCombat();
-    const enemy = combat.participants.find((p) => p.id === "enemy-1")!;
-    enemy.hp = 5; // will die in one attack (atk=20 − def=4 = 16 damage)
-    enemy.statuses = [{ type: "freeze", duration: 1 }]; // freeze prevents evasion
+    const base = makeCombat();
+    const combat = {
+      ...base,
+      participants: base.participants.map((p) =>
+        p.id === "enemy-1"
+          ? {
+              ...p,
+              hp: 5,
+              statuses: [{ type: "freeze" as const, duration: 1 }],
+            }
+          : p,
+      ),
+    };
 
     const w = worldWithCombat(combat);
     const result = executePersonCombatAction(w, { type: "attack" });
@@ -673,11 +769,19 @@ describe("executePersonCombatAction", () => {
 
   // ── defeat ──
   it("results in defeat when player dies, losing gold and cargo", () => {
-    const combat = makeCombat();
-    const player = combat.participants.find((p) => p.id === "player")!;
-    player.hp = 1; // enemy's minimum damage of 1 will kill the player
-    // Freeze prevents evasion (enemy always hits); enemy's min damage of 1 kills the player
-    player.statuses = [{ type: "freeze", duration: 2 }];
+    const base = makeCombat();
+    const combat = {
+      ...base,
+      participants: base.participants.map((p) =>
+        p.id === "player"
+          ? {
+              ...p,
+              hp: 1,
+              statuses: [{ type: "freeze" as const, duration: 2 }],
+            }
+          : p,
+      ),
+    };
 
     const w = worldWithCombat(combat);
     const result = executePersonCombatAction(w, { type: "attack" });
@@ -705,11 +809,20 @@ describe("executePersonCombatAction", () => {
 
 describe("status effect damage (DoT) at start of turn", () => {
   it("poison deals 8% maxHp damage", () => {
-    const combat = makeCombat();
-    const player = combat.participants.find((p) => p.id === "player")!;
-    player.statuses = [{ type: "poison", duration: 3 }];
-    player.hp = 100;
-    player.maxHp = 100;
+    const base = makeCombat();
+    const combat = {
+      ...base,
+      participants: base.participants.map((p) =>
+        p.id === "player"
+          ? {
+              ...p,
+              statuses: [{ type: "poison" as const, duration: 3 }],
+              hp: 100,
+              maxHp: 100,
+            }
+          : p,
+      ),
+    };
     const w = worldWithCombat(combat);
 
     const result = executePersonCombatAction(w, { type: "attack" });
@@ -728,11 +841,20 @@ describe("status effect damage (DoT) at start of turn", () => {
   });
 
   it("bleed deals 12% maxHp damage", () => {
-    const combat = makeCombat();
-    const player = combat.participants.find((p) => p.id === "player")!;
-    player.statuses = [{ type: "bleed", duration: 3 }];
-    player.hp = 100;
-    player.maxHp = 100;
+    const base = makeCombat();
+    const combat = {
+      ...base,
+      participants: base.participants.map((p) =>
+        p.id === "player"
+          ? {
+              ...p,
+              statuses: [{ type: "bleed" as const, duration: 3 }],
+              hp: 100,
+              maxHp: 100,
+            }
+          : p,
+      ),
+    };
     const w = worldWithCombat(combat);
 
     const result = executePersonCombatAction(w, { type: "attack" });
@@ -750,11 +872,20 @@ describe("status effect damage (DoT) at start of turn", () => {
   });
 
   it("burn deals 10% maxHp damage", () => {
-    const combat = makeCombat();
-    const player = combat.participants.find((p) => p.id === "player")!;
-    player.statuses = [{ type: "burn", duration: 3 }];
-    player.hp = 100;
-    player.maxHp = 100;
+    const base = makeCombat();
+    const combat = {
+      ...base,
+      participants: base.participants.map((p) =>
+        p.id === "player"
+          ? {
+              ...p,
+              statuses: [{ type: "burn" as const, duration: 3 }],
+              hp: 100,
+              maxHp: 100,
+            }
+          : p,
+      ),
+    };
     const w = worldWithCombat(combat);
 
     const result = executePersonCombatAction(w, { type: "attack" });
@@ -771,15 +902,24 @@ describe("status effect damage (DoT) at start of turn", () => {
   });
 
   it("multiple DoTs stack damage", () => {
-    const combat = makeCombat();
-    const player = combat.participants.find((p) => p.id === "player")!;
-    player.statuses = [
-      { type: "poison", duration: 3 },
-      { type: "bleed", duration: 3 },
-      { type: "burn", duration: 3 },
-    ];
-    player.hp = 100;
-    player.maxHp = 100;
+    const base = makeCombat();
+    const combat = {
+      ...base,
+      participants: base.participants.map((p) =>
+        p.id === "player"
+          ? {
+              ...p,
+              statuses: [
+                { type: "poison" as const, duration: 3 },
+                { type: "bleed" as const, duration: 3 },
+                { type: "burn" as const, duration: 3 },
+              ],
+              hp: 100,
+              maxHp: 100,
+            }
+          : p,
+      ),
+    };
     const w = worldWithCombat(combat);
 
     const result = executePersonCombatAction(w, { type: "attack" });
@@ -799,16 +939,21 @@ describe("status effect damage (DoT) at start of turn", () => {
   });
 
   it("DoT damage can kill the player", () => {
-    const combat = makeCombat();
-    const player = combat.participants.find((p) => p.id === "player")!;
-    // Give player lethal DoT - bleed alone deals 12 damage, and HP is 1
-    player.statuses = [{ type: "bleed", duration: 3 }];
-    player.hp = 1;
-    player.maxHp = 100;
-    // Make the enemy also very weak so the player's attack might kill them,
-    // but the DoT will kill the player first
-    const enemy = combat.participants.find((p) => p.id === "enemy-1")!;
-    enemy.hp = 100; // tanky, won't die to one attack
+    const base = makeCombat();
+    const combat = {
+      ...base,
+      participants: base.participants.map((p) => {
+        if (p.id === "player")
+          return {
+            ...p,
+            statuses: [{ type: "bleed" as const, duration: 3 }],
+            hp: 1,
+            maxHp: 100,
+          };
+        if (p.id === "enemy-1") return { ...p, hp: 100 };
+        return p;
+      }),
+    };
 
     const w = worldWithCombat(combat);
     const result = executePersonCombatAction(w, { type: "attack" });
@@ -823,9 +968,15 @@ describe("status effect damage (DoT) at start of turn", () => {
 
 describe("enemy AI actions", () => {
   it("enemy acts after player's turn and attacks the player", () => {
-    const combat = makeCombat();
-    const player = combat.participants.find((p) => p.id === "player")!;
-    player.statuses = [{ type: "freeze", duration: 2 }]; // prevents evasion of enemy attack
+    const base = makeCombat();
+    const combat = {
+      ...base,
+      participants: base.participants.map((p) =>
+        p.id === "player"
+          ? { ...p, statuses: [{ type: "freeze" as const, duration: 2 }] }
+          : p,
+      ),
+    };
     const w = worldWithCombat(combat);
     const result = executePersonCombatAction(w, { type: "attack" });
 
@@ -887,7 +1038,9 @@ describe("enemy AI actions", () => {
       luk: 10,
       level: 1,
       weaponId: null,
-      statuses: [{ type: "freeze", duration: 3 }], // freeze prevents evasion of enemy attack
+      isDodging: false,
+      isParrying: false,
+      statuses: [{ type: "freeze" as const, duration: 3 }], // freeze prevents evasion of enemy attack
     };
 
     const combat: PersonCombatState = {

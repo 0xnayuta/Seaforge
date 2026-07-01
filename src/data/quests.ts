@@ -140,8 +140,8 @@ export const QUESTS: readonly QuestConfig[] = [
     type: "delivery",
     requirement: {
       type: "delivery",
-      fromPortId: "alexandria",
-      toPortId: "calicut",
+      fromPortId: "calicut",
+      toPortId: "alexandria",
       goodId: "pepper",
       quantity: 15,
     },

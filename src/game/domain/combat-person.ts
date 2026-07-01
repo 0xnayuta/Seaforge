@@ -202,7 +202,11 @@ export function calcInitiative(
   participants: readonly CombatParticipant[],
 ): readonly string[] {
   return [...participants]
-    .sort((a, b) => b.spd - a.spd || (a.type === "player" ? -1 : 1))
+    .sort(
+      (a, b) =>
+        b.spd - a.spd ||
+        (a.type === "player" ? -1 : b.type === "player" ? 1 : 0),
+    )
     .map((p) => p.id);
 }
 
@@ -320,6 +324,7 @@ export function executePersonCombatAction(
     readonly skillId?: string;
     readonly targetId?: string;
   },
+  rng: () => number = Math.random,
 ): World {
   if (!world.combat) throw new DomainError("NOT_IN_COMBAT");
 
@@ -333,8 +338,7 @@ export function executePersonCombatAction(
   if (!player || player.hp <= 0) throw new DomainError("NOT_YOUR_TURN");
 
   // 执行玩家动作，更新 combat 状态
-  let nextCombat = processParticipantTurn(combat, "player", action);
-
+  let nextCombat = processParticipantTurn(combat, "player", action, rng);
   // 持续推进回合，直到再次轮到玩家，或者战斗结束
   while (nextCombat.status === "in_progress") {
     const nextTurnId = nextCombat.turnOrder[nextCombat.currentTurnIndex];
@@ -349,16 +353,21 @@ export function executePersonCombatAction(
           (s) => s.type === "freeze" || s.type === "sleep",
         )
       ) {
-        nextCombat = processParticipantTurn(nextCombat, "player", {
-          type: "attack",
-        }); // 触发控制自动跳过
+        nextCombat = processParticipantTurn(
+          nextCombat,
+          "player",
+          {
+            type: "attack",
+          },
+          rng,
+        );
         continue;
       }
       break;
     }
 
     // 敌人 AI 行动
-    nextCombat = processEnemyTurn(nextCombat, nextTurnId);
+    nextCombat = processEnemyTurn(nextCombat, nextTurnId, rng);
   }
 
   // 检查战斗结局并更新世界
@@ -436,6 +445,7 @@ function applyCombatResultToWorld(
 function processEnemyTurn(
   combat: PersonCombatState,
   enemyId: string,
+  rng: () => number = Math.random,
 ): PersonCombatState {
   const enemy = combat.participants.find((p) => p.id === enemyId);
   if (!enemy || enemy.hp <= 0) {
@@ -463,16 +473,15 @@ function processEnemyTurn(
         .filter((sk): sk is SkillConfig => sk !== undefined)
     : [];
 
-  if (hpRatio < 0.4 && Math.random() < 0.5) {
+  if (hpRatio < 0.4 && rng() < 0.5) {
     const healSkill = availableSkills.find((s) => s.type === "heal");
     if (healSkill && enemy.mp >= healSkill.mpCost) {
       action = { type: "skill", skillId: healSkill.id, targetId: enemyId };
     }
-  } else if (availableSkills.length > 0 && Math.random() < 0.3) {
+  } else if (availableSkills.length > 0 && rng() < 0.3) {
     const dmgSkills = availableSkills.filter((s) => s.type !== "heal");
     if (dmgSkills.length > 0) {
-      const selectedSkill =
-        dmgSkills[Math.floor(Math.random() * dmgSkills.length)];
+      const selectedSkill = dmgSkills[Math.floor(rng() * dmgSkills.length)];
       if (enemy.mp >= selectedSkill.mpCost) {
         action = {
           type: "skill",
@@ -483,7 +492,7 @@ function processEnemyTurn(
     }
   }
 
-  return processParticipantTurn(combat, enemyId, action);
+  return processParticipantTurn(combat, enemyId, action, rng);
 }
 
 /**
@@ -497,6 +506,7 @@ function processParticipantTurn(
     readonly skillId?: string;
     readonly targetId?: string;
   },
+  rng: () => number = Math.random,
 ): PersonCombatState {
   let tempCombat = { ...combat };
   let part = tempCombat.participants.find((p) => p.id === partId);
@@ -679,7 +689,7 @@ function processParticipantTurn(
         message: `${part.name} 的普攻目标已倒下。`,
       });
     } else {
-      const outcome = calcPersonDamage(part, target, null);
+      const outcome = calcPersonDamage(part, target, null, rng);
       if (outcome.isDodged) {
         logs.push({
           round: tempCombat.round,
@@ -693,7 +703,7 @@ function processParticipantTurn(
           message: `${part.name} 发起普攻，但被 ${target.name} 成功弹反！`,
         });
         // 触发反击
-        const counterOutcome = calcPersonDamage(target, part, null);
+        const counterOutcome = calcPersonDamage(target, part, null, rng);
         const counterDmg = counterOutcome.damage;
         part = { ...part, hp: Math.max(0, part.hp - counterDmg) };
         logs.push({
@@ -811,7 +821,7 @@ function processParticipantTurn(
           message: `${part.name} 试图使用技能【${skill.name}】，但目标已倒下。`,
         });
       } else {
-        const outcome = calcPersonDamage(part, target, skill);
+        const outcome = calcPersonDamage(part, target, skill, rng);
         if (outcome.isDodged) {
           logs.push({
             round: tempCombat.round,
@@ -825,7 +835,7 @@ function processParticipantTurn(
             message: `${part.name} 施放【${skill.name}】，但被 ${target.name} 成功弹反！`,
           });
           // 触发弹反物理反击
-          const counterOutcome = calcPersonDamage(target, part, null);
+          const counterOutcome = calcPersonDamage(target, part, null, rng);
           const counterDmg = counterOutcome.damage;
           part = { ...part, hp: Math.max(0, part.hp - counterDmg) };
           logs.push({
@@ -870,10 +880,7 @@ function processParticipantTurn(
               turnIndex: tempCombat.currentTurnIndex,
               message: `${target.name} 倒下了！`,
             });
-          } else if (
-            skill.statusEffect &&
-            Math.random() < skill.statusEffect.chance
-          ) {
+          } else if (skill.statusEffect && rng() < skill.statusEffect.chance) {
             // 施加状态效果
             const statusType = skill.statusEffect.type;
             const statusDuration = skill.statusEffect.duration;

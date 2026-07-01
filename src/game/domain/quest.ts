@@ -2,9 +2,17 @@
 // 任务逻辑 — 纯函数
 // ============================================================
 
-import type { QuestConfig } from "../../data/quests";
-import { QUESTS } from "../../data/quests";
+import { QUESTS, type QuestConfig } from "../../data/quests";
 import { DomainError, type World } from "./types";
+
+let _uidCounter = 0;
+export function resetUidCounter(): void {
+  _uidCounter = 0;
+}
+function defaultUidGenerator(): string {
+  _uidCounter++;
+  return `quest-item-${_uidCounter}`;
+}
 
 /** 按 ID 获取任务配置 */
 export function getQuestConfig(questId: string): QuestConfig {
@@ -142,11 +150,14 @@ export function checkQuestProgress(world: World): World {
 }
 
 /** 完成任务：校验进度达标 → 发放奖励 → 从活跃列表移除 */
-export function completeQuest(world: World, questId: string): World {
+export function completeQuest(
+  world: World,
+  questId: string,
+  generateUid: () => string = defaultUidGenerator,
+): World {
   const q = getQuestConfig(questId);
   const aqIdx = world.activeQuests.findIndex((a) => a.questId === questId);
   if (aqIdx === -1) throw new DomainError("QUEST_NOT_FOUND");
-
   const aq = world.activeQuests[aqIdx];
   if (aq.progress < aq.target) throw new DomainError("QUEST_NOT_COMPLETABLE");
 
@@ -167,7 +178,7 @@ export function completeQuest(world: World, questId: string): World {
   // 发放物品奖励
   if (q.rewards.itemIds) {
     const newItems = q.rewards.itemIds.map((itemId) => ({
-      uid: `${itemId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      uid: generateUid(),
       itemId,
       quantity: 1,
     }));

@@ -106,7 +106,7 @@ export const NPCS: readonly NpcConfig[] = [
     type: "questGiver",
     dialogText:
       "年轻的船长，亚历山大港的风带来远方的消息。若你愿意为这座城市效力，我这里有几桩差事正合你手。",
-    questIds: ["alexandria_supplies", "desert_ruins"],
+    questIds: ["alexandria_supplies"],
     giftPreferences: [
       { itemId: "robe_of_wisdom", affinityGain: 10 },
       { itemId: "ring_of_vigor", affinityGain: 8 },
@@ -124,7 +124,7 @@ export const NPCS: readonly NpcConfig[] = [
     type: "captain",
     dialogText:
       "Ahoy! 我是亨利船长，皇家海军退役。北海的每一片浪花我都熟悉。跟着我，你的船队绝不会迷航。",
-    questIds: ["north_sea_patrol"],
+    questIds: [],
     giftPreferences: [
       { itemId: "brass_ring", affinityGain: 12 },
       { itemId: "amulet_of_fortune", affinityGain: 10 },

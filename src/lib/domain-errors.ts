@@ -1,6 +1,7 @@
 import { DomainError } from "../game/domain/types";
 
 const ERROR_MAP: Record<string, string> = {
+  AFFINITY_TOO_LOW: "好感度不足",
   INSUFFICIENT_GOLD: "金币不足",
   INSUFFICIENT_CARGO: "舱容不足",
   INVALID_QUANTITY: "请输入有效的购买数量",
@@ -28,6 +29,7 @@ const ERROR_MAP: Record<string, string> = {
   SHIP_HAS_EQUIPMENT: "出售船只前必须先卸下所有装备",
   INSUFFICIENT_ATTRIBUTE_POINTS: "属性分配点不足",
   ITEM_NOT_FOUND: "背包中未找到该物品",
+  ITEM_NOT_FOUND_IN_INVENTORY: "背包中未找到该物品",
   ITEM_NOT_EQUIPPABLE: "该物品无法装备在人物身上",
   EQUIPMENT_SLOT_INVALID: "无效的装备位置",
   NOT_IN_COMBAT: "当前不在战斗中",
@@ -35,6 +37,15 @@ const ERROR_MAP: Record<string, string> = {
   INSUFFICIENT_MP: "MP 不足，无法施放技能",
   INVALID_COMBAT_ACTION: "无效的战斗动作",
   NOT_YOUR_TURN: "当前不是您的回合",
+  NPC_ALREADY_RECRUITED: "该角色已被招募",
+  NPC_NOT_AT_THIS_PORT: "该角色不在当前港口",
+  NPC_NOT_FOUND: "未找到该角色",
+  NPC_NOT_RECRUITABLE: "该角色无法招募",
+  QUEST_ALREADY_ACCEPTED: "该任务已接受",
+  QUEST_NOT_AVAILABLE: "该任务不可用",
+  QUEST_NOT_COMPLETABLE: "任务条件尚未满足",
+  QUEST_NOT_FOUND: "未找到该任务",
+  QUEST_REQUIREMENT_NOT_MET: "不满足任务要求",
   SILENCED: "您处于沉默状态，无法施放魔法技能",
 };
 

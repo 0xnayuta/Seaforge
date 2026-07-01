@@ -1,11 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
-import {
-  acceptBoarding,
-  performCombatAction,
-  surrenderAfterFleetLoss,
-} from "../app/actions/combat";
+import { acceptBoarding, surrenderAfterFleetLoss } from "../app/actions/combat";
 import { completeVoyage } from "../app/voyage/actions";
 import type { VoyageEventView, VoyageView } from "../types/game-view";
 import { CombatPanel } from "./CombatPanel";
@@ -15,11 +10,6 @@ interface VoyageScreenProps {
 }
 
 export function VoyageScreen({ view }: VoyageScreenProps) {
-  const [_state, _action, isPending] = useActionState(
-    performCombatAction,
-    null,
-  );
-
   // 战斗进行中 → 显示战斗面板
   if (view.combatState) {
     // 战斗已结束
@@ -31,10 +21,10 @@ export function VoyageScreen({ view }: VoyageScreenProps) {
             <form action={completeVoyage}>
               <button
                 type="submit"
-                disabled={isPending}
+                disabled={false}
                 className="rounded-lg bg-gold-500 px-6 py-2 font-bold text-ocean-900 hover:bg-gold-400 transition-colors disabled:opacity-50"
               >
-                {isPending ? "处理中..." : "继续航行"}
+                继续航行
               </button>
             </form>
           </div>
@@ -57,6 +47,12 @@ export function VoyageScreen({ view }: VoyageScreenProps) {
         </div>
       );
     }
+    // 战斗中（in_progress / surrendered）→ 显示战斗面板
+    return (
+      <div className="flex-1 p-4 max-w-2xl mx-auto w-full space-y-4">
+        <CombatPanel combatView={view.combatState} />
+      </div>
+    );
   }
   if (view.combatChoice?.hasSelection) {
     return (
@@ -72,7 +68,7 @@ export function VoyageScreen({ view }: VoyageScreenProps) {
           <form action={surrenderAfterFleetLoss}>
             <button
               type="submit"
-              disabled={isPending}
+              disabled={false}
               className="w-full rounded-lg border border-yellow-600 bg-yellow-700/40 px-4 py-4 text-center hover:bg-yellow-600/40 transition-colors disabled:opacity-50"
             >
               <span className="block font-bold text-yellow-300">投降</span>
@@ -85,7 +81,7 @@ export function VoyageScreen({ view }: VoyageScreenProps) {
           <form action={acceptBoarding}>
             <button
               type="submit"
-              disabled={isPending}
+              disabled={false}
               className="w-full rounded-lg border border-red-600 bg-red-700/40 px-4 py-4 text-center hover:bg-red-600/40 transition-colors disabled:opacity-50"
             >
               <span className="block font-bold text-red-300">接舷战</span>
@@ -120,10 +116,10 @@ export function VoyageScreen({ view }: VoyageScreenProps) {
         <form action={completeVoyage}>
           <button
             type="submit"
-            disabled={isPending}
+            disabled={false}
             className="rounded-lg bg-gold-500 px-8 py-3 text-lg font-bold text-ocean-900 hover:bg-gold-400 transition-colors disabled:opacity-50"
           >
-            {isPending ? "处理中..." : "推进航行"}
+            推进航行
           </button>
         </form>
       </div>
@@ -200,8 +196,8 @@ function EventLog({ events }: EventLogProps) {
     <div className="rounded-lg border border-ocean-600 bg-ocean-800/80 p-4">
       <h3 className="mb-3 text-sm font-semibold text-gold-400">航行日志</h3>
       <div className="space-y-2">
-        {events.map((event, i) => (
-          <EventLogEntry key={`day-${event.day}-${i}`} event={event} />
+        {events.map((event) => (
+          <EventLogEntry key={`day-${event.day}`} event={event} />
         ))}
       </div>
     </div>

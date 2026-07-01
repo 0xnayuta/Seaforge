@@ -16,20 +16,31 @@ interface QuestBoardClientProps {
 }
 
 export function QuestBoardClient({ board, rewardInfo }: QuestBoardClientProps) {
-  const handleAction = async (_prev: unknown, formData: FormData) => {
+  const handleAction = async (_prev: string | null, formData: FormData) => {
     const action = formData.get("_action") as string;
     const questId = formData.get("questId") as string;
-    if (action === "accept") {
-      await acceptQuestAction(questId);
-    } else if (action === "complete") {
-      await completeQuestAction(questId);
+    try {
+      if (action === "accept") {
+        await acceptQuestAction(questId);
+      } else if (action === "complete") {
+        await completeQuestAction(questId);
+      }
+      window.location.reload();
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : "操作失败";
     }
-    return { action, questId };
   };
-  const [_state, formAction, isPending] = useActionState(handleAction, null);
+  const [state, formAction, isPending] = useActionState(handleAction, null);
 
   return (
     <>
+      {state && (
+        <div className="mb-4 p-3 bg-red-900/50 border border-red-700 rounded text-red-200 text-sm">
+          {state}
+        </div>
+      )}
+
       {/* 可选任务 */}
       <section>
         <h2 className="text-lg font-semibold text-gold-400 mb-3">可选任务</h2>

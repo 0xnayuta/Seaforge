@@ -95,19 +95,14 @@ export function CombatPanel({ combatView }: CombatPanelProps) {
                     <button
                       key={skill.skillId}
                       type="submit"
-                      name="action"
-                      value="skill"
+                      name="skill_action"
+                      value={`skill_${skill.skillId}`}
                       disabled={
                         (player?.mp ?? 0) < skill.mpCost ||
                         (!currentTarget && skill.type !== "heal")
                       }
                       className="rounded-lg border border-green-700 bg-green-800/40 p-2 text-left text-xs hover:bg-green-700/40 transition-colors disabled:opacity-40"
                     >
-                      <input
-                        type="hidden"
-                        name="skillId"
-                        value={skill.skillId}
-                      />
                       <span className="block font-semibold text-green-300">
                         {skill.name}
                       </span>

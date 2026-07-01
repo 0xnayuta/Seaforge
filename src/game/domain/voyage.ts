@@ -494,8 +494,8 @@ export function progressVoyage(world: World): World {
           ...result,
           voyage: {
             ...currentVoyage,
-            events: currentVoyage.events.map((ev) =>
-              ev.day === event.day && ev.type === "combat" ? updatedEvent : ev,
+            events: currentVoyage.events.map((ev, idx) =>
+              idx === i ? updatedEvent : ev,
             ),
           },
         };
@@ -511,7 +511,7 @@ export function progressVoyage(world: World): World {
         };
         // 移除当前已被处理的 combat 事件（或是标记已触发），这里直接移除此事件以避免重复触发
         const filteredEvents = currentVoyage.events.filter(
-          (ev) => !(ev.day === event.day && ev.type === "combat"),
+          (_, idx) => idx !== i,
         );
         const nextVoyage = {
           ...currentVoyage,
@@ -549,7 +549,7 @@ export function progressVoyage(world: World): World {
         );
         if (victoryWorld.voyage) {
           const filteredEvents = victoryWorld.voyage.events.filter(
-            (ev) => !(ev.day === event.day && ev.type === "combat"),
+            (_, idx) => idx !== i,
           );
           result = {
             ...victoryWorld,
@@ -568,8 +568,8 @@ export function progressVoyage(world: World): World {
           ...currentVoyage,
           combatSelection: true,
           directBoarding: false,
-          events: currentVoyage.events.map((ev) =>
-            ev.day === event.day && ev.type === "combat" ? updatedEvent : ev,
+          events: currentVoyage.events.map((ev, idx) =>
+            idx === i ? updatedEvent : ev,
           ),
         };
         result = {
