@@ -381,6 +381,7 @@ export interface NpcDetailView {
     readonly goldCost: number;
     readonly requiredQuestIds: readonly string[];
   } | null;
+  readonly canRecruit: boolean;
   readonly availableQuests: readonly QuestSummaryView[];
   readonly completedQuests: readonly string[];
   readonly giftPreferences: readonly { itemId: string; affinityGain: number }[];

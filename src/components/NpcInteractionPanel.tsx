@@ -203,10 +203,14 @@ export function NpcInteractionPanel({
           <form action={recruitAction}>
             <button
               type="submit"
-              disabled={recruitPending}
-              className="px-4 py-2 bg-gold-600 hover:bg-gold-500 disabled:opacity-50 text-white rounded transition-colors"
+              disabled={recruitPending || !view.canRecruit}
+              className="px-4 py-2 bg-gold-600 hover:bg-gold-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded transition-colors"
             >
-              {recruitPending ? "招募中..." : "招募"}
+              {recruitPending
+                ? "招募中..."
+                : view.canRecruit
+                  ? "招募"
+                  : "条件未满足"}
             </button>
             {recruitState && (
               <p className="mt-2 text-sm text-parchment-dark">{recruitState}</p>

@@ -924,6 +924,16 @@ export function buildNpcDetailView(
           canAccept: true,
         }) satisfies QuestSummaryView,
     );
+  const cond = npc.recruitCondition;
+  const canRecruit =
+    npc.recruitable &&
+    !rel.recruited &&
+    npc.portId === world.player.currentPortId &&
+    rel.affinity >= (cond?.minAffinity ?? Infinity) &&
+    world.fleet.gold >= (cond?.goldCost ?? Infinity) &&
+    (cond?.requiredQuestIds ?? []).every((qId) =>
+      rel.completedQuests.includes(qId),
+    );
 
   return {
     id: npc.id,
@@ -935,6 +945,7 @@ export function buildNpcDetailView(
     affinity: rel.affinity,
     maxAffinity: 100,
     recruited: rel.recruited,
+    canRecruit,
     recruitable: npc.recruitable,
     recruitCondition: npc.recruitCondition
       ? {
