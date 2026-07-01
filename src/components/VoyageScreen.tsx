@@ -22,11 +22,8 @@ export function VoyageScreen({ view }: VoyageScreenProps) {
 
   // 战斗进行中 → 显示战斗面板
   if (view.combatState) {
-    // 战斗已结束（胜利/失败），显示结果并允许继续
-    if (
-      view.combatState.status === "victory" ||
-      view.combatState.status === "defeat"
-    ) {
+    // 战斗已结束
+    if (view.combatState.status === "victory") {
       return (
         <div className="flex-1 p-4 max-w-2xl mx-auto w-full space-y-4">
           <CombatPanel combatView={view.combatState} />
@@ -44,12 +41,22 @@ export function VoyageScreen({ view }: VoyageScreenProps) {
         </div>
       );
     }
-    // 战斗中
-    return (
-      <div className="flex-1 p-4 max-w-2xl mx-auto w-full space-y-4">
-        <CombatPanel combatView={view.combatState} />
-      </div>
-    );
+    // 战斗失败 → 已遣返港口，显示结果后返回港口
+    if (view.combatState.status === "defeat") {
+      return (
+        <div className="flex-1 p-4 max-w-2xl mx-auto w-full space-y-4">
+          <CombatPanel combatView={view.combatState} />
+          <div className="text-center">
+            <a
+              href="/"
+              className="inline-block rounded-lg bg-gold-500 px-6 py-2 font-bold text-ocean-900 hover:bg-gold-400 transition-colors"
+            >
+              返回港口
+            </a>
+          </div>
+        </div>
+      );
+    }
   }
   if (view.combatChoice?.hasSelection) {
     return (
