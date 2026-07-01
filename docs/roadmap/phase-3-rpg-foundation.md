@@ -271,7 +271,7 @@ interface ItemInstance {
 
 ### Phase 3.3（迭代 C）：NPC 系统 + 任务系统
 
-### NPC 系统
+#### NPC 系统
 
 #### 设计
 
@@ -322,7 +322,7 @@ readonly npcRelations: Record<string, NpcRelationState>;
 | `getAvailableNpcQuests(world, npcId)` | 按好感度筛选可用任务 |
 | `calcMaxShips(world)` | 从已招募船长数计算 maxShips |
 
-### 任务系统
+#### 任务系统
 
 #### 设计
 
@@ -384,7 +384,7 @@ readonly npcRelations: Record<string, NpcRelationState>;
 
 ### Phase 3.4：称号系统
 
-保留原 Phase 3.2 称号系统内容不变。详见原文档 `docs/roadmap/phase-3-content-depth.md` §3.2（归档）。
+保留原 Phase 3.2 称号系统内容不变。详见原文档 `docs/archive/phase-3-content-depth-archived.md` §3.2（归档）。
 
 ---
 

@@ -399,7 +399,7 @@ Phase 4.4 (图鉴系统) ─── 独立，在现有操作中插入记录点
 | 原版游戏调研 | `docs/reference/deep-research-report.md` |
 | Phase 1 路线图 | `docs/roadmap/phase-1-mvp.md` |
 | Phase 2 路线图 | `docs/roadmap/phase-2-system-depth.md` |
-| Phase 3 路线图 | `docs/roadmap/phase-3-content-depth.md` |
+| Phase 3 路线图 | `docs/archive/phase-3-content-depth-archived.md` |
 | 原版探宝/副本描述 | `docs/reference/deep-research-report.md` §12.2（探宝/遗迹） |
 | World 定义 | `docs/specifications/world-definition.md` |
 | Clean Architecture 分层 | `docs/architecture/clean-architecture-lite.md` |

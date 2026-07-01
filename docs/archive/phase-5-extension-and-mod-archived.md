@@ -273,8 +273,8 @@ Phase 5.3 (MOD 支持) ─── 依赖 Phase 1-4 所有数据配置稳定
 | 原版游戏调研 | `docs/reference/deep-research-report.md` |
 | Phase 1 路线图 | `docs/roadmap/phase-1-mvp.md` |
 | Phase 2 路线图 | `docs/roadmap/phase-2-system-depth.md` |
-| Phase 3 路线图 | `docs/roadmap/phase-3-content-depth.md` |
-| Phase 4 路线图 | `docs/roadmap/phase-4-long-term-retention.md` |
+| Phase 3 路线图 | `docs/archive/phase-3-content-depth-archived.md` |
+| Phase 4 路线图 | `docs/archive/phase-4-long-term-retention-archived.md` |
 | 原版房屋/宠物描述 | `docs/reference/deep-research-report.md` §12.3（宠物）、§12.4（房屋） |
 | 项目定位 | `docs/specifications/project-positioning.md` |
 | World 定义 | `docs/specifications/world-definition.md` |
