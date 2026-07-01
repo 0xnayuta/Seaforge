@@ -22,10 +22,10 @@ const errors = [];
 // =============================================================================
 
 const DOC_META_RULES = {
-  defaultStatus: new Set(["current", "draft", "deprecated", "archived"]),
+  defaultStatus: new Set(["draft", "review", "approved", "archived"]),
   scoped: [
     {
-      pattern: /^docs\/adr\/ADR-\d{4}-/,
+      pattern: /^docs\/adr\//,
       status: new Set([
         "proposed",
         "accepted",
@@ -33,6 +33,14 @@ const DOC_META_RULES = {
         "deprecated",
         "superseded",
       ]),
+    },
+    {
+      pattern: /^docs\/roadmap\//,
+      status: new Set(["draft", "active", "completed"]),
+    },
+    {
+      pattern: /^docs\/audits\//,
+      status: new Set(["draft", "final"]),
     },
     {
       pattern: /^docs\/archive\//,
