@@ -2,18 +2,22 @@ import {
   BASE_EXP,
   LEVEL_EXP_GROWTH,
   MAX_SHIPS_LEVEL_DIVISOR,
+  SCALING_COEFFICIENTS,
+  SOFT_CAP_BRACKETS,
   STARTING_DAY,
   STARTING_GOLD,
 } from "../../data/formulas";
+import { ITEMS, type ItemConfig } from "../../data/items";
 import { SHIPS } from "../../data/ships";
 import { getMaxCrewCapacity } from "./crew";
 import { applyDayPass, initMarketPrices } from "./market";
-import type { ShipInstance, World } from "./types";
-
-// ============================================================
-// 玩家 / 世界初始化的纯函数
-// ============================================================
-
+import {
+  DomainError,
+  type ItemInstance,
+  type PlayerState,
+  type ShipInstance,
+  type World,
+} from "./types";
 export function createDefaultWorld(): World {
   const defaultShip = SHIPS.find((s) => s.id === "sloop") ?? SHIPS[0];
   const initialShips: readonly ShipInstance[] = [
@@ -43,6 +47,18 @@ export function createDefaultWorld(): World {
       level: 1,
       exp: 0,
       expToNext: BASE_EXP,
+      str: 1,
+      dex: 1,
+      int: 1,
+      fth: 1,
+      arc: 1,
+      attributePoints: 0,
+      equipment: {
+        weapon: null,
+        armor: null,
+        accessory1: null,
+        accessory2: null,
+      },
     },
     fleet: {
       ships: initialShips,
@@ -52,6 +68,7 @@ export function createDefaultWorld(): World {
       maxCrew: getMaxCrewCapacity(initialShips),
       gold: STARTING_GOLD,
       inventory: [],
+      shipEquipmentInventory: [],
     },
     market: initMarketPrices(),
     voyage: null,
@@ -109,10 +126,353 @@ function levelUp(world: World): World {
       level: nextLevel,
       exp: nextExp,
       expToNext: nextExpToNext,
+      attributePoints: world.player.attributePoints + 3,
     },
     fleet: {
       ...world.fleet,
       maxShips: 1 + Math.floor(nextLevel / MAX_SHIPS_LEVEL_DIVISOR),
     },
   });
+}
+
+export interface PanelStats {
+  readonly hp: number;
+  readonly atk: number;
+  readonly def: number;
+  readonly mag: number;
+  readonly mdf: number;
+  readonly spd: number;
+  readonly luk: number;
+  readonly equipLoad: number;
+}
+
+export function getEffectiveAttribute(val: number): number {
+  let effective = 0;
+  let remaining = val;
+  for (const bracket of SOFT_CAP_BRACKETS) {
+    const bracketSize = bracket.max - bracket.min;
+    if (remaining > bracketSize) {
+      effective += bracketSize * bracket.rate;
+      remaining -= bracketSize;
+    } else {
+      effective += remaining * bracket.rate;
+      remaining = 0;
+      break;
+    }
+  }
+  return effective;
+}
+
+function getEquippedItemConfig(
+  uid: string | null,
+  inventory: readonly ItemInstance[],
+): ItemConfig | null {
+  if (!uid) return null;
+  const instance = inventory.find((item) => item.uid === uid);
+  if (!instance) return null;
+  return ITEMS.find((cfg) => cfg.id === instance.itemId) ?? null;
+}
+
+export function calcPanelStats(
+  player: PlayerState,
+  inventory: readonly ItemInstance[],
+): PanelStats {
+  const effStr = getEffectiveAttribute(player.str);
+  const effDex = getEffectiveAttribute(player.dex);
+  const effInt = getEffectiveAttribute(player.int);
+  const effFth = getEffectiveAttribute(player.fth);
+  const effArc = getEffectiveAttribute(player.arc);
+
+  // 1. 基础值（公式）
+  const baseHp =
+    80 +
+    player.level * 8 +
+    effStr * 4 +
+    (effDex + effInt + effFth + effArc) * 1;
+  const baseAtk = 8 + effStr * 2.0 + effDex * 0.5;
+  const baseDef = 5 + effStr * 0.8 + effDex * 0.4;
+  const baseMag = 5 + effInt * 2.0 + effFth * 0.5;
+  const baseMdf = 5 + effInt * 0.6 + effFth * 1.0;
+  const baseSpd = 8 + effDex * 1.5;
+  const baseLuk = 5 + effArc * 2.0;
+  const baseEquipLoad = 15 + effStr * 2.5;
+
+  // 2. 获取装备配置
+  const weapon = getEquippedItemConfig(player.equipment.weapon, inventory);
+  const armor = getEquippedItemConfig(player.equipment.armor, inventory);
+  const acc1 = getEquippedItemConfig(player.equipment.accessory1, inventory);
+  const acc2 = getEquippedItemConfig(player.equipment.accessory2, inventory);
+
+  const configs = [weapon, armor, acc1, acc2].filter(
+    (c): c is ItemConfig => c !== null,
+  );
+
+  // 3. 累计装备基础加成
+  let eqHp = 0;
+  let eqAtk = 0;
+  let eqDef = 0;
+  let eqMag = 0;
+  let eqMdf = 0;
+  let eqSpd = 0;
+  let eqLuk = 0;
+  let eqEquipLoad = 0;
+  for (const c of configs) {
+    eqHp += c.effect.hpBonus ?? 0;
+    eqAtk += c.effect.atkBonus ?? 0;
+    eqDef += c.effect.defBonus ?? 0;
+    eqMag += c.effect.magBonus ?? 0;
+    eqMdf += c.effect.mdfBonus ?? 0;
+    eqSpd += c.effect.spdBonus ?? 0;
+    eqLuk += c.effect.lukBonus ?? 0;
+    eqEquipLoad += c.effect.equipLoadBonus ?? 0;
+  }
+
+  // 4. 属性补正计算
+  let scalingAtk = 0;
+  let scalingDef = 0;
+  let scalingMag = 0;
+  let scalingMdf = 0;
+
+  // 武器补正 ATK 和 MAG
+  if (weapon) {
+    const baseWeaponAtk = weapon.effect.atkBonus ?? 0;
+    const baseWeaponMag = weapon.effect.magBonus ?? 0;
+
+    const strCoeff = weapon.scaling?.str
+      ? SCALING_COEFFICIENTS[weapon.scaling.str]
+      : 0;
+    const dexCoeff = weapon.scaling?.dex
+      ? SCALING_COEFFICIENTS[weapon.scaling.dex]
+      : 0;
+    const intCoeff = weapon.scaling?.int
+      ? SCALING_COEFFICIENTS[weapon.scaling.int]
+      : 0;
+    const fthCoeff = weapon.scaling?.fth
+      ? SCALING_COEFFICIENTS[weapon.scaling.fth]
+      : 0;
+
+    scalingAtk += baseWeaponAtk * (effStr / 100) * strCoeff;
+    scalingAtk += baseWeaponAtk * (effDex / 100) * dexCoeff;
+    scalingMag += baseWeaponMag * (effInt / 100) * intCoeff;
+    scalingMag += baseWeaponMag * (effFth / 100) * fthCoeff;
+  }
+
+  // 防具补正 DEF 和 MDF
+  if (armor) {
+    const baseArmorDef = armor.effect.defBonus ?? 0;
+    const baseArmorMdf = armor.effect.mdfBonus ?? 0;
+
+    const strCoeff = armor.scaling?.str
+      ? SCALING_COEFFICIENTS[armor.scaling.str]
+      : 0;
+    const dexCoeff = armor.scaling?.dex
+      ? SCALING_COEFFICIENTS[armor.scaling.dex]
+      : 0;
+    const intCoeff = armor.scaling?.int
+      ? SCALING_COEFFICIENTS[armor.scaling.int]
+      : 0;
+    const fthCoeff = armor.scaling?.fth
+      ? SCALING_COEFFICIENTS[armor.scaling.fth]
+      : 0;
+
+    scalingDef += baseArmorDef * (effStr / 100) * strCoeff;
+    scalingDef += baseArmorDef * (effDex / 100) * dexCoeff;
+    scalingMdf += baseArmorMdf * (effInt / 100) * intCoeff;
+    scalingMdf += baseArmorMdf * (effFth / 100) * fthCoeff;
+  }
+
+  return {
+    hp: Math.max(0, Math.floor(baseHp + eqHp)),
+    atk: Math.max(0, Math.floor(baseAtk + eqAtk + scalingAtk)),
+    def: Math.max(0, Math.floor(baseDef + eqDef + scalingDef)),
+    mag: Math.max(0, Math.floor(baseMag + eqMag + scalingMag)),
+    mdf: Math.max(0, Math.floor(baseMdf + eqMdf + scalingMdf)),
+    spd: Math.max(0, Math.floor(baseSpd + eqSpd)),
+    luk: Math.max(0, Math.floor(baseLuk + eqLuk)),
+    equipLoad: Math.max(0, Math.floor(baseEquipLoad + eqEquipLoad)),
+  };
+}
+
+export function allocateAttributePoint(
+  world: World,
+  attribute: "str" | "dex" | "int" | "fth" | "arc",
+): World {
+  if (world.player.attributePoints <= 0) {
+    throw new DomainError("INSUFFICIENT_ATTRIBUTE_POINTS");
+  }
+  return {
+    ...world,
+    player: {
+      ...world.player,
+      [attribute]: world.player[attribute] + 1,
+      attributePoints: world.player.attributePoints - 1,
+    },
+  };
+}
+
+export function gainItem(
+  world: World,
+  itemId: string,
+  quantity = 1,
+  uids?: string[],
+): World {
+  const config = ITEMS.find((cfg) => cfg.id === itemId);
+  if (!config) throw new DomainError("ITEM_NOT_FOUND");
+  if (quantity <= 0) return world;
+
+  const nextInventory = [...world.fleet.inventory];
+
+  if (config.stackable) {
+    const existingIndex = nextInventory.findIndex(
+      (item) => item.itemId === itemId && !item.equippedSlot,
+    );
+    if (existingIndex !== -1) {
+      const existing = nextInventory[existingIndex];
+      nextInventory[existingIndex] = {
+        ...existing,
+        quantity: existing.quantity + quantity,
+      };
+    } else {
+      const uid =
+        uids?.[0] ??
+        `item-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      nextInventory.push({
+        uid,
+        itemId,
+        quantity,
+      });
+    }
+  } else {
+    for (let i = 0; i < quantity; i++) {
+      const uid =
+        uids?.[i] ??
+        `item-${Date.now()}-${Math.random().toString(36).substring(2, 9)}-${i}`;
+      nextInventory.push({
+        uid,
+        itemId,
+        quantity: 1,
+        durability:
+          config.type === "weapon" || config.type === "armor" ? 100 : undefined,
+        maxDurability:
+          config.type === "weapon" || config.type === "armor" ? 100 : undefined,
+        upgradeLevel:
+          config.type === "weapon" || config.type === "armor" ? 0 : undefined,
+      });
+    }
+  }
+
+  return {
+    ...world,
+    fleet: {
+      ...world.fleet,
+      inventory: nextInventory,
+    },
+  };
+}
+
+export function removeItem(world: World, itemUid: string, quantity = 1): World {
+  const nextInventory = [...world.fleet.inventory];
+  const idx = nextInventory.findIndex((item) => item.uid === itemUid);
+  if (idx === -1) throw new DomainError("ITEM_NOT_FOUND");
+
+  const item = nextInventory[idx];
+  if (item.quantity <= quantity) {
+    nextInventory.splice(idx, 1);
+  } else {
+    nextInventory[idx] = {
+      ...item,
+      quantity: item.quantity - quantity,
+    };
+  }
+
+  return {
+    ...world,
+    fleet: {
+      ...world.fleet,
+      inventory: nextInventory,
+    },
+  };
+}
+
+export function equipCharacterItem(
+  world: World,
+  itemUid: string,
+  slot: "weapon" | "armor" | "accessory1" | "accessory2",
+): World {
+  if (world.voyage) throw new DomainError("IN_VOYAGE");
+
+  const inventory = world.fleet.inventory;
+  const item = inventory.find((it) => it.uid === itemUid);
+  if (!item) throw new DomainError("ITEM_NOT_FOUND");
+
+  const config = ITEMS.find((cfg) => cfg.id === item.itemId);
+  if (!config) throw new DomainError("ITEM_NOT_FOUND");
+
+  if (slot === "weapon" && config.type !== "weapon") {
+    throw new DomainError("ITEM_NOT_EQUIPPABLE");
+  }
+  if (slot === "armor" && config.type !== "armor") {
+    throw new DomainError("ITEM_NOT_EQUIPPABLE");
+  }
+  if (
+    (slot === "accessory1" || slot === "accessory2") &&
+    config.type !== "accessory"
+  ) {
+    throw new DomainError("ITEM_NOT_EQUIPPABLE");
+  }
+
+  let nextWorld = world;
+
+  const currentlyEquippedUid = world.player.equipment[slot];
+  if (currentlyEquippedUid) {
+    nextWorld = unequipCharacterItem(nextWorld, slot);
+  }
+
+  const nextInventory = nextWorld.fleet.inventory.map((it) =>
+    it.uid === itemUid ? { ...it, equippedSlot: slot } : it,
+  );
+
+  return {
+    ...nextWorld,
+    player: {
+      ...nextWorld.player,
+      equipment: {
+        ...nextWorld.player.equipment,
+        [slot]: itemUid,
+      },
+    },
+    fleet: {
+      ...nextWorld.fleet,
+      inventory: nextInventory,
+    },
+  };
+}
+
+export function unequipCharacterItem(
+  world: World,
+  slot: "weapon" | "armor" | "accessory1" | "accessory2",
+): World {
+  if (world.voyage) throw new DomainError("IN_VOYAGE");
+
+  const itemUid = world.player.equipment[slot];
+  if (!itemUid) return world;
+
+  const nextInventory = world.fleet.inventory.map((it) =>
+    it.uid === itemUid ? { ...it, equippedSlot: undefined } : it,
+  );
+
+  return {
+    ...world,
+    player: {
+      ...world.player,
+      equipment: {
+        ...world.player.equipment,
+        [slot]: null,
+      },
+    },
+    fleet: {
+      ...world.fleet,
+      inventory: nextInventory,
+    },
+  };
 }
