@@ -230,3 +230,66 @@ export interface SaveSlotView {
   readonly day: number;
   readonly updatedAt: string; // ISO 字符串，便于序列化
 }
+
+/** 人物装备插槽项视图 */
+export interface EquippedCharacterItemView {
+  readonly uid: string;
+  readonly itemId: string;
+  readonly name: string;
+  readonly typeLabel: string;
+  readonly qualityLabel: string;
+  readonly effectDescription: string;
+  readonly description: string;
+}
+
+/** 背包物品项视图 */
+export interface InventoryItemView {
+  readonly uid: string;
+  readonly itemId: string;
+  readonly type: "weapon" | "armor" | "accessory" | "consumable" | "material";
+  readonly name: string;
+  readonly typeLabel: string;
+  readonly qualityLabel: string;
+  readonly quantity: number;
+  readonly durability?: number;
+  readonly maxDurability?: number;
+  readonly upgradeLevel?: number;
+  readonly equippedSlot?: string;
+  readonly effectDescription: string;
+  readonly description: string;
+}
+
+/** 人物界面视图（/character） */
+export interface CharacterView {
+  readonly name: string;
+  readonly level: number;
+  readonly exp: number;
+  readonly expToNext: number;
+  readonly gold: number;
+  readonly attributePoints: number;
+  readonly attributes: {
+    readonly str: number;
+    readonly dex: number;
+    readonly int: number;
+    readonly fth: number;
+    readonly arc: number;
+  };
+  readonly panelStats: {
+    readonly hp: number;
+    readonly atk: number;
+    readonly def: number;
+    readonly mag: number;
+    readonly mdf: number;
+    readonly spd: number;
+    readonly luk: number;
+    readonly equipLoad: number;
+  };
+  readonly equipment: {
+    readonly weapon: EquippedCharacterItemView | null;
+    readonly armor: EquippedCharacterItemView | null;
+    readonly accessory1: EquippedCharacterItemView | null;
+    readonly accessory2: EquippedCharacterItemView | null;
+  };
+  readonly inventory: readonly InventoryItemView[];
+  readonly blockedByVoyage: boolean;
+}

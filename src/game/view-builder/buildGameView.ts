@@ -14,6 +14,7 @@ import {
   SURVIVAL_DISTANCE_FACTOR,
 } from "../../data/formulas";
 import { CATEGORY_LABEL, GOODS } from "../../data/goods";
+import { ITEM_QUALITY_LABELS, ITEMS, type ItemConfig } from "../../data/items";
 import { PORTS } from "../../data/ports";
 import { REGIONS } from "../../data/regions";
 import { SHIPS } from "../../data/ships";
@@ -22,6 +23,7 @@ import {
   getShipDefenseMultiplier,
   getShipSpeed,
 } from "../domain/equipment";
+import { calcPanelStats } from "../domain/player";
 
 function getRegionName(regionId: string | undefined): string {
   return REGIONS.find((r) => r.id === regionId)?.name ?? "";
@@ -31,6 +33,7 @@ import type {
   AvailableShipView,
   CargoItemView,
   CargoView,
+  CharacterView,
   CombatLogEntryView,
   ComponentView,
   DestinationView,
@@ -621,4 +624,118 @@ export function buildSaveSlotViews(saves: RawSaveRow[]): SaveSlotView[] {
       };
     }
   });
+}
+
+const ITEM_TYPE_LABELS = {
+  weapon: "武器",
+  armor: "铠甲",
+  accessory: "饰品",
+  consumable: "消耗品",
+  material: "材料",
+} as const;
+
+function getItemEffectDescription(config: ItemConfig): string {
+  const parts: string[] = [];
+  if (config.effect.hpBonus) parts.push(`生命值 +${config.effect.hpBonus}`);
+  if (config.effect.atkBonus) parts.push(`攻击力 +${config.effect.atkBonus}`);
+  if (config.effect.defBonus) parts.push(`防御力 +${config.effect.defBonus}`);
+  if (config.effect.magBonus) parts.push(`魔力 +${config.effect.magBonus}`);
+  if (config.effect.mdfBonus) parts.push(`魔防 +${config.effect.mdfBonus}`);
+  if (config.effect.spdBonus) parts.push(`速度 +${config.effect.spdBonus}`);
+  if (config.effect.lukBonus) parts.push(`幸运 +${config.effect.lukBonus}`);
+  if (config.effect.equipLoadBonus)
+    parts.push(`负重 +${config.effect.equipLoadBonus}`);
+
+  if (config.scaling) {
+    const scalings: string[] = [];
+    if (config.scaling.str)
+      scalings.push(`力[${ITEM_QUALITY_LABELS[config.scaling.str]}]`);
+    if (config.scaling.dex)
+      scalings.push(`敏[${ITEM_QUALITY_LABELS[config.scaling.dex]}]`);
+    if (config.scaling.int)
+      scalings.push(`智[${ITEM_QUALITY_LABELS[config.scaling.int]}]`);
+    if (config.scaling.fth)
+      scalings.push(`信[${ITEM_QUALITY_LABELS[config.scaling.fth]}]`);
+    if (config.scaling.arc)
+      scalings.push(`感[${ITEM_QUALITY_LABELS[config.scaling.arc]}]`);
+    if (scalings.length > 0) {
+      parts.push(`补正: ${scalings.join(" ")}`);
+    }
+  }
+  return parts.join(", ") || "无额外效果";
+}
+
+export function buildCharacterView(world: World): CharacterView {
+  const player = world.player;
+  const panel = calcPanelStats(player, world.fleet.inventory);
+
+  const getEquippedView = (uid: string | null) => {
+    if (!uid) return null;
+    const instance = world.fleet.inventory.find((item) => item.uid === uid);
+    if (!instance) return null;
+    const config = ITEMS.find((cfg) => cfg.id === instance.itemId);
+    if (!config) return null;
+    return {
+      uid: instance.uid,
+      itemId: instance.itemId,
+      name: config.name,
+      typeLabel: ITEM_TYPE_LABELS[config.type] ?? "未知",
+      qualityLabel: ITEM_QUALITY_LABELS[config.quality] ?? "普通",
+      effectDescription: getItemEffectDescription(config),
+      description: config.description ?? "",
+    };
+  };
+
+  const inventory = (world.fleet.inventory || []).map((item) => {
+    const config = ITEMS.find((cfg) => cfg.id === item.itemId);
+    return {
+      uid: item.uid,
+      itemId: item.itemId,
+      type: config?.type ?? "material",
+      name: config?.name ?? "未知物品",
+      typeLabel: config ? ITEM_TYPE_LABELS[config.type] : "未知",
+      qualityLabel: config ? ITEM_QUALITY_LABELS[config.quality] : "普通",
+      quantity: item.quantity,
+      durability: item.durability,
+      maxDurability: item.maxDurability,
+      upgradeLevel: item.upgradeLevel,
+      equippedSlot: item.equippedSlot,
+      effectDescription: config ? getItemEffectDescription(config) : "",
+      description: config?.description ?? "",
+    };
+  });
+
+  return {
+    name: player.name,
+    level: player.level,
+    exp: player.exp,
+    expToNext: player.expToNext,
+    gold: world.fleet.gold,
+    attributePoints: player.attributePoints,
+    attributes: {
+      str: player.str,
+      dex: player.dex,
+      int: player.int,
+      fth: player.fth,
+      arc: player.arc,
+    },
+    panelStats: {
+      hp: panel.hp,
+      atk: panel.atk,
+      def: panel.def,
+      mag: panel.mag,
+      mdf: panel.mdf,
+      spd: panel.spd,
+      luk: panel.luk,
+      equipLoad: panel.equipLoad,
+    },
+    equipment: {
+      weapon: getEquippedView(player.equipment.weapon),
+      armor: getEquippedView(player.equipment.armor),
+      accessory1: getEquippedView(player.equipment.accessory1),
+      accessory2: getEquippedView(player.equipment.accessory2),
+    },
+    inventory,
+    blockedByVoyage: !!world.voyage,
+  };
 }
