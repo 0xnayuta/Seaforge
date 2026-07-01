@@ -151,12 +151,32 @@ export interface PersonCombatState {
   readonly status: "in_progress" | "victory" | "defeat" | "surrendered";
 }
 
+// ---- NPC 关系 ----
+
+export interface NpcRelationState {
+  readonly affinity: number; // 好感度 0-100
+  readonly recruited: boolean; // 是否已招募为船长
+  readonly dialogPhase: number; // 对话阶段
+  readonly completedQuests: readonly string[]; // 已完成的任务 ID
+}
+
+// ---- 任务 ----
+
+export interface ActiveQuest {
+  readonly questId: string;
+  readonly progress: number;
+  readonly target: number;
+  readonly acceptedAtDay: number;
+}
+
 export interface World {
   readonly player: PlayerState;
   readonly fleet: FleetState;
   readonly market: MarketPriceState;
   readonly voyage: VoyageState | null;
   readonly combat: PersonCombatState | null;
+  readonly npcRelations: Record<string, NpcRelationState>;
+  readonly activeQuests: readonly ActiveQuest[];
 }
 
 // ---- 领域错误 ----
@@ -205,5 +225,15 @@ export type DomainErrorCode =
   | "INVALID_COMBAT_TARGET"
   | "INSUFFICIENT_MP"
   | "INVALID_COMBAT_ACTION"
-  | "NOT_YOUR_TURN"
-  | "SILENCED";
+  | "SILENCED"
+  | "NPC_NOT_FOUND"
+  | "AFFINITY_TOO_LOW"
+  | "NPC_NOT_RECRUITABLE"
+  | "NPC_ALREADY_RECRUITED"
+  | "NPC_NOT_AT_THIS_PORT"
+  | "QUEST_NOT_FOUND"
+  | "QUEST_ALREADY_ACCEPTED"
+  | "QUEST_NOT_AVAILABLE"
+  | "QUEST_NOT_COMPLETABLE"
+  | "QUEST_REQUIREMENT_NOT_MET"
+  | "ITEM_NOT_FOUND_IN_INVENTORY";

@@ -64,6 +64,9 @@ export function createTestWorld(overrides?: Partial<World>): World {
     },
     market: { prices: buildTestPrices() },
     voyage: null,
+    combat: null,
+    npcRelations: {},
+    activeQuests: [],
     ...overrides,
   };
 }
@@ -120,6 +123,9 @@ export function createEmptyWorld(overrides?: Partial<World>): World {
     },
     market: { prices: buildTestPrices() },
     voyage: null,
+    combat: null,
+    npcRelations: {},
+    activeQuests: [],
     ...overrides,
   };
 }

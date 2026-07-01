@@ -20,6 +20,8 @@ export interface HarborView {
   readonly playerExpToNext: number;
   readonly crew: number;
   readonly maxCrew: number;
+  readonly npcsAtPort: readonly NpcSummaryView[];
+  readonly questsAvailable: number;
 }
 
 export interface AvailableEquipmentView {
@@ -348,4 +350,75 @@ export interface CharacterView {
   };
   readonly inventory: readonly InventoryItemView[];
   readonly blockedByVoyage: boolean;
+}
+
+// ---- NPC ----
+
+export interface NpcSummaryView {
+  readonly id: string;
+  readonly name: string;
+  readonly type: string;
+  readonly typeLabel: string;
+  readonly portName: string;
+  readonly affinity: number;
+  readonly recruited: boolean;
+  readonly recruitable: boolean;
+}
+
+export interface NpcDetailView {
+  readonly id: string;
+  readonly name: string;
+  readonly type: string;
+  readonly typeLabel: string;
+  readonly dialogText: string;
+  readonly dialogPhase: number;
+  readonly affinity: number;
+  readonly maxAffinity: number;
+  readonly recruited: boolean;
+  readonly recruitable: boolean;
+  readonly recruitCondition: {
+    readonly minAffinity: number;
+    readonly goldCost: number;
+    readonly requiredQuestIds: readonly string[];
+  } | null;
+  readonly availableQuests: readonly QuestSummaryView[];
+  readonly completedQuests: readonly string[];
+  readonly giftPreferences: readonly { itemId: string; affinityGain: number }[];
+  readonly inventory: readonly InventoryItemView[];
+}
+
+// ---- 任务 ----
+
+export interface QuestSummaryView {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly type: string;
+  readonly progress: number;
+  readonly target: number;
+  readonly isActive: boolean;
+  readonly canAccept: boolean;
+}
+
+export interface QuestDetailView {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly type: string;
+  readonly progress: number;
+  readonly target: number;
+  readonly isActive: boolean;
+  readonly canComplete: boolean;
+  readonly rewards: {
+    readonly gold: number;
+    readonly exp: number;
+    readonly items: readonly string[];
+  };
+  readonly issuerNpcName: string;
+}
+
+export interface QuestBoardView {
+  readonly portName: string;
+  readonly availableQuests: readonly QuestSummaryView[];
+  readonly activeQuests: readonly QuestSummaryView[];
 }

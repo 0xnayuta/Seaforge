@@ -118,6 +118,25 @@ export function HarborDashboard({ view }: { view: HarborView }) {
           <div className="mt-1 text-xs text-parchment-dark">管理舰队</div>
         </a>
         <a
+          href="/npc"
+          className="rounded-lg border border-ocean-600 bg-ocean-700/60 p-3 text-center text-sm hover:bg-ocean-700 transition-colors"
+        >
+          <div className="font-semibold text-gold-400">
+            人物
+            {view.npcsAtPort.length > 0 ? ` (${view.npcsAtPort.length})` : ""}
+          </div>
+          <div className="mt-1 text-xs text-parchment-dark">对话·送礼·招募</div>
+        </a>
+        <a
+          href="/quests"
+          className="rounded-lg border border-ocean-600 bg-ocean-700/60 p-3 text-center text-sm hover:bg-ocean-700 transition-colors"
+        >
+          <div className="font-semibold text-gold-400">
+            任务{view.questsAvailable > 0 ? ` (${view.questsAvailable})` : ""}
+          </div>
+          <div className="mt-1 text-xs text-parchment-dark">接取与交付任务</div>
+        </a>
+        <a
           href="/saves"
           className="rounded-lg border border-ocean-600 bg-ocean-700/60 p-3 text-center text-sm hover:bg-ocean-700 transition-colors"
         >

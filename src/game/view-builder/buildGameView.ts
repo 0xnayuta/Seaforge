@@ -15,7 +15,9 @@ import {
 } from "../../data/formulas";
 import { CATEGORY_LABEL, GOODS } from "../../data/goods";
 import { ITEM_QUALITY_LABELS, ITEMS, type ItemConfig } from "../../data/items";
+import { NPCS } from "../../data/npcs";
 import { PORTS } from "../../data/ports";
+import { QUESTS } from "../../data/quests";
 import { REGIONS } from "../../data/regions";
 import { SHIPS } from "../../data/ships";
 import { SKILLS } from "../../data/skills";
@@ -35,7 +37,12 @@ import type {
   HarborView,
   MarketView,
   NavigationView,
+  NpcDetailView,
+  NpcSummaryView,
   PersonCombatView,
+  QuestBoardView,
+  QuestDetailView,
+  QuestSummaryView,
   SaveSlotView,
   ShipView,
   ShipyardView,
@@ -56,6 +63,7 @@ import {
   getReachablePorts,
 } from "../domain/navigation";
 import { calcPanelStats } from "../domain/player";
+import { getAvailableQuests } from "../domain/quest";
 import type { ComponentType } from "../domain/ship";
 import {
   ARMAMENT_LABELS,
@@ -77,11 +85,30 @@ import type {
 function getRegionName(regionId: string | undefined): string {
   return REGIONS.find((r) => r.id === regionId)?.name ?? "";
 }
-
 export function buildHarborView(world: World): HarborView {
   const port = PORTS.find((p) => p.id === world.player.currentPortId);
   const activeShip = getActiveShip(world);
   const ship = SHIPS.find((s) => s.id === activeShip.typeId);
+
+  // 构建当前港口的 NPC 摘要
+  const npcsAtPort = NPCS.filter(
+    (n) => n.portId === world.player.currentPortId,
+  ).map((npc) => {
+    const rel = world.npcRelations[npc.id];
+    return {
+      id: npc.id,
+      name: npc.name,
+      type: npc.type,
+      typeLabel: npcTypeLabel(npc.type),
+      portName: port?.name ?? "",
+      affinity: rel?.affinity ?? 0,
+      recruited: rel?.recruited ?? false,
+      recruitable: npc.recruitable,
+    } satisfies NpcSummaryView;
+  });
+
+  const availableQuests = getAvailableQuests(world);
+
   return {
     portName: port?.name ?? "未知",
     portDescription: port?.description ?? "",
@@ -98,6 +125,8 @@ export function buildHarborView(world: World): HarborView {
     playerExpToNext: world.player.expToNext,
     crew: world.fleet.crew,
     maxCrew: world.fleet.maxCrew,
+    npcsAtPort,
+    questsAvailable: availableQuests.length,
   };
 }
 
@@ -847,5 +876,165 @@ export function buildCharacterView(world: World): CharacterView {
     },
     inventory,
     blockedByVoyage: !!world.voyage,
+  };
+}
+
+// ---- NPC 视图 ----
+
+function npcTypeLabel(type: string): string {
+  switch (type) {
+    case "captain":
+      return "船长";
+    case "merchant":
+      return "商人";
+    case "questGiver":
+      return "任务发布人";
+    case "blacksmith":
+      return "铁匠";
+    default:
+      return type;
+  }
+}
+
+export function buildNpcDetailView(
+  world: World,
+  npcId: string,
+): NpcDetailView | null {
+  const npc = NPCS.find((n) => n.id === npcId);
+  if (!npc) return null;
+  const rel = world.npcRelations[npcId] ?? {
+    affinity: 0,
+    recruited: false,
+    dialogPhase: 0,
+    completedQuests: [] as readonly string[],
+  };
+
+  const availableQuests = getAvailableQuests(world)
+    .filter((q) => q.issuerNpcId === npcId)
+    .map(
+      (q) =>
+        ({
+          id: q.id,
+          name: q.name,
+          description: q.description,
+          type: q.type,
+          progress: 0,
+          target: 0,
+          isActive: false,
+          canAccept: true,
+        }) satisfies QuestSummaryView,
+    );
+
+  return {
+    id: npc.id,
+    name: npc.name,
+    type: npc.type,
+    typeLabel: npcTypeLabel(npc.type),
+    dialogText: npc.dialogText,
+    dialogPhase: rel.dialogPhase,
+    affinity: rel.affinity,
+    maxAffinity: 100,
+    recruited: rel.recruited,
+    recruitable: npc.recruitable,
+    recruitCondition: npc.recruitCondition
+      ? {
+          minAffinity: npc.recruitCondition.minAffinity,
+          goldCost: npc.recruitCondition.goldCost,
+          requiredQuestIds: npc.recruitCondition.requiredQuestIds ?? [],
+        }
+      : null,
+    availableQuests,
+    completedQuests: rel.completedQuests,
+    giftPreferences: npc.giftPreferences.map((g) => ({
+      itemId: g.itemId,
+      affinityGain: g.affinityGain,
+    })),
+    inventory: world.fleet.inventory.map((item) => {
+      const config = ITEMS.find((i) => i.id === item.itemId);
+      return {
+        uid: item.uid,
+        itemId: item.itemId,
+        type: config?.type ?? "material",
+        name: config?.name ?? item.itemId,
+        typeLabel: config ? ITEM_TYPE_LABELS[config.type] : "",
+        qualityLabel: config ? ITEM_QUALITY_LABELS[config.quality] : "",
+        quantity: item.quantity,
+        durability: item.durability,
+        maxDurability: item.maxDurability,
+        upgradeLevel: item.upgradeLevel,
+        equippedSlot: item.equippedSlot ?? undefined,
+        effectDescription: config?.description ?? "",
+        description: config?.description ?? "",
+      };
+    }),
+  };
+}
+
+// ---- 任务视图 ----
+
+export function buildQuestBoardView(world: World): QuestBoardView {
+  const port = PORTS.find((p) => p.id === world.player.currentPortId);
+
+  const availableQuests = getAvailableQuests(world).map(
+    (q) =>
+      ({
+        id: q.id,
+        name: q.name,
+        description: q.description,
+        type: q.type,
+        progress: 0,
+        target: 0,
+        isActive: false,
+        canAccept: true,
+      }) satisfies QuestSummaryView,
+  );
+
+  const activeQuests = world.activeQuests.map((aq) => {
+    const q = QUESTS.find((x) => x.id === aq.questId);
+    return {
+      id: aq.questId,
+      name: q?.name ?? aq.questId,
+      description: q?.description ?? "",
+      type: q?.type ?? "delivery",
+      progress: aq.progress,
+      target: aq.target,
+      isActive: true,
+      canAccept: false,
+    } satisfies QuestSummaryView;
+  });
+
+  return {
+    portName: port?.name ?? "未知",
+    availableQuests,
+    activeQuests,
+  };
+}
+
+export function buildQuestDetailView(
+  world: World,
+  questId: string,
+): QuestDetailView | null {
+  const aq = world.activeQuests.find((a) => a.questId === questId);
+  const q = QUESTS.find((x) => x.id === questId);
+  if (!q) return null;
+
+  const issuerNpc = NPCS.find((n) => n.id === q.issuerNpcId);
+  const canComplete = aq ? aq.progress >= aq.target : false;
+
+  return {
+    id: q.id,
+    name: q.name,
+    description: q.description,
+    type: q.type,
+    progress: aq?.progress ?? 0,
+    target: aq?.target ?? 0,
+    isActive: !!aq,
+    canComplete,
+    rewards: {
+      gold: q.rewards.gold,
+      exp: q.rewards.exp,
+      items: q.rewards.itemIds ?? [],
+    },
+    issuerNpcName: issuerNpc?.name ?? "未知",
   };
 }

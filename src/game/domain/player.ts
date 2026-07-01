@@ -1,7 +1,6 @@
 import {
   BASE_EXP,
   LEVEL_EXP_GROWTH,
-  MAX_SHIPS_LEVEL_DIVISOR,
   SCALING_COEFFICIENTS,
   SOFT_CAP_BRACKETS,
   STARTING_DAY,
@@ -73,6 +72,8 @@ export function createDefaultWorld(): World {
     market: initMarketPrices(),
     voyage: null,
     combat: null,
+    npcRelations: {},
+    activeQuests: [],
   };
 }
 
@@ -129,10 +130,7 @@ function levelUp(world: World): World {
       expToNext: nextExpToNext,
       attributePoints: world.player.attributePoints + 3,
     },
-    fleet: {
-      ...world.fleet,
-      maxShips: 1 + Math.floor(nextLevel / MAX_SHIPS_LEVEL_DIVISOR),
-    },
+    // maxShips 不再通过等级自动增长，改由 NPC 招募系统控制
   });
 }
 
