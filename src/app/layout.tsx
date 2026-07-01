@@ -45,6 +45,12 @@ export default function RootLayout({
               舰队
             </Link>
             <Link
+              href="/character"
+              className="hover:text-gold-400 focus-visible:text-gold-400 transition-colors outline-none"
+            >
+              人物
+            </Link>
+            <Link
               href="/tavern"
               className="hover:text-gold-400 focus-visible:text-gold-400 transition-colors outline-none"
             >
