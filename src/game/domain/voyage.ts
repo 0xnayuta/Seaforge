@@ -613,8 +613,25 @@ export function progressVoyage(world: World): World {
         updatedVoyage.travelDays +
           (result.player.day - updatedVoyage.departureDay),
       );
+
+      // 称号统计：航行里程和完成航行次数
+      const depPort = PORTS.find((p) => p.id === updatedVoyage.fromPortId);
+      const arrPort = PORTS.find((p) => p.id === updatedVoyage.toPortId);
+      const distance =
+        depPort && arrPort
+          ? Math.round(
+              Math.sqrt(
+                (depPort.x - arrPort.x) ** 2 + (depPort.y - arrPort.y) ** 2,
+              ),
+            )
+          : 0;
       result = {
         ...afterUpkeep,
+        player: {
+          ...afterUpkeep.player,
+          totalMileage: afterUpkeep.player.totalMileage + distance,
+          voyagesCompleted: afterUpkeep.player.voyagesCompleted + 1,
+        },
         voyage: null,
       };
     }

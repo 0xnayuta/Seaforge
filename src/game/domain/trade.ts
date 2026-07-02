@@ -166,5 +166,18 @@ export function executeSell(world: World, input: SellInput): SellResult {
     Math.floor(profitAmount * LEVEL_EXP_RATIO),
   );
 
-  return { world: worldAfterExp, totalRevenue, profit };
+  // 称号统计：累计贸易额和单次最佳利润
+  const worldWithTracking = {
+    ...worldAfterExp,
+    player: {
+      ...worldAfterExp.player,
+      totalSalesRevenue: worldAfterExp.player.totalSalesRevenue + totalRevenue,
+      bestSingleProfit: Math.max(
+        worldAfterExp.player.bestSingleProfit,
+        profitAmount,
+      ),
+    },
+  };
+
+  return { world: worldWithTracking, totalRevenue, profit };
 }

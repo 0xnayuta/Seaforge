@@ -214,6 +214,13 @@ export function applyCombatOutcome(
       },
     };
   }
+  // 称号统计：战斗胜利计数
+  if (outcome.result === "victory") {
+    result = {
+      ...result,
+      player: { ...result.player, combatWins: result.player.combatWins + 1 },
+    };
+  }
 
   return result;
 }
