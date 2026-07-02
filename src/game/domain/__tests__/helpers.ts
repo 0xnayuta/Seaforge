@@ -31,6 +31,11 @@ export function createTestWorld(overrides?: Partial<World>): World {
         accessory1: null,
         accessory2: null,
       },
+      totalSalesRevenue: 0,
+      bestSingleProfit: 0,
+      totalMileage: 0,
+      combatWins: 0,
+      voyagesCompleted: 0,
     },
     fleet: {
       ships: [
@@ -67,6 +72,7 @@ export function createTestWorld(overrides?: Partial<World>): World {
     combat: null,
     npcRelations: {},
     activeQuests: [],
+    selectedTitle: null,
     ...overrides,
   };
 }
@@ -93,6 +99,11 @@ export function createEmptyWorld(overrides?: Partial<World>): World {
         accessory1: null,
         accessory2: null,
       },
+      totalSalesRevenue: 0,
+      bestSingleProfit: 0,
+      totalMileage: 0,
+      combatWins: 0,
+      voyagesCompleted: 0,
     },
     fleet: {
       ships: [
@@ -126,6 +137,7 @@ export function createEmptyWorld(overrides?: Partial<World>): World {
     combat: null,
     npcRelations: {},
     activeQuests: [],
+    selectedTitle: null,
     ...overrides,
   };
 }
