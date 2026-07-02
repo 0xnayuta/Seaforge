@@ -21,6 +21,7 @@ import { QUESTS } from "../../data/quests";
 import { REGIONS } from "../../data/regions";
 import { SHIPS } from "../../data/ships";
 import { SKILLS } from "../../data/skills";
+import { TITLES, type TitleConfig } from "../../data/titles";
 import type {
   AvailableShipView,
   CargoItemView,
@@ -48,6 +49,8 @@ import type {
   ShipyardView,
   SkillView,
   TavernView,
+  TitleItemView,
+  TitlesView,
   VoyageEventView,
   VoyageView,
 } from "../../types/game-view";
@@ -70,6 +73,7 @@ import {
   COMPONENT_LABELS,
   getActiveShip,
 } from "../domain/ship";
+import { getUnlockedTitleIds, getUnlockedTitles } from "../domain/title";
 import { getMaxCapacity, getUsedCapacity } from "../domain/trade";
 import type {
   CombatParticipant,
@@ -108,6 +112,7 @@ export function buildHarborView(world: World): HarborView {
   });
 
   const availableQuests = getAvailableQuests(world);
+  const unlockedTitles = getUnlockedTitles(world);
 
   return {
     portName: port?.name ?? "未知",
@@ -127,6 +132,10 @@ export function buildHarborView(world: World): HarborView {
     maxCrew: world.fleet.maxCrew,
     npcsAtPort,
     questsAvailable: availableQuests.length,
+    selectedTitleName: world.selectedTitle
+      ? (TITLES.find((t) => t.id === world.selectedTitle)?.name ?? null)
+      : null,
+    unlockedTitleCount: unlockedTitles.length,
   };
 }
 
@@ -1047,5 +1056,73 @@ export function buildQuestDetailView(
       items: q.rewards.itemIds ?? [],
     },
     issuerNpcName: issuerNpc?.name ?? "未知",
+  };
+}
+
+// ---- 称号 ----
+
+function describeTitleEffect(effect: {
+  readonly type: string;
+  readonly value: number;
+}): string {
+  switch (effect.type) {
+    case "cargoCapacity":
+      return `舱容 +${effect.value}`;
+    case "speedPercent":
+      return `速度 +${effect.value}%`;
+    case "defensePercent":
+      return `防御 +${effect.value}%`;
+    default:
+      return "";
+  }
+}
+
+function getTitleProgress(
+  condition: TitleConfig["condition"],
+  world: World,
+): { progress: number; target: number } | undefined {
+  const { player } = world;
+  switch (condition.type) {
+    case "level":
+      return { progress: player.level, target: condition.threshold };
+    case "totalSalesRevenue":
+      return {
+        progress: player.totalSalesRevenue,
+        target: condition.threshold,
+      };
+    case "bestSingleProfit":
+      return { progress: player.bestSingleProfit, target: condition.threshold };
+    case "totalMileage":
+      return { progress: player.totalMileage, target: condition.threshold };
+    case "combatWins":
+      return { progress: player.combatWins, target: condition.threshold };
+    case "voyagesCompleted":
+      return { progress: player.voyagesCompleted, target: condition.threshold };
+  }
+}
+
+export function buildTitlesView(world: World): TitlesView {
+  const unlockedIds = getUnlockedTitleIds(world);
+
+  const titles: TitleItemView[] = TITLES.map((t) => {
+    const unlocked = !!unlockedIds[t.id];
+    const progress = unlocked
+      ? undefined
+      : getTitleProgress(t.condition, world);
+    return {
+      id: t.id,
+      name: t.name,
+      description: t.description,
+      unlocked,
+      effects: t.effects.map(describeTitleEffect),
+      ...(progress
+        ? { progress: progress.progress, target: progress.target }
+        : {}),
+    };
+  });
+
+  return {
+    titles,
+    selectedTitleId: world.selectedTitle,
   };
 }

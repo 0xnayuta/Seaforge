@@ -19,6 +19,14 @@ export function HarborDashboard({ view }: { view: HarborView }) {
       <div className="flex items-center justify-between rounded-lg border border-ocean-600 bg-ocean-800/80 px-4 py-2 text-sm">
         <div className="flex items-center gap-4">
           <span className="font-bold text-gold-400">{view.portName}</span>
+          {view.selectedTitleName && (
+            <a
+              href="/titles"
+              className="text-xs text-parchment-dark/80 hover:text-gold-400 transition-colors border border-ocean-600 rounded px-1.5 py-0.5"
+            >
+              {view.selectedTitleName}
+            </a>
+          )}
           <span className="text-parchment-dark">第 {view.currentDay} 天</span>
         </div>
         <div className="flex items-center gap-4">
@@ -135,6 +143,16 @@ export function HarborDashboard({ view }: { view: HarborView }) {
             任务{view.questsAvailable > 0 ? ` (${view.questsAvailable})` : ""}
           </div>
           <div className="mt-1 text-xs text-parchment-dark">接取与交付任务</div>
+        </a>
+        <a
+          href="/titles"
+          className="rounded-lg border border-ocean-600 bg-ocean-700/60 p-3 text-center text-sm hover:bg-ocean-700 transition-colors"
+        >
+          <div className="font-semibold text-gold-400">
+            称号
+            {view.unlockedTitleCount > 0 ? ` (${view.unlockedTitleCount})` : ""}
+          </div>
+          <div className="mt-1 text-xs text-parchment-dark">查看与切换称号</div>
         </a>
         <a
           href="/saves"

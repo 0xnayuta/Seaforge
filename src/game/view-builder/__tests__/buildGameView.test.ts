@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { GOODS } from "../../../data/goods";
 import { PORTS } from "../../../data/ports";
 import { createTestWorld } from "../../domain/__tests__/helpers";
+import type { World } from "../../domain/types";
 import {
   buildFleetView,
   buildHarborView,
@@ -11,6 +12,7 @@ import {
   buildShipView,
   buildShipyardView,
   buildTavernView,
+  buildTitlesView,
   buildVoyageView,
 } from "../buildGameView";
 
@@ -504,5 +506,121 @@ describe("buildSaveSlotViews", () => {
     expect(views[1].slotName).toBe("存档位 1");
     expect(views[2].slotName).toBe("存档位 2");
     expect(views[3].slotName).toBe("存档位 3");
+  });
+});
+
+describe("buildHarborView — title fields", () => {
+  it("shows null selectedTitleName and 0 count for fresh world", () => {
+    const world = createTestWorld();
+    const view = buildHarborView(world);
+    expect(view.selectedTitleName).toBeNull();
+    expect(view.unlockedTitleCount).toBe(0);
+  });
+
+  it("shows selectedTitleName when a title is equipped", () => {
+    const world = createTestWorld();
+    const withVoyage: World = {
+      ...world,
+      player: { ...world.player, voyagesCompleted: 1 },
+      selectedTitle: "first_voyage",
+    };
+    const view = buildHarborView(withVoyage);
+    expect(view.selectedTitleName).toBe("初出茅庐");
+  });
+
+  it("shows unlockedTitleCount for unlocked titles", () => {
+    const world = createTestWorld();
+    const withStats: World = {
+      ...world,
+      player: {
+        ...world.player,
+        totalSalesRevenue: 10000,
+        bestSingleProfit: 5000,
+        voyagesCompleted: 1,
+      },
+    };
+    const view = buildHarborView(withStats);
+    expect(view.unlockedTitleCount).toBe(3);
+  });
+});
+
+describe("buildTitlesView", () => {
+  it("returns all 6 titles with none unlocked for fresh world", () => {
+    const world = createTestWorld();
+    const view = buildTitlesView(world);
+    expect(view.titles).toHaveLength(6);
+    expect(view.titles.every((t) => !t.unlocked)).toBe(true);
+    expect(view.selectedTitleId).toBeNull();
+  });
+
+  it("marks titles as unlocked when conditions met", () => {
+    const world = createTestWorld();
+    const withStats: World = {
+      ...world,
+      player: {
+        ...world.player,
+        totalSalesRevenue: 10000,
+        voyagesCompleted: 5,
+      },
+    };
+    const view = buildTitlesView(withStats);
+    expect(view.titles.find((t) => t.id === "small_savings")?.unlocked).toBe(
+      true,
+    );
+    expect(view.titles.find((t) => t.id === "first_voyage")?.unlocked).toBe(
+      true,
+    );
+    expect(view.titles.find((t) => t.id === "pirate_bane")?.unlocked).toBe(
+      false,
+    );
+  });
+
+  it("shows progress for locked titles", () => {
+    const world = createTestWorld();
+    const withPartial: World = {
+      ...world,
+      player: {
+        ...world.player,
+        combatWins: 3,
+        totalSalesRevenue: 5000,
+      },
+    };
+    const view = buildTitlesView(withPartial);
+    const pirateBane = view.titles.find((t) => t.id === "pirate_bane")!;
+    expect(pirateBane.unlocked).toBe(false);
+    expect(pirateBane.progress).toBe(3);
+    expect(pirateBane.target).toBe(10);
+
+    const savings = view.titles.find((t) => t.id === "small_savings")!;
+    expect(savings.unlocked).toBe(false);
+    expect(savings.progress).toBe(5000);
+    expect(savings.target).toBe(10000);
+  });
+
+  it("does not show progress for unlocked titles", () => {
+    const world = createTestWorld();
+    const withStats: World = {
+      ...world,
+      player: { ...world.player, voyagesCompleted: 1 },
+    };
+    const view = buildTitlesView(withStats);
+    const firstVoyage = view.titles.find((t) => t.id === "first_voyage")!;
+    expect(firstVoyage.unlocked).toBe(true);
+    expect(firstVoyage.progress).toBeUndefined();
+    expect(firstVoyage.target).toBeUndefined();
+  });
+
+  it("shows selectedTitleId when a title is equipped", () => {
+    const world = createTestWorld();
+    const withEquipped: World = {
+      ...world,
+      player: { ...world.player, totalSalesRevenue: 10000 },
+      selectedTitle: "small_savings",
+    };
+    const view = buildTitlesView(withEquipped);
+    expect(view.selectedTitleId).toBe("small_savings");
+    expect(view.titles.find((t) => t.id === "small_savings")?.unlocked).toBe(
+      true,
+    );
   });
 });
