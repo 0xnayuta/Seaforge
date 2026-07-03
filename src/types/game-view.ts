@@ -502,11 +502,12 @@ export interface CollectionView {
 /** 副本楼层事件视图 */
 export interface DungeonFloorEventView {
   readonly type: "combat" | "treasure" | "choice";
-  readonly flavorText: string;
+  readonly flavorText?: string;
   readonly difficulty?: number;
   readonly goldReward?: number;
   readonly expReward?: number;
   readonly hpDamage?: number;
+  readonly itemRewards?: readonly string[];
   readonly options?: readonly { readonly id: string; readonly text: string }[];
 }
 
@@ -518,6 +519,7 @@ export interface DungeonView {
   readonly totalFloors: number;
   readonly hpLoss: number;
   readonly goldGained: number;
-  readonly status: "in_progress" | "cleared" | "failed" | "escaped";
+  readonly itemsGained: readonly string[];
+  readonly status: "in_progress" | "cleared" | "failed";
   readonly currentEvent: DungeonFloorEventView | null;
 }

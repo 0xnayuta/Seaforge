@@ -1228,11 +1228,12 @@ export function buildDungeonView(world: World): DungeonView | null {
   const eventView: DungeonFloorEventView | null = currentEvent
     ? {
         type: currentEvent.type,
-        flavorText: currentEvent.flavorText ?? "",
+        flavorText: currentEvent.flavorText,
         difficulty: currentEvent.difficulty,
         goldReward: currentEvent.goldReward,
         expReward: currentEvent.expReward,
         hpDamage: currentEvent.hpDamage,
+        itemRewards: currentEvent.itemRewards,
         options: currentEvent.options?.map((o) => ({
           id: o.id,
           text: o.text,
@@ -1245,6 +1246,7 @@ export function buildDungeonView(world: World): DungeonView | null {
     name: config?.name ?? "",
     currentFloor: world.dungeon.currentFloor,
     totalFloors: world.dungeon.totalFloors,
+    itemsGained: world.dungeon.itemsGained,
     hpLoss: world.dungeon.hpLoss,
     goldGained: world.dungeon.goldGained,
     status: world.dungeon.status,

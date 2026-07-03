@@ -193,7 +193,7 @@ export interface DungeonState {
   readonly hpLoss: number;
   readonly goldGained: number;
   readonly itemsGained: readonly string[];
-  readonly status: "in_progress" | "cleared" | "failed" | "escaped";
+  readonly status: "in_progress" | "cleared" | "failed";
 }
 
 export interface World {
@@ -280,5 +280,4 @@ export type DomainErrorCode =
   | "DUNGEON_LEVEL_TOO_LOW"
   | "DUNGEON_ON_COOLDOWN"
   | "DUNGEON_IN_PROGRESS"
-  | "DUNGEON_NOT_IN_PROGRESS"
-  | "DUNGEON_FLOOR_COMPLETE";
+  | "DUNGEON_NOT_IN_PROGRESS";

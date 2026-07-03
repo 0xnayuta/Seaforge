@@ -206,6 +206,19 @@ function processFloorEvent(
           },
         };
       }
+      // 记录物品收益
+      if (option.itemRewards) {
+        result = {
+          ...result,
+          dungeon: {
+            ...result.dungeon!,
+            itemsGained: [
+              ...result.dungeon!.itemsGained,
+              ...option.itemRewards,
+            ],
+          },
+        };
+      }
       return result;
     }
   }
@@ -269,28 +282,24 @@ export function completeDungeon(world: World): World {
 }
 
 /** 中途退出：保留 50% 累计金币和物品，丢弃副本状态 */
+/** 中途退出：保留 50% 累计金币，全部物品 */
 export function escapeDungeon(world: World): World {
   if (!world.dungeon) throw new DomainError("DUNGEON_NOT_IN_PROGRESS");
   if (world.dungeon.status !== "in_progress") {
     throw new DomainError("DUNGEON_NOT_IN_PROGRESS");
   }
 
-  const { goldGained, itemsGained } = world.dungeon;
-  const retainedGold = Math.floor(goldGained * 0.5);
-
-  let result: World = { ...world, dungeon: null, combat: null };
-
-  if (retainedGold > 0) {
-    result = {
-      ...result,
-      fleet: { ...result.fleet, gold: result.fleet.gold + retainedGold },
-    };
-  }
-  for (const itemId of itemsGained) {
-    result = gainItem(result, itemId);
-  }
-
-  return result;
+  // 金币/物品已在 processFloorEvent 中全额发放到 fleet/inventory，
+  // 此处减去超发的 50% 金币，实现保留 50% 的语义
+  // 物品保留全部（已在 inventory 中，不移除）
+  const excessGold = Math.floor(world.dungeon.goldGained * 0.5);
+  const result: World = { ...world, dungeon: null, combat: null };
+  return excessGold > 0
+    ? {
+        ...result,
+        fleet: { ...result.fleet, gold: result.fleet.gold - excessGold },
+      }
+    : result;
 }
 
 /** 副本进入失败处理（如战斗失败） */

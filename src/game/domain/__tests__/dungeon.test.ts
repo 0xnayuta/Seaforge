@@ -78,7 +78,7 @@ describe("advanceDungeonFloor", () => {
     expect(() => advanceDungeonFloor(world)).toThrow("DUNGEON_NOT_IN_PROGRESS");
   });
 
-  it("advances through treasure floor directly", () => {
+  it("progresses through combat then choice floor", () => {
     const world = enterDungeon(createTestWorld(), "kidd_treasure");
     // floor 0 is combat, so advanceDungeonFloor should initiate combat
     const afterCombatStart = advanceDungeonFloor(world);
@@ -119,6 +119,7 @@ describe("advanceDungeonFloor", () => {
     // choice effects applied then floor advanced
     expect(result.dungeon!.currentFloor).toBe(2);
     expect(result.dungeon!.goldGained).toBe(300);
+    expect(result.dungeon!.hpLoss).toBe(5);
   });
 
   it("marks dungeon cleared after last floor", () => {
@@ -182,17 +183,28 @@ describe("completeDungeon", () => {
     expect(result.fleet.gold).toBe(world.fleet.gold + 1000);
     expect(result.dungeonCooldowns.kidd_treasure).toBe(result.player.day);
   });
-
-  it("throws for dungeon not in cleared status", () => {
-    const world = enterDungeon(createTestWorld(), "kidd_treasure");
+  it("throws for dungeon in failed status", () => {
+    const world: World = {
+      ...createTestWorld(),
+      dungeon: {
+        dungeonId: "kidd_treasure",
+        currentFloor: 2,
+        totalFloors: 4,
+        hpLoss: 10,
+        goldGained: 0,
+        itemsGained: [],
+        status: "failed",
+      },
+    };
     expect(() => completeDungeon(world)).toThrow("DUNGEON_NOT_IN_PROGRESS");
   });
 });
-
 describe("escapeDungeon", () => {
   it("retains 50% gold and all items on escape", () => {
+    const baseWorld = createTestWorld();
+    // 模拟 floor 事件已发放金币和物品
     const world: World = {
-      ...enterDungeon(createTestWorld(), "kidd_treasure"),
+      ...baseWorld,
       dungeon: {
         dungeonId: "kidd_treasure",
         currentFloor: 2,
@@ -202,13 +214,41 @@ describe("escapeDungeon", () => {
         itemsGained: ["silver_rapier"],
         status: "in_progress",
       },
+      fleet: {
+        ...baseWorld.fleet,
+        gold: baseWorld.fleet.gold + 500, // 已在 floor 事件中发放
+        inventory: [
+          ...baseWorld.fleet.inventory,
+          { uid: "item-escape", itemId: "silver_rapier" },
+        ],
+      },
     };
     const result = escapeDungeon(world);
     expect(result.dungeon).toBeNull();
-    expect(result.fleet.gold).toBe(world.fleet.gold + 250); // 50% of 500
+    // 50% of 500 = 250 保留
+    expect(result.fleet.gold).toBe(baseWorld.fleet.gold + 250);
     expect(
       result.fleet.inventory.some((i) => i.itemId === "silver_rapier"),
     ).toBe(true);
+    // escape 不设置冷却
+    expect(result.dungeonCooldowns).toEqual({});
+  });
+
+  it("throws for dungeon not in in_progress status", () => {
+    const baseWorld = createTestWorld();
+    const world: World = {
+      ...baseWorld,
+      dungeon: {
+        dungeonId: "kidd_treasure",
+        currentFloor: 4,
+        totalFloors: 4,
+        hpLoss: 0,
+        goldGained: 0,
+        itemsGained: [],
+        status: "cleared",
+      },
+    };
+    expect(() => escapeDungeon(world)).toThrow("DUNGEON_NOT_IN_PROGRESS");
   });
 
   it("throws when not in dungeon", () => {

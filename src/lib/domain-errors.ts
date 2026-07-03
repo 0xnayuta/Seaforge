@@ -56,7 +56,6 @@ const ERROR_MAP: Record<string, string> = {
   DUNGEON_ON_COOLDOWN: "副本冷却中，请等待冷却结束",
   DUNGEON_IN_PROGRESS: "已在副本中",
   DUNGEON_NOT_IN_PROGRESS: "当前不在副本中",
-  DUNGEON_FLOOR_COMPLETE: "当前层已完成，请继续推进",
 };
 
 /** 将领域层的 DomainError 转为用户可读的中文错误消息 */
