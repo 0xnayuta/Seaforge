@@ -111,60 +111,42 @@ Backward Compatible + Inconsistent + Special-cased（向后兼容、不一致、
 
 ### 3.1 领域层纯度守则
 
-`src/game/` 是禁区：
-- 不允许 import 任何 React / Next.js / Prisma 代码
-- 不允许产生副作用（I/O、网络、日志）
-- 不允许抛出 DomainError 以外的异常类型
-- 不允许包含中文文本——错误只抛 code，展示由 `lib/domain-errors.ts` 映射
-- 所有函数必须是纯函数：给定相同 World + input → 相同 newWorld
+`src/game/` 是**禁区**，遵循以下铁律：
 
-**禁止跨越：** Server Action 不能直接调用 Prisma 做复杂查询；React Component 不能直接调用 Domain 函数；Repository（`lib/repository.ts`）不能包含 `if/else` 业务判断。
+- **零外部依赖**：不允许 `import` 任何 React / Next.js / Prisma 代码
+- **无副作用**：不允许产生 I/O、网络、日志等副作用
+- **纯函数**：所有函数必须是纯函数——给定相同 `World` + input → 相同 newWorld。`src/game/domain/` 下的函数名直接以纯动词或动宾短语开头（如 `buyGoods`、`sellGoods`），**严禁**使用 `execute` 前缀
+- **异常约束**：只允许抛出 `DomainError(code)`，不允许抛出其他异常类型
+- **无展示文本**：不允许包含中文或其他面向用户的文本——错误只抛 code，展示由 `lib/domain-errors.ts` 映射
+- **禁止跨越**：Server Action 不能直接调用 Prisma 做复杂查询；React Component 不能直接调用 Domain 函数；Repository（`lib/repository.ts`）不能包含 `if/else` 业务判断
 
-### ⚖️ Server Actions 编写铁律（防漏存约束）
+### 3.2 写操作铁律 — HOF 管道（事务与权威路径）
 
-1. **禁止手写底层的事务模板**：
-   在编写任何涉及数据修改（Mutation）的 Server Action 时，**严禁**手动复制 `prisma.$transaction`、`loadWorld` 和 `saveWorld` 的 8 行模板代码。
+> **设计原则**：Server Action 是编排器（Orchestrator），不关心底层数据库如何开事务。`loadWorld` → 计算 → `saveWorld` 三步必须封装在统一的高阶函数中，禁止手写 raw 模板。
 
-2. **必须强制使用高阶函数（HOF）**：
-   所有涉及游戏世界状态变更的写操作，必须统一调用 `src/lib/with-transaction.ts` 中定义的 `withTransaction` 或 `withActionState` 高阶函数。
+1. **HOF 唯一路径**：所有涉及游戏 World 状态变更的写操作，**必须**调用 `src/lib/with-transaction.ts` 中定义的 `withTransaction` 或 `withActionState`。**严禁**在 Server Action 中手动编写 `prisma.$transaction(loadWorld → 计算 → saveWorld)`。
 
-3. **标准结构示例**：
-   新写的 Action 必须符合以下高度一致的管道流：
+2. **标准管道结构**：
    ```typescript
-   export const myGameAction = (input: InputType) =>
+   export const myAction = (input: InputType) =>
      withTransaction(
        (world) => executeDomainLogic(world, input), // 1. 纯函数算
        buildCorrespondingView,                      // 2. 视图快照刷
      );
    ```
 
-### 3.2 事务完整性铁律
+3. **用户操作 = 一个事务**：一个用户操作对应一个事务，禁止拆分为多步独立写入。
 
-所有写操作必须严格遵循以下模式：
+4. **Server Action 权威入口（端到端流）**：
+   ```
+   用户操作 → Server Action → loadWorld → executeDomainLogic → saveWorld
+     → buildGameView → 返回 GameView → 客户端只渲染
+   ```
+   - 客户端**不执行**任何价格计算、买卖校验、航行逻辑——这些都在 `src/game/` 的纯函数中
+   - 用户看到的每个「确认」操作（买、卖、航行、升级）都必须调用 Server Action
+   - 不存在"客户端先算，再异步保存"的路径
 
-```
-prisma.$transaction(tx => {
-  loadWorld(tx)       // 1. 读 → 从 SQLite 取得权威状态
-  execute(world)      // 2. 算 → 纯函数计算新 World
-  saveWorld(tx, new)  // 3. 写 → 序列化 JSON 写入 SQLite（同一事务）
-})
-```
-
-- 一个用户操作 = 一个事务。禁止拆分为多步独立写入
-- 事务内任一环节抛异常 → **自动回滚**，SQLite 始终处于上一个完整状态
-- **不存在**"客户端先算，再异步保存"的路径（Server Action 是唯一权威入口）
-
-### 3.3 Server Action 权威路径
-
-```
-用户操作 → Server Action → loadWorld → execute → saveWorld
-  → buildGameView → 返回 GameView → 客户端只渲染
-```
-
-- 客户端**不执行**任何价格计算、买卖校验、航行逻辑——这些都在 `src/game/` 的纯函数中
-- 用户看到的每个「确认」操作（买、卖、航行、升级）都必须调用 Server Action
-
-### 3.4 状态分类先验
+### 3.3 状态分类先验
 
 任何新状态加入前，必须先通过「三问公式」分类：
 1. 存档时要不要保存？→ **L1 World**（SQLite）
@@ -173,21 +155,29 @@ prisma.$transaction(tx => {
 
 **严禁**将 L3/L4 临时状态塞入 World 或 SQLite。**严禁**引入 Zustand。
 
+### 3.4 命名规范与术语契约
+
+#### 符号一致性
+
+| 规则 | 规范 | 严禁 |
+|------|------|------|
+| 商品唯一标识 | `goodsId` | `goodId` |
+| 数量 | `quantity` | `qty` |
+| 核心生命值 | `Hp`（如 `currentHp`, `maxHp`, `hpRatio`） | `HP`、`hp` |
+| 输出/返回类型 | `Result` 后缀（`BuyResult`, `SellResult`, `CombatResult`） | `CombatOutcome` |
+
+#### 术语定义
+
+- `World` — 游戏事实集合，序列化为 JSON 存入 SQLite（`Save` 模型的 `data` 列）。所有字段必须使用 `readonly`。
+- `GameView` — 渲染快照，从 World 计算得出，不持久化。
+- `DomainError(code)` — 领域层仅抛错误码，`lib/domain-errors.ts` 负责映射为用户消息。
+
 ### 3.5 测试覆盖约束
 
 - `src/game/domain/` 的纯函数**必须**有单元测试（不涉及数据库，给定输入 → 断言输出）
 - `src/game/view-builder/` **必须**有单元测试（给定 World → 断言 GameView 结构）
 - DomainError 错误路径（钱不够、舱容不够、货物不足、已达最高等级、航行中）**必须**有测试覆盖
 - 新增子系统的纯函数或 View Builder 后，不提交无测试覆盖的代码
-
-### 3.6 命名与契约
-
-- `World` — 游戏事实集合，序列化为 JSON 存入 SQLite（`Save` 模型的 `data` 列）
-- `GameView` — 渲染快照，从 World 计算得出，不持久化
-- `DomainError(code)` — 领域层仅抛错误码，`lib/domain-errors.ts` 负责映射为用户消息
-- `readonly` — 所有 `World` 类型字段使用 `readonly`
-
----
 
 
 ## 4. 开发与提交流程
@@ -299,3 +289,6 @@ bun run docs:check     # 文档元数据合规校验（必须通过）
 | `docs/adr/ADR-0002-save-and-json-column.md` | Save + JSON 列模式的决策 | — |
 | `docs/adr/ADR-0003-world-and-gameview-separation.md` | World 和 GameView 分离的决策 | — |
 | `docs/adr/ADR-0004-ship-to-fleet-in-phase2.md` | 单船→舰队重构提前至 Phase 2 的决策 | — |
+
+---
+
