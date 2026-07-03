@@ -496,3 +496,28 @@ export interface CollectionView {
   readonly totalProgress: number;
   readonly totalCount: number;
 }
+
+// ---- 副本 ----
+
+/** 副本楼层事件视图 */
+export interface DungeonFloorEventView {
+  readonly type: "combat" | "treasure" | "choice";
+  readonly flavorText: string;
+  readonly difficulty?: number;
+  readonly goldReward?: number;
+  readonly expReward?: number;
+  readonly hpDamage?: number;
+  readonly options?: readonly { readonly id: string; readonly text: string }[];
+}
+
+/** 副本视图 */
+export interface DungeonView {
+  readonly dungeonId: string;
+  readonly name: string;
+  readonly currentFloor: number;
+  readonly totalFloors: number;
+  readonly hpLoss: number;
+  readonly goldGained: number;
+  readonly status: "in_progress" | "cleared" | "failed" | "escaped";
+  readonly currentEvent: DungeonFloorEventView | null;
+}

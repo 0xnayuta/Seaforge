@@ -3,6 +3,7 @@
 // 纯函数，无副作用，不调用数据库
 // ============================================================
 
+import { DUNGEONS } from "../../data/dungeons";
 import {
   EQUIPMENT_TYPE_LABELS,
   EQUIPMENTS,
@@ -37,6 +38,8 @@ import type {
   CombatParticipantView,
   ComponentView,
   DestinationView,
+  DungeonFloorEventView,
+  DungeonView,
   FleetShipSummaryView,
   FleetView,
   GoodView,
@@ -61,6 +64,7 @@ import type {
 } from "../../types/game-view";
 import { getAchievementProgress } from "../domain/achievement";
 import type { CombatOutcome } from "../domain/combat";
+import { getCurrentFloorEvent } from "../domain/dungeon";
 import {
   getShipCargoCapacity,
   getShipDefenseMultiplier,
@@ -1209,4 +1213,41 @@ export function buildCollectionView(world: World): CollectionView {
   const totalCount = categories.reduce((sum, c) => sum + c.total, 0);
 
   return { categories, totalProgress, totalCount };
+}
+
+// ============================================================
+// 副本视图
+// ============================================================
+
+export function buildDungeonView(world: World): DungeonView | null {
+  if (!world.dungeon) return null;
+
+  const config = DUNGEONS.find((d) => d.id === world.dungeon!.dungeonId);
+  const currentEvent = getCurrentFloorEvent(world);
+
+  const eventView: DungeonFloorEventView | null = currentEvent
+    ? {
+        type: currentEvent.type,
+        flavorText: currentEvent.flavorText ?? "",
+        difficulty: currentEvent.difficulty,
+        goldReward: currentEvent.goldReward,
+        expReward: currentEvent.expReward,
+        hpDamage: currentEvent.hpDamage,
+        options: currentEvent.options?.map((o) => ({
+          id: o.id,
+          text: o.text,
+        })),
+      }
+    : null;
+
+  return {
+    dungeonId: world.dungeon.dungeonId,
+    name: config?.name ?? "",
+    currentFloor: world.dungeon.currentFloor,
+    totalFloors: world.dungeon.totalFloors,
+    hpLoss: world.dungeon.hpLoss,
+    goldGained: world.dungeon.goldGained,
+    status: world.dungeon.status,
+    currentEvent: eventView,
+  };
 }
