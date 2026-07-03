@@ -1,5 +1,5 @@
 ---
-status: approved
+status: completed
 last_verified: 2026-07-03
 ---
 
