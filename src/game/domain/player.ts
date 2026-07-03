@@ -210,7 +210,17 @@ function calcScalingSum(
   }
   return total;
 }
-/** 计算角色面板属性（含装备加成） */
+/**
+ * 计算角色面板属性（含装备加成）。
+ *
+ * 处理流程分为 4 个阶段：
+ * 1. 基础值计算 —— 根据角色等级 + 有效属性值计算裸装面板
+ * 2. 装备配置获取 —— 读取当前装备槽位对应的物品配置
+ * 3. 装备基础加成累计 —— 叠加所有装备的固定数值加成
+ * 4. 属性补正计算 —— 武器/防具的属性补正（scaling）
+ *
+ * @returns 最终面板属性（HP、MP、ATK、DEF、MAG、MDF、SPD、LUK、equipLoad），各项均 ≥ 0
+ */
 export function calcPanelStats(
   player: PlayerState,
   inventory: readonly ItemInstance[],
@@ -332,6 +342,17 @@ export function allocateAttributePoint(
   };
 }
 
+/**
+ * 生成唯一物品标识符 (UID)。
+ * @param index - 可选序号，用于批量生成非堆叠物品时追加后缀
+ */
+function generateItemUid(index?: number): string {
+  const random = Math.random().toString(36).substring(2, 9);
+  return index !== undefined
+    ? `item-${Date.now()}-${random}-${index}`
+    : `item-${Date.now()}-${random}`;
+}
+
 /** 增加物品到背包 */
 export function gainItem(
   world: World,
@@ -356,9 +377,7 @@ export function gainItem(
         quantity: existing.quantity + quantity,
       };
     } else {
-      const uid =
-        uids?.[0] ??
-        `item-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      const uid = uids?.[0] ?? generateItemUid();
       nextInventory.push({
         uid,
         itemId,
@@ -367,9 +386,7 @@ export function gainItem(
     }
   } else {
     for (let i = 0; i < quantity; i++) {
-      const uid =
-        uids?.[i] ??
-        `item-${Date.now()}-${Math.random().toString(36).substring(2, 9)}-${i}`;
+      const uid = uids?.[i] ?? generateItemUid(i);
       nextInventory.push({
         uid,
         itemId,
@@ -416,6 +433,41 @@ export function removeItem(world: World, itemUid: string, quantity = 1): World {
     },
   };
 }
+/**
+ * 验证物品类型与装备槽位是否匹配。
+ * @throws DomainError("ITEM_NOT_EQUIPPABLE") 类型不匹配时
+ */
+function validateItemSlot(
+  config: ItemConfig,
+  slot: "weapon" | "armor" | "accessory1" | "accessory2",
+): void {
+  if (slot === "weapon" && config.type !== "weapon") {
+    throw new DomainError("ITEM_NOT_EQUIPPABLE");
+  }
+  if (slot === "armor" && config.type !== "armor") {
+    throw new DomainError("ITEM_NOT_EQUIPPABLE");
+  }
+  if (
+    (slot === "accessory1" || slot === "accessory2") &&
+    config.type !== "accessory"
+  ) {
+    throw new DomainError("ITEM_NOT_EQUIPPABLE");
+  }
+}
+
+/**
+ * 在玩家装备中查找指定 UID 物品所在的槽位。
+ * @returns 槽位键名，若未装备则返回 undefined
+ */
+function findEquippedSlotInPlayer(
+  equipment: PlayerState["equipment"],
+  itemUid: string,
+): keyof PlayerState["equipment"] | undefined {
+  return Object.keys(equipment).find(
+    (key) => equipment[key as keyof typeof equipment] === itemUid,
+  ) as keyof PlayerState["equipment"] | undefined;
+}
+
 /** 给角色装备一件物品到指定槽位 */
 export function equipCharacterItem(
   world: World,
@@ -432,27 +484,12 @@ export function equipCharacterItem(
   const config = ITEMS.find((cfg) => cfg.id === item.itemId);
   if (!config) throw new DomainError("ITEM_NOT_FOUND");
 
-  if (slot === "weapon" && config.type !== "weapon") {
-    throw new DomainError("ITEM_NOT_EQUIPPABLE");
-  }
-  if (slot === "armor" && config.type !== "armor") {
-    throw new DomainError("ITEM_NOT_EQUIPPABLE");
-  }
-  if (
-    (slot === "accessory1" || slot === "accessory2") &&
-    config.type !== "accessory"
-  ) {
-    throw new DomainError("ITEM_NOT_EQUIPPABLE");
-  }
+  validateItemSlot(config, slot);
 
   let nextWorld = world;
 
   // Check if this item is already equipped in another slot
-  const oldSlot = Object.keys(world.player.equipment).find(
-    (key) =>
-      world.player.equipment[key as keyof typeof world.player.equipment] ===
-      itemUid,
-  ) as keyof typeof world.player.equipment | undefined;
+  const oldSlot = findEquippedSlotInPlayer(world.player.equipment, itemUid);
 
   if (oldSlot) {
     nextWorld = unequipCharacterItem(nextWorld, oldSlot);

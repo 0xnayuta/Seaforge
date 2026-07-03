@@ -57,7 +57,32 @@ export function enterDungeon(world: World, dungeonId: string): World {
   return { ...world, dungeon };
 }
 
-/** 推进当前楼层 */
+/** 战斗结算：处理 combat 刚结束时的逻辑 */
+function handleCombatResult(world: World, config: DungeonConfig): World {
+  if (!world.combat) return world;
+  if (world.combat.status === "in_progress") return world;
+  if (world.combat.status === "defeat") {
+    return {
+      ...world,
+      dungeon: { ...world.dungeon!, status: "failed" },
+      combat: null,
+    };
+  }
+  // victory
+  const playerPart = world.combat.participants.find((p) => p.id === "player");
+  const hpLossThisFight = playerPart ? playerPart.maxHp - playerPart.hp : 0;
+  const result = {
+    ...world,
+    dungeon: {
+      ...world.dungeon!,
+      hpLoss: world.dungeon!.hpLoss + hpLossThisFight,
+    },
+    combat: null,
+  };
+  return advanceFloorToNext(result, config);
+}
+
+/**【推进当前楼层】*/
 export function advanceDungeonFloor(world: World, choiceId?: string): World {
   if (!world.dungeon) throw new DomainError("DUNGEON_NOT_IN_PROGRESS");
   if (world.dungeon.status !== "in_progress") {
@@ -68,29 +93,7 @@ export function advanceDungeonFloor(world: World, choiceId?: string): World {
 
   // ---- 战斗结算：检查 combat 是否刚结束 ----
   if (world.combat) {
-    if (world.combat.status === "in_progress") {
-      return world; // 战斗尚未结束，等待
-    }
-    if (world.combat.status === "defeat") {
-      return {
-        ...world,
-        dungeon: { ...world.dungeon, status: "failed" },
-        combat: null,
-      };
-    }
-    // victory
-    const playerPart = world.combat.participants.find((p) => p.id === "player");
-    const hpLossThisFight = playerPart ? playerPart.maxHp - playerPart.hp : 0;
-    const result = {
-      ...world,
-      dungeon: {
-        ...world.dungeon,
-        hpLoss: world.dungeon.hpLoss + hpLossThisFight,
-      },
-      combat: null,
-    };
-
-    return advanceFloorToNext(result, config);
+    return handleCombatResult(world, config);
   }
 
   // ---- 处理当前楼层事件 ----

@@ -71,12 +71,16 @@ export function giveGift(world: World, npcId: string, itemUid: string): World {
   };
 }
 
-/** 招募 NPC 为船长 */
-export function recruitNpc(world: World, npcId: string): World {
-  const npc = getNpcConfig(npcId);
-  if (npc.portId !== world.player.currentPortId) {
+/** @throws if NPC is not at the player's current port */
+function assertNpcAtPort(npc: NpcConfig, currentPortId: string): void {
+  if (npc.portId !== currentPortId) {
     throw new DomainError("NPC_NOT_AT_THIS_PORT");
   }
+}
+
+/** Validate all recruit conditions; throws DomainError on first failure */
+function validateRecruitConditions(world: World, npcId: string): void {
+  const npc = getNpcConfig(npcId);
   if (!npc.recruitable) throw new DomainError("NPC_NOT_RECRUITABLE");
 
   const rel = getRelation(world, npcId);
@@ -97,7 +101,18 @@ export function recruitNpc(world: World, npcId: string): World {
       }
     }
   }
+}
 
+/** 招募 NPC 为船长 */
+export function recruitNpc(world: World, npcId: string): World {
+  // Guard clauses
+  const npc = getNpcConfig(npcId);
+  assertNpcAtPort(npc, world.player.currentPortId);
+  validateRecruitConditions(world, npcId);
+
+  // Business logic
+  const rel = getRelation(world, npcId);
+  const cond = npc.recruitCondition!;
   const recruitedCount = Object.values(world.npcRelations).filter(
     (r) => r.recruited,
   ).length;
@@ -107,7 +122,7 @@ export function recruitNpc(world: World, npcId: string): World {
     fleet: {
       ...world.fleet,
       gold: world.fleet.gold - cond.goldCost,
-      maxShips: 1 + recruitedCount + 1, // base 1 + already recruited + new recruit
+      maxShips: 1 + recruitedCount + 1,
     },
     npcRelations: {
       ...world.npcRelations,

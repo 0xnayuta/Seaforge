@@ -205,6 +205,45 @@ export function equipItem(
   };
 }
 
+/** 计算卸下装备后的耐久变化 */
+function calcUnequipDurability(
+  ship: ShipInstance,
+  durBonus: number,
+): { nextDurability: number; nextMaxDurability: number } {
+  const nextMaxDurability = Math.max(0, ship.maxDurability - durBonus);
+  const nextDurability = durBonus
+    ? Math.max(1, Math.min(ship.durability - durBonus, nextMaxDurability))
+    : ship.durability;
+  return { nextDurability, nextMaxDurability };
+}
+
+/** 校验卸下装备后舱容是否超载 */
+function checkUnequipCapacity(
+  ship: ShipInstance,
+  config: EquipmentConfig,
+  idx: number,
+): void {
+  if (!config.effect.capacityBonus) return;
+  const shipConfig = SHIPS.find((s) => s.id === ship.typeId);
+  if (!shipConfig) return;
+  const currentCargoUsed = ship.cargo.reduce((sum, c) => {
+    const good = GOODS.find((g) => g.id === c.goodId);
+    return sum + (good?.volume ?? 1) * c.quantity;
+  }, 0);
+  const nextEquippedTest = (ship.equippedItems || []).filter(
+    (_, i) => i !== idx,
+  );
+  const newEffectiveCapacity = Math.floor(
+    getShipCargoCapacity(
+      { ...ship, equippedItems: nextEquippedTest },
+      shipConfig,
+    ) * shipConfig.armamentTiers[ship.armamentLevel][0],
+  );
+  if (currentCargoUsed > newEffectiveCapacity) {
+    throw new DomainError("CARGO_EXCEEDS_CAPACITY");
+  }
+}
+
 /**
  * 卸下道具
  */
@@ -224,33 +263,13 @@ export function unequipItem(
 
   // 卸下装甲后减少耐久上限和当前值
   const durBonus = config.effect.durabilityBonus ?? 0;
-  const nextMaxDurability = Math.max(0, ship.maxDurability - durBonus);
-  const nextDurability = durBonus
-    ? Math.max(1, Math.min(ship.durability - durBonus, nextMaxDurability))
-    : ship.durability;
+  const { nextDurability, nextMaxDurability } = calcUnequipDurability(
+    ship,
+    durBonus,
+  );
 
   // 校验舱容超载：卸下舱容装备后已用容量不得超过新舱容
-  if (config.effect.capacityBonus) {
-    const shipConfig = SHIPS.find((s) => s.id === ship.typeId);
-    if (shipConfig) {
-      const currentCargoUsed = ship.cargo.reduce((sum, c) => {
-        const good = GOODS.find((g) => g.id === c.goodId);
-        return sum + (good?.volume ?? 1) * c.quantity;
-      }, 0);
-      const nextEquippedTest = (ship.equippedItems || []).filter(
-        (_, i) => i !== idx,
-      );
-      const newEffectiveCapacity = Math.floor(
-        getShipCargoCapacity(
-          { ...ship, equippedItems: nextEquippedTest },
-          shipConfig,
-        ) * shipConfig.armamentTiers[ship.armamentLevel][0],
-      );
-      if (currentCargoUsed > newEffectiveCapacity) {
-        throw new DomainError("CARGO_EXCEEDS_CAPACITY");
-      }
-    }
-  }
+  checkUnequipCapacity(ship, config, idx);
 
   const nextEquipped = [...(ship.equippedItems || [])];
   nextEquipped.splice(idx, 1);

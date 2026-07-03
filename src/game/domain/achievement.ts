@@ -83,31 +83,28 @@ export function claimAchievementReward(
 
 // ---- 条件检查 ----
 
+const CONDITION_HANDLERS: Record<
+  AchievementCondition["type"],
+  (world: World) => number
+> = {
+  level: (w) => w.player.level,
+  totalSalesRevenue: (w) => w.player.totalSalesRevenue,
+  bestSingleProfit: (w) => w.player.bestSingleProfit,
+  totalMileage: (w) => w.player.totalMileage,
+  combatWins: (w) => w.player.combatWins,
+  voyagesCompleted: (w) => w.player.voyagesCompleted,
+  portsVisited: (w) => w.collection.visitedPorts.length,
+  itemsCollected: (w) => w.collection.collectedItems.length,
+  shipsOwned: (w) => w.collection.ownedShips.length,
+};
+
 function getConditionProgress(
   condition: AchievementCondition,
   world: World,
 ): { progress: number; target: number } {
-  const { player, collection } = world;
-  const target = condition.threshold;
-
-  switch (condition.type) {
-    case "level":
-      return { progress: player.level, target };
-    case "totalSalesRevenue":
-      return { progress: player.totalSalesRevenue, target };
-    case "bestSingleProfit":
-      return { progress: player.bestSingleProfit, target };
-    case "totalMileage":
-      return { progress: player.totalMileage, target };
-    case "combatWins":
-      return { progress: player.combatWins, target };
-    case "voyagesCompleted":
-      return { progress: player.voyagesCompleted, target };
-    case "portsVisited":
-      return { progress: collection.visitedPorts.length, target };
-    case "itemsCollected":
-      return { progress: collection.collectedItems.length, target };
-    case "shipsOwned":
-      return { progress: collection.ownedShips.length, target };
+  const handler = CONDITION_HANDLERS[condition.type];
+  if (!handler) {
+    return { progress: 0, target: condition.threshold };
   }
+  return { progress: handler(world), target: condition.threshold };
 }
