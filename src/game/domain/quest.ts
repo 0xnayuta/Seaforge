@@ -141,23 +141,33 @@ function calcQuestProgress(aq: ActiveQuest, world: World): number {
   }
 }
 
-/** 检查活跃任务进度（基于当前游戏状态） */
-export function checkQuestProgress(world: World): World {
+/** Iterate active quests, threading the accumulated world through each callback */
+function forEachActiveQuest(
+  world: World,
+  fn: (aq: ActiveQuest, current: World) => World,
+): World {
   if (world.activeQuests.length === 0) return world;
-
   let result = world;
   for (const aq of result.activeQuests) {
+    result = fn(aq, result);
+  }
+  return result;
+}
+
+/** 检查活跃任务进度（基于当前游戏状态） */
+export function checkQuestProgress(world: World): World {
+  return forEachActiveQuest(world, (aq, current) => {
     const newProgress = calcQuestProgress(aq, world);
     if (newProgress !== aq.progress) {
-      result = {
-        ...result,
-        activeQuests: result.activeQuests.map((a) =>
+      return {
+        ...current,
+        activeQuests: current.activeQuests.map((a) =>
           a.questId === aq.questId ? { ...a, progress: newProgress } : a,
         ),
       };
     }
-  }
-  return result;
+    return current;
+  });
 }
 
 /** 完成任务：校验进度达标 → 发放奖励 → 从活跃列表移除 */
@@ -228,20 +238,18 @@ export function completeQuest(
 
 /** 增加 bounty 类任务进度（由战斗事件触发） */
 export function incrementBountyProgress(world: World): World {
-  if (world.activeQuests.length === 0) return world;
-  let result = world;
-  for (const aq of result.activeQuests) {
+  return forEachActiveQuest(world, (aq, current) => {
     const q = getQuestConfig(aq.questId);
     if (q.requirement.type === "bounty" && aq.progress < aq.target) {
-      result = {
-        ...result,
-        activeQuests: result.activeQuests.map((a) =>
+      return {
+        ...current,
+        activeQuests: current.activeQuests.map((a) =>
           a.questId === aq.questId
             ? { ...a, progress: Math.min(a.target, a.progress + 1) }
             : a,
         ),
       };
     }
-  }
-  return result;
+    return current;
+  });
 }

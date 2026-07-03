@@ -91,34 +91,64 @@ describe("market pure functions", () => {
     it("buy 10 silk in quanzhou increases price (sqrt decay)", () => {
       const world = createTestWorld();
       // impact = 0.05 × sqrt(10) ≈ 0.1581; new = round(82 × 1.1581) = 95
-      const updated = applyTradeImpact(world, "quanzhou", "silk", 10, true);
+      const updated = applyTradeImpact({
+        world: world,
+        portId: "quanzhou",
+        goodId: "silk",
+        quantity: 10,
+        isBuy: true,
+      });
       expect(getCurrentPrice("silk", "quanzhou", updated)).toBe(95);
     });
 
     it("sell 10 silk decreases price", () => {
       const world = createTestWorld();
       // impact = 0.05 × sqrt(10) ≈ 0.1581; new = round(82 × 0.8419) = 69
-      const updated = applyTradeImpact(world, "quanzhou", "silk", 10, false);
+      const updated = applyTradeImpact({
+        world: world,
+        portId: "quanzhou",
+        goodId: "silk",
+        quantity: 10,
+        isBuy: false,
+      });
       expect(getCurrentPrice("silk", "quanzhou", updated)).toBe(69);
     });
 
     it("quantity 0 returns original world unchanged", () => {
       const world = createTestWorld();
-      const updated = applyTradeImpact(world, "quanzhou", "silk", 0, true);
+      const updated = applyTradeImpact({
+        world: world,
+        portId: "quanzhou",
+        goodId: "silk",
+        quantity: 0,
+        isBuy: true,
+      });
       expect(updated).toBe(world);
       expect(getCurrentPrice("silk", "quanzhou", updated)).toBe(82);
     });
 
     it("price never drops below 1 after large sell", () => {
       const world = createTestWorld();
-      const updated = applyTradeImpact(world, "quanzhou", "silk", 1000, false);
+      const updated = applyTradeImpact({
+        world: world,
+        portId: "quanzhou",
+        goodId: "silk",
+        quantity: 1000,
+        isBuy: false,
+      });
       expect(getCurrentPrice("silk", "quanzhou", updated)).toBe(1);
     });
 
     it("does not mutate original world", () => {
       const world = createTestWorld();
       const originalPrice = getCurrentPrice("silk", "quanzhou", world);
-      applyTradeImpact(world, "quanzhou", "silk", 10, true);
+      applyTradeImpact({
+        world: world,
+        portId: "quanzhou",
+        goodId: "silk",
+        quantity: 10,
+        isBuy: true,
+      });
       expect(getCurrentPrice("silk", "quanzhou", world)).toBe(originalPrice);
     });
   });
@@ -149,7 +179,13 @@ describe("market pure functions", () => {
 
       const world = createTestWorld();
       // shock: buy 10 silk → impact=0.05×√10≈0.1581 → 82×1.1581≈95
-      const shocked = applyTradeImpact(world, "quanzhou", "silk", 10, true);
+      const shocked = applyTradeImpact({
+        world: world,
+        portId: "quanzhou",
+        goodId: "silk",
+        quantity: 10,
+        isBuy: true,
+      });
       expect(getCurrentPrice("silk", "quanzhou", shocked)).toBe(95);
       // day pass: regressed = 95 + (82-95)×0.03 = 95 - 0.39 = 94.61 → round 95
       const dayPassed = applyDayPass(shocked);
@@ -161,7 +197,13 @@ describe("market pure functions", () => {
 
       const world = createTestWorld();
       // shock: sell 10 silk → impact=0.05×√10≈0.1581 → 82×0.8419≈69
-      const shocked = applyTradeImpact(world, "quanzhou", "silk", 10, false);
+      const shocked = applyTradeImpact({
+        world: world,
+        portId: "quanzhou",
+        goodId: "silk",
+        quantity: 10,
+        isBuy: false,
+      });
       expect(getCurrentPrice("silk", "quanzhou", shocked)).toBe(69);
       // day pass: regressed = 69 + (82-69)×0.03 = 69 + 0.39 = 69.39 → round 69
       const dayPassed = applyDayPass(shocked);

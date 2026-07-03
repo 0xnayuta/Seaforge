@@ -113,17 +113,20 @@ function setPrice(
 
 // ---- 买卖冲击 ----
 
+export interface TradeImpactParams {
+  readonly world: World;
+  readonly portId: string;
+  readonly goodId: string;
+  readonly quantity: number;
+  readonly isBuy: boolean;
+}
+
 /**
  * 买入/卖出后对该港口该商品价格施加冲击。
  * 买入 → 价格上涨（需求增加）；卖出 → 价格下跌（供应增加）
  */
-export function applyTradeImpact(
-  world: World,
-  portId: string,
-  goodId: string,
-  quantity: number,
-  isBuy: boolean,
-): World {
+export function applyTradeImpact(params: TradeImpactParams): World {
+  const { world, portId, goodId, quantity, isBuy } = params;
   if (quantity <= 0) return world;
   const impact = TRADE_IMPACT * quantity ** TRADE_IMPACT_DECAY;
   const currentPrice = getCurrentPrice(goodId, portId, world);

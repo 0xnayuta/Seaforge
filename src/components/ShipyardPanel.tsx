@@ -36,6 +36,10 @@ export function ShipyardPanel({
   const [isPending, startTransition] = useTransition();
   const [isEquipmentPending, setIsEquipmentPending] = useState(false);
 
+  // ── 通用 action 调用包装 ──
+  // 将 Server Action + transition + 错误处理抽象为统一的高阶函数，
+  // 避免每个 handler 重复 try/catch/startTransition 样板。
+
   const handleAction = (
     action: (formData: FormData) => Promise<ShipyardView>,
     errorPrefix: string,

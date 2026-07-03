@@ -102,13 +102,13 @@ export function executeBuy(world: World, input: BuyInput): BuyResult {
     fleet: { ...withCargo.fleet, gold: world.fleet.gold - totalCost },
   };
 
-  const worldAfterTrade = applyTradeImpact(
-    withGold,
-    world.player.currentPortId,
-    goodId,
-    quantity,
-    true,
-  );
+  const worldAfterTrade = applyTradeImpact({
+    world: withGold,
+    portId: world.player.currentPortId,
+    goodId: goodId,
+    quantity: quantity,
+    isBuy: true,
+  });
 
   return { world: worldAfterTrade, totalCost };
 }
@@ -153,13 +153,13 @@ export function executeSell(world: World, input: SellInput): SellResult {
     fleet: { ...withCargo.fleet, gold: world.fleet.gold + totalRevenue },
   };
 
-  const worldAfterTrade = applyTradeImpact(
-    withGold,
-    world.player.currentPortId,
-    goodId,
-    quantity,
-    false,
-  );
+  const worldAfterTrade = applyTradeImpact({
+    world: withGold,
+    portId: world.player.currentPortId,
+    goodId: goodId,
+    quantity: quantity,
+    isBuy: false,
+  });
   const profitAmount = Math.max(0, profit);
   const worldAfterExp = gainExp(
     worldAfterTrade,
