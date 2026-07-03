@@ -9,10 +9,8 @@ import {
 import type { World } from "../../game/domain/types";
 import { buildShipyardView } from "../../game/view-builder/buildGameView";
 import { getErrorMessage } from "../../lib/domain-errors";
-import { prisma } from "../../lib/prisma";
-import { loadWorld, saveWorld } from "../../lib/repository";
+import { withTransaction } from "../../lib/with-transaction";
 import type { ShipyardView } from "../../types/game-view";
-import type { PrismaTransactionClient } from "../../types/prisma";
 
 /** 装备操作事务管道：读档 → domain → 保存 → 返回 ShipyardView */
 async function shipyardTx(
@@ -20,12 +18,9 @@ async function shipyardTx(
   shipId: string,
 ): Promise<ShipyardView> {
   try {
-    return await prisma.$transaction(async (tx: PrismaTransactionClient) => {
-      const world = await loadWorld(tx);
-      const nextWorld = domainFn(world);
-      await saveWorld(tx, nextWorld);
-      return buildShipyardView(nextWorld, shipId);
-    });
+    return await withTransaction(domainFn, (w) =>
+      buildShipyardView(w, shipId),
+    )();
   } catch (e) {
     throw new Error(getErrorMessage(e));
   }

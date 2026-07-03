@@ -9,26 +9,20 @@ import type { World } from "../../game/domain/types";
 import { buildCharacterView } from "../../game/view-builder/buildGameView";
 import { getErrorMessage } from "../../lib/domain-errors";
 import { prisma } from "../../lib/prisma";
-import { loadWorld, saveWorld } from "../../lib/repository";
+import { loadWorld } from "../../lib/repository";
+import { withTransaction } from "../../lib/with-transaction";
 import type { CharacterView } from "../../types/game-view";
-import type { PrismaTransactionClient } from "../../types/prisma";
 
 export async function loadCharacterView(): Promise<CharacterView> {
   const world = await loadWorld(prisma);
   return buildCharacterView(world);
 }
-
-/** 属性/装备事务管道 */
+/** 属性/装备事务管道：使用 withTransaction HOF */
 async function characterTx(
   domainFn: (world: World) => World,
 ): Promise<CharacterView> {
   try {
-    return await prisma.$transaction(async (tx: PrismaTransactionClient) => {
-      const world = await loadWorld(tx);
-      const nextWorld = domainFn(world);
-      await saveWorld(tx, nextWorld);
-      return buildCharacterView(nextWorld);
-    });
+    return await withTransaction(domainFn, buildCharacterView)();
   } catch (e) {
     throw new Error(getErrorMessage(e));
   }

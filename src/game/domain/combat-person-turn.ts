@@ -6,8 +6,8 @@ import { ITEMS } from "../../data/items";
 import { SKILLS } from "../../data/skills";
 import {
   type ActionOutcome,
-  executeAttackAction,
-  executeSkillAction,
+  performAttack,
+  performSkill,
 } from "./combat-person-actions";
 import { processStatusPhase } from "./combat-person-status";
 import {
@@ -109,7 +109,7 @@ function processEnemyTurn(
 // ============================================================
 
 /** 派发参与者动作（回避/弹反/攻击/技能） */
-function executeParticipantAction(
+function resolveParticipantAction(
   activePart: CombatParticipant,
   targetId: string | undefined,
   action: {
@@ -148,7 +148,7 @@ function executeParticipantAction(
     }
     case "attack": {
       if (!targetId) return participants;
-      const result: ActionOutcome = executeAttackAction({
+      const result: ActionOutcome = performAttack({
         attacker: activePart,
         targetId,
         participants,
@@ -160,7 +160,7 @@ function executeParticipantAction(
       return result.participants;
     }
     case "skill": {
-      const result: ActionOutcome = executeSkillAction({
+      const result: ActionOutcome = performSkill({
         caster: activePart,
         targetId,
         skillId: action.skillId!,
@@ -254,7 +254,7 @@ function processParticipantTurn(
   }
 
   // 派发动作
-  participants = executeParticipantAction(
+  participants = resolveParticipantAction(
     activePart,
     targetId,
     action,
@@ -331,7 +331,7 @@ function applyCombatResultToWorld(
 /**
  * 玩家执行战斗操作
  */
-export function executePersonCombatAction(
+export function performCombatAction(
   world: World,
   action: {
     readonly type: "attack" | "skill" | "dodge" | "parry";

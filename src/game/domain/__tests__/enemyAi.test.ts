@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { executePersonCombatAction } from "../combat-person";
+import { performCombatAction } from "../combat-person";
 import type { CombatParticipant, PersonCombatState } from "../types";
 import { makeCombat, part, worldWithCombat } from "./combat-person.helpers";
 
@@ -15,7 +15,7 @@ describe("enemy AI actions", () => {
       ),
     };
     const w = worldWithCombat(combat);
-    const result = executePersonCombatAction(w, { type: "attack" });
+    const result = performCombatAction(w, { type: "attack" });
 
     expect(result.combat).not.toBeNull();
     const combatAfter = result.combat!;
@@ -86,7 +86,7 @@ describe("enemy AI actions", () => {
     };
 
     const w = worldWithCombat(combat);
-    const result = executePersonCombatAction(w, { type: "attack" });
+    const result = performCombatAction(w, { type: "attack" });
 
     expect(result.combat).not.toBeNull();
     const combatAfter = result.combat!;
@@ -98,7 +98,7 @@ describe("enemy AI actions", () => {
 
   it("combat advances through multiple rounds when both sides survive", () => {
     const w = worldWithCombat();
-    const result = executePersonCombatAction(w, { type: "attack" });
+    const result = performCombatAction(w, { type: "attack" });
 
     expect(result.combat).not.toBeNull();
     const combat = result.combat!;

@@ -23,8 +23,14 @@ export async function loadWorld(tx: PrismaTransactionClient): Promise<World> {
   if (!save) return createDefaultWorld();
   try {
     return JSON.parse(save.data) as World;
-  } catch {
-    return createDefaultWorld();
+  } catch (error) {
+    console.error(
+      "❌ [存档重创] 存档 Schema 冲突或解析失败，旧存档已报废:",
+      error,
+    );
+    throw new Error(
+      "存档版本不匹配！因底层配置或核心玩法变更，该存档已无法解析。请手动清理数据库或切换至新存档位开始新游戏。",
+    );
   }
 }
 

@@ -15,7 +15,7 @@ import { calcPanelStats } from "./player";
 import type { CombatParticipant, PersonCombatState, World } from "./types";
 
 export { calcInitiative, calcPersonDamage } from "./combat-person-damage";
-export { executePersonCombatAction } from "./combat-person-turn";
+export { performCombatAction } from "./combat-person-turn";
 
 // ---- 敌方模板工厂 ----
 

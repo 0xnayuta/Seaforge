@@ -6,9 +6,9 @@ import type { World } from "../../game/domain/types";
 import { buildNpcDetailView } from "../../game/view-builder/buildGameView";
 import { getErrorMessage } from "../../lib/domain-errors";
 import { prisma } from "../../lib/prisma";
-import { loadWorld, saveWorld } from "../../lib/repository";
+import { loadWorld } from "../../lib/repository";
+import { withTransaction } from "../../lib/with-transaction";
 import type { NpcDetailView } from "../../types/game-view";
-import type { PrismaTransactionClient } from "../../types/prisma";
 
 export async function loadNpcView(
   npcId: string,
@@ -20,12 +20,10 @@ export async function loadNpcView(
 /** 通用 NPC 操作事务管道：读档 → checkQuestProgress → domain → 保存 */
 async function npcTx(fn: (world: World) => World): Promise<void> {
   try {
-    await prisma.$transaction(async (tx: PrismaTransactionClient) => {
-      const world = await loadWorld(tx);
-      const nextWorld = checkQuestProgress(world);
-      const result = fn(nextWorld);
-      await saveWorld(tx, result);
-    });
+    await withTransaction(
+      (w) => fn(checkQuestProgress(w)),
+      () => undefined,
+    )();
   } catch (e) {
     throw new Error(getErrorMessage(e));
   }

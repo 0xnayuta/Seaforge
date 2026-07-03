@@ -57,7 +57,7 @@ function updateShipCargo(
   };
 }
 
-export function executeBuy(world: World, input: BuyInput): BuyResult {
+export function buyGoods(world: World, input: BuyInput): BuyResult {
   const { goodId, quantity } = input;
   if (quantity <= 0) throw new DomainError("INVALID_QUANTITY");
 
@@ -126,7 +126,7 @@ export interface SellResult {
   readonly profit: number;
 }
 
-export function executeSell(world: World, input: SellInput): SellResult {
+export function sellGoods(world: World, input: SellInput): SellResult {
   const { goodId, quantity } = input;
   if (quantity <= 0) throw new DomainError("INVALID_QUANTITY");
 

@@ -3,10 +3,8 @@
 import { fireCrew, hireCrew } from "../../game/domain/crew";
 import { buildTavernView } from "../../game/view-builder/buildGameView";
 import { getErrorMessage } from "../../lib/domain-errors";
-import { prisma } from "../../lib/prisma";
-import { loadWorld, saveWorld } from "../../lib/repository";
+import { withTransaction } from "../../lib/with-transaction";
 import type { TavernView } from "../../types/game-view";
-import type { PrismaTransactionClient } from "../../types/prisma";
 
 export async function hireCrewAction(formData: FormData): Promise<TavernView> {
   const quantity = Number(formData.get("quantity"));
@@ -15,12 +13,10 @@ export async function hireCrewAction(formData: FormData): Promise<TavernView> {
   }
 
   try {
-    return await prisma.$transaction(async (tx: PrismaTransactionClient) => {
-      const world = await loadWorld(tx);
-      const newWorld = hireCrew(world, quantity);
-      await saveWorld(tx, newWorld);
-      return buildTavernView(newWorld);
-    });
+    return await withTransaction(
+      (w) => hireCrew(w, quantity),
+      buildTavernView,
+    )();
   } catch (e) {
     throw new Error(getErrorMessage(e));
   }
@@ -33,12 +29,10 @@ export async function fireCrewAction(formData: FormData): Promise<TavernView> {
   }
 
   try {
-    return await prisma.$transaction(async (tx: PrismaTransactionClient) => {
-      const world = await loadWorld(tx);
-      const newWorld = fireCrew(world, quantity);
-      await saveWorld(tx, newWorld);
-      return buildTavernView(newWorld);
-    });
+    return await withTransaction(
+      (w) => fireCrew(w, quantity),
+      buildTavernView,
+    )();
   } catch (e) {
     throw new Error(getErrorMessage(e));
   }

@@ -1,11 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { getBuyPrice, getSellPrice } from "../market";
-import {
-  executeBuy,
-  executeSell,
-  getMaxCapacity,
-  getUsedCapacity,
-} from "../trade";
+import { buyGoods, getMaxCapacity, getUsedCapacity, sellGoods } from "../trade";
 import type { CargoItem } from "../types";
 import { createEmptyWorld, createTestWorld } from "./helpers";
 
@@ -50,14 +45,14 @@ describe("getMaxCapacity", () => {
   });
 });
 
-describe("executeBuy", () => {
+describe("buyGoods", () => {
   it("should deduct gold and add cargo with weighted average buyPrice", () => {
     const world = createTestWorld();
     const price = getBuyPrice("silk", world.player.currentPortId, world);
     const quantity = 2;
     const totalCost = price * quantity;
 
-    const result = executeBuy(world, { goodId: "silk", quantity });
+    const result = buyGoods(world, { goodId: "silk", quantity });
     const newWorld = result.world;
 
     // gold deducted
@@ -81,7 +76,7 @@ describe("executeBuy", () => {
     const quantity = 2;
     const totalCost = price * quantity;
 
-    const result = executeBuy(world, { goodId: "silk", quantity });
+    const result = buyGoods(world, { goodId: "silk", quantity });
 
     expect(result.world.fleet.gold).toBe(world.fleet.gold - totalCost);
     const cargo = result.world.fleet.ships[0].cargo.find(
@@ -97,7 +92,7 @@ describe("executeBuy", () => {
     const price = getBuyPrice("silk", world.player.currentPortId, world);
     // 1000 * price = 102000 > 5000
     expect(1000 * price).toBeGreaterThan(world.fleet.gold);
-    expect(() => executeBuy(world, { goodId: "silk", quantity: 1000 })).toThrow(
+    expect(() => buyGoods(world, { goodId: "silk", quantity: 1000 })).toThrow(
       "INSUFFICIENT_GOLD",
     );
   });
@@ -106,29 +101,29 @@ describe("executeBuy", () => {
     const world = createTestWorld();
     // used = 13, max = 35, silk vol = 2
     // buy 12 silk → 13 + 24 = 37 > 35; cost 12*102 = 1224 < 5000 (gold check passes)
-    expect(() => executeBuy(world, { goodId: "silk", quantity: 12 })).toThrow(
+    expect(() => buyGoods(world, { goodId: "silk", quantity: 12 })).toThrow(
       "INSUFFICIENT_CARGO",
     );
   });
 
   it("should throw when quantity is zero or negative", () => {
     const world = createTestWorld();
-    expect(() => executeBuy(world, { goodId: "silk", quantity: 0 })).toThrow(
+    expect(() => buyGoods(world, { goodId: "silk", quantity: 0 })).toThrow(
       "INVALID_QUANTITY",
     );
-    expect(() => executeBuy(world, { goodId: "silk", quantity: -1 })).toThrow(
+    expect(() => buyGoods(world, { goodId: "silk", quantity: -1 })).toThrow(
       "INVALID_QUANTITY",
     );
   });
 });
 
-describe("executeSell", () => {
+describe("sellGoods", () => {
   it("should add gold and reduce cargo quantity", () => {
     const world = createTestWorld();
     const price = getSellPrice("silk", world.player.currentPortId, world);
     const quantity = 3;
 
-    const result = executeSell(world, { goodId: "silk", quantity });
+    const result = sellGoods(world, { goodId: "silk", quantity });
 
     // gold increased by revenue = price × quantity
     const expectedRevenue = price * quantity;
@@ -146,14 +141,14 @@ describe("executeSell", () => {
   it("should throw when not enough cargo quantity", () => {
     const world = createTestWorld();
     // only 5 silk in cargo, try to sell 100
-    expect(() => executeSell(world, { goodId: "silk", quantity: 100 })).toThrow(
+    expect(() => sellGoods(world, { goodId: "silk", quantity: 100 })).toThrow(
       "CARGO_NOT_FOUND",
     );
   });
 
   it("should throw when good not in cargo", () => {
     const world = createEmptyWorld();
-    expect(() => executeSell(world, { goodId: "silk", quantity: 1 })).toThrow(
+    expect(() => sellGoods(world, { goodId: "silk", quantity: 1 })).toThrow(
       "CARGO_NOT_FOUND",
     );
   });
@@ -163,7 +158,7 @@ describe("executeSell", () => {
     const silkCargo = world.fleet.ships[0].cargo.find(
       (c) => c.goodId === "silk",
     ) as CargoItem;
-    const result = executeSell(world, {
+    const result = sellGoods(world, {
       goodId: "silk",
       quantity: silkCargo.quantity,
     });
@@ -187,7 +182,7 @@ describe("executeSell", () => {
       (c) => c.goodId === "silk",
     ) as CargoItem;
 
-    const result = executeSell(world, { goodId: "silk", quantity });
+    const result = sellGoods(world, { goodId: "silk", quantity });
     const expectedProfit = (price - cargo.buyPrice) * quantity;
 
     expect(result.profit).toBe(expectedProfit);
@@ -207,7 +202,7 @@ describe("executeSell", () => {
     });
     expect(world.player.exp).toBe(0);
 
-    const result = executeSell(world, { goodId: "silk", quantity: 3 });
+    const result = sellGoods(world, { goodId: "silk", quantity: 3 });
     expect(result.world.player.exp).toBeGreaterThan(0);
   });
 
@@ -227,7 +222,7 @@ describe("executeSell", () => {
       },
     };
 
-    const result = executeSell(worldWithHighBuy, {
+    const result = sellGoods(worldWithHighBuy, {
       goodId: "silk",
       quantity: 3,
     });

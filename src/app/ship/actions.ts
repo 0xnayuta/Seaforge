@@ -7,25 +7,12 @@ import {
   sellShip,
   upgradeComponent,
 } from "../../game/domain/ship";
-import type { World } from "../../game/domain/types";
 import { buildShipyardView } from "../../game/view-builder/buildGameView";
+import { getErrorMessage } from "../../lib/domain-errors";
 import { prisma } from "../../lib/prisma";
-import { loadWorld, saveWorld } from "../../lib/repository";
+import { loadWorld } from "../../lib/repository";
+import { withTransaction } from "../../lib/with-transaction";
 import type { ShipyardView } from "../../types/game-view";
-import type { PrismaTransactionClient } from "../../types/prisma";
-
-/** 造船厂事务管道：读档 → domain → 保存 → 返回 ShipyardView */
-async function shipyardTx(
-  domainFn: (world: World) => World,
-  shipId?: string,
-): Promise<ShipyardView> {
-  return await prisma.$transaction(async (tx: PrismaTransactionClient) => {
-    const world = await loadWorld(tx);
-    const nextWorld = domainFn(world);
-    await saveWorld(tx, nextWorld);
-    return buildShipyardView(nextWorld, shipId);
-  });
-}
 
 export async function loadShipyardView(
   selectedShipId?: string,
@@ -37,14 +24,28 @@ export async function loadShipyardView(
 export async function buyShipAction(formData: FormData): Promise<ShipyardView> {
   const typeId = formData.get("typeId") as string;
   if (!typeId) throw new Error("未选择船只类型");
-  return shipyardTx((w) => buyShip(w, typeId));
+  try {
+    return await withTransaction(
+      (w) => buyShip(w, typeId),
+      buildShipyardView,
+    )();
+  } catch (e) {
+    throw new Error(getErrorMessage(e));
+  }
 }
 
 export async function sellShipAction(
   formData: FormData,
 ): Promise<ShipyardView> {
   const shipId = formData.get("shipId") as string;
-  return shipyardTx((w) => sellShip(w, shipId));
+  try {
+    return await withTransaction(
+      (w) => sellShip(w, shipId),
+      buildShipyardView,
+    )();
+  } catch (e) {
+    throw new Error(getErrorMessage(e));
+  }
 }
 
 export async function upgradeComponentAction(
@@ -54,7 +55,14 @@ export async function upgradeComponentAction(
   const component = formData.get("component") as ComponentType;
   const shipId = formData.get("shipId") as string;
   if (!shipId) throw new Error("未指定船只");
-  return shipyardTx((w) => upgradeComponent(w, shipId, component), shipId);
+  try {
+    return await withTransaction(
+      (w) => upgradeComponent(w, shipId, component),
+      (w) => buildShipyardView(w, shipId),
+    )();
+  } catch (e) {
+    throw new Error(getErrorMessage(e));
+  }
 }
 
 export async function repairShipAction(
@@ -63,5 +71,12 @@ export async function repairShipAction(
 ): Promise<ShipyardView> {
   const shipId = formData.get("shipId") as string;
   if (!shipId) throw new Error("未指定船只");
-  return shipyardTx((w) => repairShip(w, shipId), shipId);
+  try {
+    return await withTransaction(
+      (w) => repairShip(w, shipId),
+      (w) => buildShipyardView(w, shipId),
+    )();
+  } catch (e) {
+    throw new Error(getErrorMessage(e));
+  }
 }

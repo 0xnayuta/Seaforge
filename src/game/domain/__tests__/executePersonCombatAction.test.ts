@@ -1,17 +1,17 @@
 import { describe, expect, it } from "bun:test";
-import { executePersonCombatAction } from "../combat-person";
+import { performCombatAction } from "../combat-person";
 import type { World } from "../types";
 import { DomainError } from "../types";
 import { makeCombat, worldWithCombat } from "./combat-person.helpers";
 
-describe("executePersonCombatAction", () => {
+describe("performCombatAction", () => {
   // ── guard errors ──
   it("throws NOT_IN_COMBAT when world has no combat", () => {
     const w: World = { ...worldWithCombat(), combat: null };
-    expect(() => executePersonCombatAction(w, { type: "attack" })).toThrow(
+    expect(() => performCombatAction(w, { type: "attack" })).toThrow(
       DomainError,
     );
-    expect(() => executePersonCombatAction(w, { type: "attack" })).toThrow(
+    expect(() => performCombatAction(w, { type: "attack" })).toThrow(
       "NOT_IN_COMBAT",
     );
   });
@@ -25,10 +25,10 @@ describe("executePersonCombatAction", () => {
     };
     const w = worldWithCombat(combat);
 
-    expect(() => executePersonCombatAction(w, { type: "attack" })).toThrow(
+    expect(() => performCombatAction(w, { type: "attack" })).toThrow(
       DomainError,
     );
-    expect(() => executePersonCombatAction(w, { type: "attack" })).toThrow(
+    expect(() => performCombatAction(w, { type: "attack" })).toThrow(
       "NOT_YOUR_TURN",
     );
   });
@@ -44,7 +44,7 @@ describe("executePersonCombatAction", () => {
       ),
     };
     const w = worldWithCombat(combat);
-    const result = executePersonCombatAction(w, { type: "attack" });
+    const result = performCombatAction(w, { type: "attack" });
 
     expect(result.combat).not.toBeNull();
     const resultCombat = result.combat!;
@@ -68,7 +68,7 @@ describe("executePersonCombatAction", () => {
   // ── dodge ──
   it("dodge action consumes 5 MP and causes next enemy attack to miss", () => {
     const w = worldWithCombat();
-    const result = executePersonCombatAction(w, {
+    const result = performCombatAction(w, {
       type: "dodge",
     });
 
@@ -91,7 +91,7 @@ describe("executePersonCombatAction", () => {
     };
     const w = worldWithCombat(combat);
 
-    expect(() => executePersonCombatAction(w, { type: "dodge" })).toThrow(
+    expect(() => performCombatAction(w, { type: "dodge" })).toThrow(
       "INSUFFICIENT_MP",
     );
   });
@@ -99,7 +99,7 @@ describe("executePersonCombatAction", () => {
   // ── parry ──
   it("parry action consumes 8 MP and causes counter-attack on enemy physical attack", () => {
     const w = worldWithCombat();
-    const result = executePersonCombatAction(w, {
+    const result = performCombatAction(w, {
       type: "parry",
     });
 
@@ -122,7 +122,7 @@ describe("executePersonCombatAction", () => {
     };
     const w = worldWithCombat(combat);
 
-    expect(() => executePersonCombatAction(w, { type: "parry" })).toThrow(
+    expect(() => performCombatAction(w, { type: "parry" })).toThrow(
       "INSUFFICIENT_MP",
     );
   });
@@ -138,7 +138,7 @@ describe("executePersonCombatAction", () => {
     };
     const w = worldWithCombat(combat);
 
-    const result = executePersonCombatAction(w, {
+    const result = performCombatAction(w, {
       type: "skill",
       skillId: "heal_light",
       targetId: "player",
@@ -169,7 +169,7 @@ describe("executePersonCombatAction", () => {
     };
     const w = worldWithCombat(combat);
 
-    const result = executePersonCombatAction(w, {
+    const result = performCombatAction(w, {
       type: "skill",
       skillId: "fireball",
       targetId: "enemy-1",
@@ -193,7 +193,7 @@ describe("executePersonCombatAction", () => {
   it("throws INVALID_COMBAT_ACTION for unknown skill ID", () => {
     const w = worldWithCombat();
     expect(() =>
-      executePersonCombatAction(w, {
+      performCombatAction(w, {
         type: "skill",
         skillId: "nonexistent",
       }),
@@ -212,7 +212,7 @@ describe("executePersonCombatAction", () => {
     const w = worldWithCombat(combat);
 
     expect(() =>
-      executePersonCombatAction(w, {
+      performCombatAction(w, {
         type: "skill",
         skillId: "fireball",
       }),
@@ -233,7 +233,7 @@ describe("executePersonCombatAction", () => {
     const w = worldWithCombat(combat);
 
     expect(() =>
-      executePersonCombatAction(w, {
+      performCombatAction(w, {
         type: "skill",
         skillId: "fireball",
       }),
@@ -252,7 +252,7 @@ describe("executePersonCombatAction", () => {
     };
     const w = worldWithCombat(combat);
 
-    const result = executePersonCombatAction(w, {
+    const result = performCombatAction(w, {
       type: "skill",
       skillId: "heavy_strike",
     });
@@ -276,7 +276,7 @@ describe("executePersonCombatAction", () => {
     };
     const w = worldWithCombat(combat);
 
-    const result = executePersonCombatAction(w, { type: "attack" });
+    const result = performCombatAction(w, { type: "attack" });
 
     expect(result.combat).not.toBeNull();
     const combatAfter = result.combat!;
@@ -297,7 +297,7 @@ describe("executePersonCombatAction", () => {
     };
     const w = worldWithCombat(combat);
 
-    const result = executePersonCombatAction(w, { type: "attack" });
+    const result = performCombatAction(w, { type: "attack" });
 
     expect(result.combat).not.toBeNull();
     const combatAfter = result.combat!;
@@ -320,7 +320,7 @@ describe("executePersonCombatAction", () => {
       ),
     };
     const w = worldWithCombat(combat);
-    const result = executePersonCombatAction(w, { type: "attack" });
+    const result = performCombatAction(w, { type: "attack" });
 
     expect(result.combat).not.toBeNull();
     const updatedEnemy = result.combat!.participants.find(
@@ -348,7 +348,7 @@ describe("executePersonCombatAction", () => {
     };
 
     const w = worldWithCombat(combat);
-    const result = executePersonCombatAction(w, { type: "attack" });
+    const result = performCombatAction(w, { type: "attack" });
 
     expect(result.combat).toBeNull();
     expect(result.player.exp).toBe(50);
@@ -372,7 +372,7 @@ describe("executePersonCombatAction", () => {
     };
 
     const w = worldWithCombat(combat);
-    const result = executePersonCombatAction(w, { type: "attack" });
+    const result = performCombatAction(w, { type: "attack" });
 
     expect(result.combat).toBeNull();
     expect(result.fleet.gold).toBe(700);
@@ -401,7 +401,7 @@ describe("status effect damage (DoT) at start of turn", () => {
       ),
     };
     const w = worldWithCombat(combat);
-    const result = executePersonCombatAction(w, { type: "attack" });
+    const result = performCombatAction(w, { type: "attack" });
 
     const combatAfter = result.combat!;
     const playerAfter = combatAfter.participants.find(
@@ -429,7 +429,7 @@ describe("status effect damage (DoT) at start of turn", () => {
       ),
     };
     const w = worldWithCombat(combat);
-    const result = executePersonCombatAction(w, { type: "attack" });
+    const result = performCombatAction(w, { type: "attack" });
 
     const combatAfter = result.combat!;
     const playerAfter = combatAfter.participants.find(
@@ -457,7 +457,7 @@ describe("status effect damage (DoT) at start of turn", () => {
       ),
     };
     const w = worldWithCombat(combat);
-    const result = executePersonCombatAction(w, { type: "attack" });
+    const result = performCombatAction(w, { type: "attack" });
 
     const combatAfter = result.combat!;
     const playerAfter = combatAfter.participants.find(
@@ -489,7 +489,7 @@ describe("status effect damage (DoT) at start of turn", () => {
       ),
     };
     const w = worldWithCombat(combat);
-    const result = executePersonCombatAction(w, { type: "attack" });
+    const result = performCombatAction(w, { type: "attack" });
 
     const combatAfter = result.combat!;
     const playerAfter = combatAfter.participants.find(
@@ -521,7 +521,7 @@ describe("status effect damage (DoT) at start of turn", () => {
     };
 
     const w = worldWithCombat(combat);
-    const result = executePersonCombatAction(w, { type: "attack" });
+    const result = performCombatAction(w, { type: "attack" });
 
     expect(result.combat).toBeNull();
     expect(result.voyage).toBeNull();

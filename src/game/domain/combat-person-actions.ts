@@ -117,7 +117,7 @@ function buildSkillHitMessage(
 /**
  * 执行普通物理攻击：命中判定、回避、弹反反击、伤害结算
  */
-export function executeAttackAction(params: AttackActionParams): ActionOutcome {
+export function performAttack(params: AttackActionParams): ActionOutcome {
   const { attacker, targetId, participants, rng, round, turnIndex } = params;
   const logs: CombatLogEntry[] = [];
   const target = participants.find((p) => p.id === targetId);
@@ -407,7 +407,7 @@ function applyDamageSkill(
 /**
  * 执行技能动作：沉默检查、MP 校验、治疗/伤害分发、状态效果施加
  */
-export function executeSkillAction(params: SkillActionParams): ActionOutcome {
+export function performSkill(params: SkillActionParams): ActionOutcome {
   const { caster, targetId, skillId, participants, rng, round, turnIndex } =
     params;
   const skill = SKILLS.find((s) => s.id === skillId);

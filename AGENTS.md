@@ -120,6 +120,24 @@ Backward Compatible + Inconsistent + Special-cased（向后兼容、不一致、
 
 **禁止跨越：** Server Action 不能直接调用 Prisma 做复杂查询；React Component 不能直接调用 Domain 函数；Repository（`lib/repository.ts`）不能包含 `if/else` 业务判断。
 
+### ⚖️ Server Actions 编写铁律（防漏存约束）
+
+1. **禁止手写底层的事务模板**：
+   在编写任何涉及数据修改（Mutation）的 Server Action 时，**严禁**手动复制 `prisma.$transaction`、`loadWorld` 和 `saveWorld` 的 8 行模板代码。
+
+2. **必须强制使用高阶函数（HOF）**：
+   所有涉及游戏世界状态变更的写操作，必须统一调用 `src/lib/with-transaction.ts` 中定义的 `withTransaction` 或 `withActionState` 高阶函数。
+
+3. **标准结构示例**：
+   新写的 Action 必须符合以下高度一致的管道流：
+   ```typescript
+   export const myGameAction = (input: InputType) =>
+     withTransaction(
+       (world) => executeDomainLogic(world, input), // 1. 纯函数算
+       buildCorrespondingView,                      // 2. 视图快照刷
+     );
+   ```
+
 ### 3.2 事务完整性铁律
 
 所有写操作必须严格遵循以下模式：
