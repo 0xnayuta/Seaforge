@@ -1,4 +1,4 @@
-import type { CombatOutcome } from "./combat";
+import type { CombatResult } from "./combat";
 // ============================================================
 // Domain Types — 游戏事实（World）
 // 所有类型定义在 src/game/domain/，不依赖 React / Next.js / Prisma
@@ -75,7 +75,7 @@ export interface VoyageEvent {
   readonly goldChange: number;
   readonly cargoLoss: number;
   readonly type?: "combat" | "storm";
-  readonly combatOutcome?: CombatOutcome;
+  readonly combatResult?: CombatResult;
 }
 export interface VoyageState {
   readonly fromPortId: string;

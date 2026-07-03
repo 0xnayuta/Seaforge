@@ -363,7 +363,7 @@ describe("generateVoyageEvents", () => {
   });
 });
 
-import { applyCombatOutcome } from "../combat";
+import { applyCombatResult } from "../combat";
 
 describe("applyVoyageEvents fleet behavior", () => {
   it("splits cargo loss evenly across fleet ships", () => {
@@ -435,7 +435,7 @@ describe("applyVoyageEvents fleet behavior", () => {
   });
 });
 
-describe("applyCombatOutcome fleet behavior", () => {
+describe("applyCombatResult fleet behavior", () => {
   it("splits HP damage evenly across all fleet ships", () => {
     const world = createTestWorld({
       fleet: {
@@ -488,7 +488,7 @@ describe("applyCombatOutcome fleet behavior", () => {
       description: "fight",
     };
 
-    const result = applyCombatOutcome(world, outcome, "quanzhou", [
+    const result = applyCombatResult(world, outcome, "quanzhou", [
       "ship-1",
       "ship-2",
     ]);

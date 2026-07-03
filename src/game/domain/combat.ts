@@ -16,11 +16,11 @@ import { getShipDefenseMultiplier } from "./equipment";
 import { calcDefenseScore, getActiveShip, takeDamage } from "./ship";
 import type { CargoItem, ShipInstance, World } from "./types";
 /** 战斗结果类型 */
-export type CombatResult = "victory" | "partialLoss" | "totalLoss";
+export type CombatVerdict = "victory" | "partialLoss" | "totalLoss";
 
 /** 战斗结算输出 */
-export interface CombatOutcome {
-  readonly result: CombatResult;
+export interface CombatResult {
+  readonly result: CombatVerdict;
   readonly hpDamage: number;
   readonly cargoLoss: number;
   readonly allCargoLost?: true;
@@ -35,7 +35,7 @@ export function resolveCombat(
   world: World,
   difficulty: number,
   rng: RngSource = Math.random,
-): CombatOutcome {
+): CombatResult {
   const activeShip = getActiveShip(world);
   const shipConfig = SHIPS.find((s) => s.id === activeShip.typeId);
   if (!shipConfig) {
@@ -107,7 +107,7 @@ function calcCombatScore(
 function buildTotalLossOutcome(
   activeShip: ShipInstance,
   world: World,
-): CombatOutcome {
+): CombatResult {
   return {
     result: "totalLoss",
     hpDamage: activeShip.durability,
@@ -119,7 +119,7 @@ function buildTotalLossOutcome(
 }
 
 /** 部分损失结果 */
-function buildPartialLossOutcome(rng: RngSource, world: World): CombatOutcome {
+function buildPartialLossOutcome(rng: RngSource, world: World): CombatResult {
   const hpDamage = Math.floor(
     COMBAT_BASE_DAMAGE_MIN +
       rng() * (COMBAT_BASE_DAMAGE_MAX - COMBAT_BASE_DAMAGE_MIN),
@@ -145,7 +145,7 @@ function buildPartialLossOutcome(rng: RngSource, world: World): CombatOutcome {
 }
 
 /** 胜利结果 */
-function buildVictoryOutcome(rng: RngSource, world: World): CombatOutcome {
+function buildVictoryOutcome(rng: RngSource, world: World): CombatResult {
   const hpDamage = Math.floor(rng() * 5);
   const crewLoss =
     rng() < COMBAT_VICTORY_CREW_LOSS_CHANCE ? Math.min(1, world.fleet.crew) : 0;
@@ -159,9 +159,9 @@ function buildVictoryOutcome(rng: RngSource, world: World): CombatOutcome {
 }
 
 /** 应用战斗结果到 World */
-export function applyCombatOutcome(
+export function applyCombatResult(
   world: World,
-  outcome: CombatOutcome,
+  outcome: CombatResult,
   nearestPortId: string,
   fleetShipIds: readonly string[] = [getActiveShip(world).id],
 ): World {

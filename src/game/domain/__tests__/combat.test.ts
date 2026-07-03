@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { applyCombatOutcome, resolveCombat } from "../combat";
+import { applyCombatResult, resolveCombat } from "../combat";
 import { createTestWorld } from "./helpers";
 
 /** 确定性 RNG：总是返回固定值 */
@@ -107,7 +107,7 @@ describe("resolveCombat", () => {
   });
 });
 
-describe("applyCombatOutcome", () => {
+describe("applyCombatResult", () => {
   it("totalLoss: HP→1, cargo cleared, voyage null, port changed", () => {
     const world = createTestWorld();
     const cargoBefore = world.fleet.ships[0].cargo.length;
@@ -120,7 +120,7 @@ describe("applyCombatOutcome", () => {
       description: "",
     };
 
-    const result = applyCombatOutcome(world, outcome, "quanzhou");
+    const result = applyCombatResult(world, outcome, "quanzhou");
     expect(result.fleet.ships[0].durability).toBe(1);
     expect(result.fleet.ships[0].cargo).toHaveLength(0);
     expect(result.voyage).toBeNull();
@@ -140,7 +140,7 @@ describe("applyCombatOutcome", () => {
       description: "",
     };
 
-    const result = applyCombatOutcome(world, outcome, "quanzhou");
+    const result = applyCombatResult(world, outcome, "quanzhou");
     expect(result.fleet.ships[0].durability).toBe(40); // 50 - 10
     const cargoAfter = result.fleet.ships[0].cargo.reduce(
       (sum, c) => sum + c.quantity,
@@ -159,7 +159,7 @@ describe("applyCombatOutcome", () => {
       description: "",
     };
 
-    const result = applyCombatOutcome(world, outcome, "quanzhou");
+    const result = applyCombatResult(world, outcome, "quanzhou");
     expect(result.fleet.ships[0].durability).toBe(47); // 50 - 3
     expect(result.fleet.ships[0].cargo).toHaveLength(
       world.fleet.ships[0].cargo.length,
@@ -186,7 +186,7 @@ describe("applyCombatOutcome", () => {
       description: "",
     };
 
-    const result = applyCombatOutcome(world, outcome, "quanzhou");
+    const result = applyCombatResult(world, outcome, "quanzhou");
     expect(result.fleet.crew).toBe(3); // 5 - 2 = 3
   });
 

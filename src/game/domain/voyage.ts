@@ -14,7 +14,7 @@ import {
 import { PORTS } from "../../data/ports";
 import { REGIONS } from "../../data/regions";
 import { SHIPS } from "../../data/ships";
-import { applyCombatOutcome, resolveCombat } from "./combat";
+import { applyCombatResult, resolveCombat } from "./combat";
 import { initPersonCombat } from "./combat-person";
 import { calcMinCrewForFleet, deductCrewUpkeep } from "./crew";
 import { getFleetPirateEvasion, getShipCargoCapacity } from "./equipment";
@@ -161,7 +161,7 @@ function applyCombatEvent(world: World, event: VoyageEvent): World {
       crewLoss: 0,
       description: "舰队在航行中遭遇海盗，但凭借装备成功避开了海盗袭击！",
     };
-    (event as VoyageEvent & { combatOutcome: typeof outcome }).combatOutcome =
+    (event as VoyageEvent & { combatResult: typeof outcome }).combatResult =
       outcome;
     (event as { description: string }).description += " (成功回避海盗袭击)";
     return world;
@@ -185,10 +185,10 @@ function applyCombatEvent(world: World, event: VoyageEvent): World {
     world.voyage?.toPortId ?? world.player.currentPortId,
   );
 
-  (event as VoyageEvent & { combatOutcome: typeof outcome }).combatOutcome =
+  (event as VoyageEvent & { combatResult: typeof outcome }).combatResult =
     outcome;
 
-  return applyCombatOutcome(world, outcome, nearestPort, voyage.fleetShipIds);
+  return applyCombatResult(world, outcome, nearestPort, voyage.fleetShipIds);
 }
 
 /** 应用金币变化 */
@@ -457,7 +457,7 @@ function processCombatEvent(
     };
     const updatedEvent = {
       ...event,
-      combatOutcome: outcome,
+      combatResult: outcome,
       description: `${event.description} (成功回避海盗袭击)`,
     };
     result = {
@@ -498,10 +498,10 @@ function processCombatEvent(
     currentVoyage.fromPortId,
     currentVoyage.toPortId,
   );
-  const updatedEvent = { ...event, combatOutcome: outcome };
+  const updatedEvent = { ...event, combatResult: outcome };
 
   if (outcome.result === "victory") {
-    const victoryWorld = applyCombatOutcome(
+    const victoryWorld = applyCombatResult(
       result,
       outcome,
       nearestPort,

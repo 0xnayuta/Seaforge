@@ -4,11 +4,11 @@ import type {
   VoyageEventView,
   VoyageView,
 } from "../../types/game-view";
-import type { CombatOutcome } from "../domain/combat";
+import type { CombatResult } from "../domain/combat";
 import type { VoyageEvent, World } from "../domain/types";
 import { buildCombatChoiceView, buildPersonCombatView } from "./combatViews";
 
-function formatCombatLog(outcome: CombatOutcome): CombatLogEntryView {
+function formatCombatLog(outcome: CombatResult): CombatLogEntryView {
   const resultLabel =
     outcome.result === "victory"
       ? "胜利"
@@ -37,8 +37,8 @@ function buildEventView(event: VoyageEvent): VoyageEventView {
   const goldText = formatGoldChange(event.goldChange);
   if (goldText) parts.push(goldText);
   if (event.cargoLoss > 0) parts.push(`丢失 ${event.cargoLoss} 单位货物`);
-  const combatLog = event.combatOutcome
-    ? formatCombatLog(event.combatOutcome)
+  const combatLog = event.combatResult
+    ? formatCombatLog(event.combatResult)
     : undefined;
   const effect =
     parts.length > 0 ? parts.join("，") : combatLog ? "" : "无影响";

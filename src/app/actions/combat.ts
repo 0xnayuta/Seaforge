@@ -60,8 +60,8 @@ export async function surrenderAfterFleetLoss(): Promise<void> {
 
         const voyage = w.voyage;
         const outcome = voyage.events.find(
-          (ev) => ev.combatOutcome && ev.combatOutcome.result !== "victory",
-        )?.combatOutcome;
+          (ev) => ev.combatResult && ev.combatResult.result !== "victory",
+        )?.combatResult;
 
         const goldLost = outcome
           ? Math.floor(w.fleet.gold * 0.15)
@@ -73,7 +73,7 @@ export async function surrenderAfterFleetLoss(): Promise<void> {
         }));
 
         const combatEventDay = voyage.events.find(
-          (ev) => ev.combatOutcome && ev.combatOutcome.result !== "victory",
+          (ev) => ev.combatResult && ev.combatResult.result !== "victory",
         )?.day;
 
         const remainingEvents =
@@ -120,7 +120,7 @@ export async function acceptBoarding(): Promise<void> {
 
         const voyage = w.voyage;
         const combatEvent = voyage.events.find(
-          (ev) => ev.combatOutcome && ev.combatOutcome.result !== "victory",
+          (ev) => ev.combatResult && ev.combatResult.result !== "victory",
         );
 
         if (!combatEvent) {
