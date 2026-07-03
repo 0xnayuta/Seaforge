@@ -50,6 +50,13 @@ const ERROR_MAP: Record<string, string> = {
   ACHIEVEMENT_NOT_FOUND: "成就不存在",
   ACHIEVEMENT_NOT_UNLOCKED: "成就尚未解锁",
   ACHIEVEMENT_ALREADY_CLAIMED: "成就奖励已领取",
+  DUNGEON_NOT_FOUND: "副本不存在",
+  DUNGEON_WRONG_PORT: "当前港口没有该副本入口",
+  DUNGEON_LEVEL_TOO_LOW: "等级不足，无法进入该副本",
+  DUNGEON_ON_COOLDOWN: "副本冷却中，请等待冷却结束",
+  DUNGEON_IN_PROGRESS: "已在副本中",
+  DUNGEON_NOT_IN_PROGRESS: "当前不在副本中",
+  DUNGEON_FLOOR_COMPLETE: "当前层已完成，请继续推进",
 };
 
 /** 将领域层的 DomainError 转为用户可读的中文错误消息 */

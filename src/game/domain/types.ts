@@ -184,6 +184,18 @@ export interface CollectionState {
   readonly collectedItems: readonly string[];
 }
 
+// ---- 副本 ----
+
+export interface DungeonState {
+  readonly dungeonId: string;
+  readonly currentFloor: number;
+  readonly totalFloors: number;
+  readonly hpLoss: number;
+  readonly goldGained: number;
+  readonly itemsGained: readonly string[];
+  readonly status: "in_progress" | "cleared" | "failed" | "escaped";
+}
+
 export interface World {
   readonly player: PlayerState;
   readonly fleet: FleetState;
@@ -195,6 +207,8 @@ export interface World {
   readonly selectedTitle: string | null;
   readonly collection: CollectionState;
   readonly claimedAchievements: readonly string[];
+  readonly dungeon: DungeonState | null;
+  readonly dungeonCooldowns: Record<string, number>;
 }
 
 // ---- 领域错误 ----
@@ -260,4 +274,11 @@ export type DomainErrorCode =
   | "TITLE_NOT_UNLOCKED"
   | "ACHIEVEMENT_NOT_FOUND"
   | "ACHIEVEMENT_NOT_UNLOCKED"
-  | "ACHIEVEMENT_ALREADY_CLAIMED";
+  | "ACHIEVEMENT_ALREADY_CLAIMED"
+  | "DUNGEON_NOT_FOUND"
+  | "DUNGEON_WRONG_PORT"
+  | "DUNGEON_LEVEL_TOO_LOW"
+  | "DUNGEON_ON_COOLDOWN"
+  | "DUNGEON_IN_PROGRESS"
+  | "DUNGEON_NOT_IN_PROGRESS"
+  | "DUNGEON_FLOOR_COMPLETE";
