@@ -100,7 +100,7 @@ interface DungeonState {
 
 ---
 
-### Phase 4.2：装备合成系统
+### Phase 4.2：装备合成系统 ✅
 
 在 Phase 3.1 物品系统基础上，引入铁匠铺合成——多件低阶装备合成高阶装备。
 
@@ -113,18 +113,25 @@ interface DungeonState {
 在 `src/data/items.ts` 中扩展合成配方：
 
 ```typescript
-interface EquipmentRecipe {
-  readonly resultId: string;       // 合成产物装备 ID
-  readonly ingredients: ItemIngredient[];  // 所需材料 [{itemId, quantity}]
-  readonly goldCost: number;       // 额外金币消耗
-  readonly portId: string;         // 可合成的港口
-  readonly minAffinity?: string;   // 可选：需要某 NPC 好感度 ≥ N
+export interface RecipeIngredient {
+  readonly itemId: string;
+  readonly quantity: number;
+}
+
+export interface EquipmentRecipe {
+  readonly id: string;
+  readonly resultId: string;
+  readonly name: string;
+  readonly ingredients: readonly RecipeIngredient[];
+  readonly goldCost: number;
+  readonly portId: string;
+  readonly minAffinity?: { readonly npcId: string; readonly value: number };
 }
 ```
 
 #### 领域逻辑
 
-在 `src/game/domain/equipment.ts` 中扩展（或新建 `src/game/domain/crafting.ts`）：
+新建 `src/game/domain/crafting.ts`：
 
 | 函数 | 说明 |
 |------|------|
@@ -137,9 +144,9 @@ interface EquipmentRecipe {
 |------|------|------|
 | 数据配置 | `src/data/items.ts` | 扩展 recipe 字段 |
 | 领域逻辑 | `src/game/domain/crafting.ts`（新增） | 合成纯函数 |
-| UI | `src/components/SmithPanel.tsx`（新增） | 铁匠铺合成界面 |
+| UI | `src/components/SmithPanel.tsx`（待实现） | 铁匠铺合成界面 |
 
-#### 测试覆盖
+#### 测试覆盖 ✅
 
 | 范围 | 内容 |
 |------|------|
@@ -148,6 +155,8 @@ interface EquipmentRecipe {
 | | 金币不够拒绝合成 |
 | | 不在正确港口拒绝合成 |
 | | NPC 好感度不满足拒绝合成 |
+| | 未知配方拒绝 |
+| | 错误路径不修改原 World |
 
 ---
 
@@ -245,7 +254,7 @@ Phase 4.4 (图鉴) ─── 独立
 ### 硬性条件（必须满足）
 
 - [ ] 副本系统：至少 3 个副本，覆盖 3-5 层结构，正确接入人物回合制战斗
-- [ ] 装备合成：至少 5 个配方，覆盖低阶→高阶装备
+- [x] 装备合成：至少 5 个配方，覆盖低阶→高阶装备
 - [ ] 成就系统：至少 10 个成就，覆盖各维度
 - [ ] 图鉴系统：被动记录港口/商品/船只/装备收集
 - [ ] `npx next build` 无错误
