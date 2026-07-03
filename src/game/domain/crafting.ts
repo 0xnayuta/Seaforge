@@ -2,7 +2,8 @@
 // 装备合成系统 - 纯函数
 // ============================================================
 
-import { type EquipmentRecipe, ITEMS, RECIPES } from "../../data/items";
+import type { EquipmentRecipe } from "../../data/items";
+import { RECIPES } from "../../data/items";
 import { gainItem } from "./player";
 import { DomainError, type ItemInstance, type World } from "./types";
 
@@ -15,8 +16,7 @@ export function getRecipeConfig(recipeId: string): EquipmentRecipe {
 
 /** 获取当前港口可用配方列表 */
 export function getAvailableRecipes(world: World): readonly EquipmentRecipe[] {
-  const portId = world.player.currentPortId;
-  return RECIPES.filter((r) => r.portId === portId);
+  return RECIPES.filter((r) => r.portId === world.player.currentPortId);
 }
 
 /** 检查背包中某物品 ID 的总持有量 */
@@ -25,7 +25,7 @@ export function getItemCount(
   itemId: string,
 ): number {
   return inventory
-    .filter((item) => item.itemId === itemId)
+    .filter((item) => item.itemId === itemId && !item.equippedSlot)
     .reduce((sum, item) => sum + item.quantity, 0);
 }
 
@@ -38,60 +38,37 @@ function consumeIngredient(
   itemId: string,
   quantity: number,
 ): World {
-  const config = ITEMS.find((i) => i.id === itemId);
-  if (!config) throw new DomainError("ITEM_NOT_FOUND");
+  if (quantity <= 0) return world;
 
-  let result = world;
+  const inventory = world.fleet.inventory;
   let remaining = quantity;
+  const nextInventory: ItemInstance[] = [];
 
-  // 遍历副本（非堆叠物品各占一条）
-  const entries = result.fleet.inventory
-    .map((item, idx) => ({ item, idx }))
-    .filter(({ item }) => item.itemId === itemId)
-    // 先消耗非装备状态、无 uid 栈顶顺序
-    .sort((a, b) => a.idx - b.idx);
-
-  for (const { item } of entries) {
-    if (remaining <= 0) break;
-
-    if (item.quantity > remaining) {
-      // 部分消耗（堆叠物品）
-      const nextInventory = [...result.fleet.inventory];
-      const realIdx = nextInventory.findIndex((i) => i.uid === item.uid);
-      if (realIdx === -1) throw new DomainError("ITEM_NOT_FOUND_IN_INVENTORY");
-      nextInventory[realIdx] = { ...item, quantity: item.quantity - remaining };
-      remaining = 0;
-      result = {
-        ...result,
-        fleet: { ...result.fleet, inventory: nextInventory },
-      };
+  for (const item of inventory) {
+    if (item.itemId === itemId && !item.equippedSlot && remaining > 0) {
+      if (item.quantity <= remaining) {
+        // Fully consume this entry
+        remaining -= item.quantity;
+      } else {
+        // Partially consume — reduce quantity
+        nextInventory.push({
+          ...item,
+          quantity: item.quantity - remaining,
+        });
+        remaining = 0;
+      }
     } else {
-      // 整条移除
-      remaining -= item.quantity;
-      result = {
-        ...result,
-        fleet: {
-          ...result.fleet,
-          inventory: result.fleet.inventory.filter((i) => i.uid !== item.uid),
-        },
-      };
+      nextInventory.push(item);
     }
   }
 
-  if (remaining > 0) throw new DomainError("INSUFFICIENT_MATERIALS");
-  return result;
-}
-
-/** 同时消耗多种材料 */
-function consumeIngredients(
-  world: World,
-  ingredients: readonly { itemId: string; quantity: number }[],
-): World {
-  let result = world;
-  for (const ing of ingredients) {
-    result = consumeIngredient(result, ing.itemId, ing.quantity);
-  }
-  return result;
+  return {
+    ...world,
+    fleet: {
+      ...world.fleet,
+      inventory: nextInventory,
+    },
+  };
 }
 
 /**
@@ -102,34 +79,30 @@ function consumeIngredients(
 export function craftEquipment(world: World, recipeId: string): World {
   const recipe = getRecipeConfig(recipeId);
 
-  // 校验港口
-  if (world.player.currentPortId !== recipe.portId) {
+  if (recipe.portId !== world.player.currentPortId) {
     throw new DomainError("RECIPE_WRONG_PORT");
   }
 
-  // 校验金币
   if (world.fleet.gold < recipe.goldCost) {
     throw new DomainError("INSUFFICIENT_GOLD");
   }
 
-  // 校验材料持有量
   for (const ing of recipe.ingredients) {
-    const count = getItemCount(world.fleet.inventory, ing.itemId);
-    if (count < ing.quantity) {
+    if (getItemCount(world.fleet.inventory, ing.itemId) < ing.quantity) {
       throw new DomainError("INSUFFICIENT_MATERIALS");
     }
   }
 
-  // 校验 NPC 好感度
   if (recipe.minAffinity) {
     const relation = world.npcRelations[recipe.minAffinity.npcId];
-    if (!relation || relation.affinity < recipe.minAffinity.value) {
+    if (!relation) throw new DomainError("NPC_NOT_FOUND");
+    if (relation.affinity < recipe.minAffinity.value) {
       throw new DomainError("RECIPE_AFFINITY_TOO_LOW");
     }
   }
 
-  // 执行：消耗金币
-  let result: World = {
+  // Execute — deduct gold, consume materials, add result
+  let nextWorld: World = {
     ...world,
     fleet: {
       ...world.fleet,
@@ -137,11 +110,11 @@ export function craftEquipment(world: World, recipeId: string): World {
     },
   };
 
-  // 消耗材料
-  result = consumeIngredients(result, recipe.ingredients);
+  nextWorld = recipe.ingredients.reduce(
+    (w, ing) => consumeIngredient(w, ing.itemId, ing.quantity),
+    nextWorld,
+  );
+  nextWorld = gainItem(nextWorld, recipe.resultId, 1);
 
-  // 加入产物
-  result = gainItem(result, recipe.resultId);
-
-  return result;
+  return nextWorld;
 }

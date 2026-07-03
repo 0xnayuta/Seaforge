@@ -13,7 +13,9 @@ describe("getAvailableRecipes", () => {
     const world = createTestWorld(); // quanzhou
     const recipes = getAvailableRecipes(world);
     expect(recipes.length).toBeGreaterThan(0);
-    expect(recipes.every((r) => r.portId === "quanzhou")).toBe(true);
+    for (const r of recipes) {
+      expect(r.portId).toBe("quanzhou");
+    }
   });
 
   it("returns empty when no recipes at port", () => {
@@ -26,13 +28,14 @@ describe("getAvailableRecipes", () => {
 });
 
 describe("getItemCount", () => {
-  it("counts quantity across multiple entries", () => {
+  it("counts quantity across multiple entries, excludes equipped", () => {
     const inventory = [
       { uid: "a", itemId: "rusted_sword", quantity: 1 },
       { uid: "b", itemId: "iron_sword", quantity: 1 },
       { uid: "c", itemId: "rusted_sword", quantity: 1 },
+      { uid: "d", itemId: "rusted_sword", quantity: 1, equippedSlot: "weapon" },
     ];
-    expect(getItemCount(inventory, "rusted_sword")).toBe(2);
+    expect(getItemCount(inventory, "rusted_sword")).toBe(2); // excludes equipped
     expect(getItemCount(inventory, "iron_sword")).toBe(1);
     expect(getItemCount(inventory, "nonexistent")).toBe(0);
   });
@@ -40,7 +43,6 @@ describe("getItemCount", () => {
 
 describe("craftEquipment", () => {
   it("crafts successfully with valid ingredients and gold", () => {
-    // 泉州：rusty_to_iron — 2× rusted_sword + 300 gold → iron_sword
     const base = createTestWorld({
       player: { ...createTestWorld().player, currentPortId: "quanzhou" },
       fleet: {
@@ -51,14 +53,15 @@ describe("craftEquipment", () => {
     });
     const world = gainItem(base, "rusted_sword", 2);
     expect(world.fleet.gold).toBe(10000);
+    expect(getItemCount(world.fleet.inventory, "rusted_sword")).toBe(2);
 
     const result = craftEquipment(world, "rusty_to_iron");
-    // 金币扣除
     expect(result.fleet.gold).toBe(9700);
-    // 材料消耗
     expect(getItemCount(result.fleet.inventory, "rusted_sword")).toBe(0);
-    // 产物加入背包
     expect(getItemCount(result.fleet.inventory, "iron_sword")).toBe(1);
+    // immutability
+    expect(world.fleet.gold).toBe(10000);
+    expect(getItemCount(world.fleet.inventory, "rusted_sword")).toBe(2);
   });
 
   it("rejects if wrong port", () => {
@@ -76,17 +79,19 @@ describe("craftEquipment", () => {
   });
 
   it("rejects if insufficient gold", () => {
-    const world = createTestWorld({
+    const base = createTestWorld({
       player: { ...createTestWorld().player, currentPortId: "quanzhou" },
       fleet: {
         ...createTestWorld().fleet,
-        gold: 100, // 不够 300
+        gold: 100,
         inventory: [],
       },
     });
+    const world = gainItem(base, "rusted_sword", 2);
     expect(() => craftEquipment(world, "rusty_to_iron")).toThrow(
       "INSUFFICIENT_GOLD",
     );
+    expect(world.fleet.gold).toBe(100); // immutability
   });
 
   it("rejects if insufficient materials", () => {
@@ -103,23 +108,15 @@ describe("craftEquipment", () => {
     );
   });
 
-  it("rejects if NPC affinity too low", () => {
-    // chain_to_plate in malacca requires goa NPC affinity, but we don't have that recipe
-    // Let's test with a recipe that has affinity requirement (none of our current ones do)
-    // so this tests the error is theoretically reachable
-    // For now, verify that recipes without affinity don't throw affinity error
-    const base = createTestWorld({
-      player: { ...createTestWorld().player, currentPortId: "quanzhou" },
-      fleet: {
-        ...createTestWorld().fleet,
-        gold: 10000,
-        inventory: [],
-      },
-    });
-    const world = gainItem(base, "rusted_sword", 2);
-    // No affinity check needed for this recipe
-    expect(() => craftEquipment(world, "rusty_to_iron")).not.toThrow();
-  });
+  // NPC affinity path: craftEquipment's `recipe.minAffinity` branch is
+  // trivially correct (simple conditional). It remains untestable at runtime
+  // until a recipe with minAffinity is added to the data. Verified by review:
+  //   if (recipe.minAffinity) {
+  //     const relation = world.npcRelations[recipe.minAffinity.npcId];
+  //     if (!relation) throw new DomainError("NPC_NOT_FOUND");
+  //     if (relation.affinity < recipe.minAffinity.value)
+  //       throw new DomainError("RECIPE_AFFINITY_TOO_LOW");
+  //   }
 
   it("crafts across ports: Venice iron_to_silver", () => {
     const base = createTestWorld({
@@ -136,10 +133,13 @@ describe("craftEquipment", () => {
     expect(getItemCount(world.fleet.inventory, "mage_staff")).toBe(1);
 
     const result = craftEquipment(world, "iron_to_silver");
-    expect(result.fleet.gold).toBe(9200); // 10000 - 800
+    expect(result.fleet.gold).toBe(9200);
     expect(getItemCount(result.fleet.inventory, "iron_sword")).toBe(0);
     expect(getItemCount(result.fleet.inventory, "mage_staff")).toBe(0);
     expect(getItemCount(result.fleet.inventory, "silver_rapier")).toBe(1);
+    // immutability
+    expect(world.fleet.gold).toBe(10000);
+    expect(getItemCount(world.fleet.inventory, "iron_sword")).toBe(1);
   });
 
   it("rejects unknown recipe", () => {
@@ -159,7 +159,6 @@ describe("craftEquipment", () => {
       },
     });
     expect(() => craftEquipment(world, "rusty_to_iron")).toThrow();
-    // 原世界不变
     expect(world.fleet.gold).toBe(10000);
   });
 });
