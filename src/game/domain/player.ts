@@ -17,6 +17,7 @@ import {
   type ShipInstance,
   type World,
 } from "./types";
+/** 创建初始游戏世界状态 */
 export function createDefaultWorld(): World {
   const defaultShip = SHIPS.find((s) => s.id === "sloop") ?? SHIPS[0];
   const initialShips: readonly ShipInstance[] = [
@@ -161,6 +162,7 @@ export interface PanelStats {
   readonly equipLoad: number;
 }
 
+/** 计算软上限后的有效属性值 */
 export function getEffectiveAttribute(val: number): number {
   let effective = 0;
   let remaining = val;
@@ -188,6 +190,27 @@ function getEquippedItemConfig(
   return ITEMS.find((cfg) => cfg.id === instance.itemId) ?? null;
 }
 
+type _EffAttr = "str" | "dex" | "int" | "fth" | "arc";
+
+/**
+ * 计算装备属性补正总和。
+ * baseStat × Σ (有效属性值 / 100 × 补正系数)
+ */
+function calcScalingSum(
+  baseStat: number,
+  scaling: ItemConfig["scaling"] | undefined,
+  attrMappings: readonly { key: _EffAttr; value: number }[],
+): number {
+  let total = 0;
+  for (const { key, value } of attrMappings) {
+    const grade = scaling?.[key];
+    if (grade) {
+      total += baseStat * (value / 100) * SCALING_COEFFICIENTS[grade];
+    }
+  }
+  return total;
+}
+/** 计算角色面板属性（含装备加成） */
 export function calcPanelStats(
   player: PlayerState,
   inventory: readonly ItemInstance[],
@@ -243,68 +266,39 @@ export function calcPanelStats(
     eqEquipLoad += c.effect.equipLoadBonus ?? 0;
   }
 
-  // 4. 属性补正计算
   let scalingAtk = 0;
   let scalingDef = 0;
   let scalingMag = 0;
   let scalingMdf = 0;
 
-  // 武器补正 ATK 和 MAG
+  // 4. 属性补正计算（武器补正 ATK/MAG，防具补正 DEF/MDF）
   if (weapon) {
-    const baseWeaponAtk = weapon.effect.atkBonus ?? 0;
-    const baseWeaponMag = weapon.effect.magBonus ?? 0;
-
-    const strCoeff = weapon.scaling?.str
-      ? SCALING_COEFFICIENTS[weapon.scaling.str]
-      : 0;
-    const dexCoeff = weapon.scaling?.dex
-      ? SCALING_COEFFICIENTS[weapon.scaling.dex]
-      : 0;
-    const intCoeff = weapon.scaling?.int
-      ? SCALING_COEFFICIENTS[weapon.scaling.int]
-      : 0;
-    const fthCoeff = weapon.scaling?.fth
-      ? SCALING_COEFFICIENTS[weapon.scaling.fth]
-      : 0;
-    const arcCoeff = weapon.scaling?.arc
-      ? SCALING_COEFFICIENTS[weapon.scaling.arc]
-      : 0;
-
-    scalingAtk += baseWeaponAtk * (effStr / 100) * strCoeff;
-    scalingAtk += baseWeaponAtk * (effDex / 100) * dexCoeff;
-    scalingAtk += baseWeaponAtk * (effArc / 100) * arcCoeff;
-    scalingMag += baseWeaponMag * (effInt / 100) * intCoeff;
-    scalingMag += baseWeaponMag * (effFth / 100) * fthCoeff;
-    scalingMag += baseWeaponMag * (effArc / 100) * arcCoeff;
+    const baseAtk = weapon.effect.atkBonus ?? 0;
+    const baseMag = weapon.effect.magBonus ?? 0;
+    scalingAtk += calcScalingSum(baseAtk, weapon.scaling, [
+      { key: "str", value: effStr },
+      { key: "dex", value: effDex },
+      { key: "arc", value: effArc },
+    ]);
+    scalingMag += calcScalingSum(baseMag, weapon.scaling, [
+      { key: "int", value: effInt },
+      { key: "fth", value: effFth },
+      { key: "arc", value: effArc },
+    ]);
   }
-
-  // 防具补正 DEF 和 MDF
   if (armor) {
-    const baseArmorDef = armor.effect.defBonus ?? 0;
-    const baseArmorMdf = armor.effect.mdfBonus ?? 0;
-
-    const strCoeff = armor.scaling?.str
-      ? SCALING_COEFFICIENTS[armor.scaling.str]
-      : 0;
-    const dexCoeff = armor.scaling?.dex
-      ? SCALING_COEFFICIENTS[armor.scaling.dex]
-      : 0;
-    const intCoeff = armor.scaling?.int
-      ? SCALING_COEFFICIENTS[armor.scaling.int]
-      : 0;
-    const fthCoeff = armor.scaling?.fth
-      ? SCALING_COEFFICIENTS[armor.scaling.fth]
-      : 0;
-    const arcCoeff = armor.scaling?.arc
-      ? SCALING_COEFFICIENTS[armor.scaling.arc]
-      : 0;
-
-    scalingDef += baseArmorDef * (effStr / 100) * strCoeff;
-    scalingDef += baseArmorDef * (effDex / 100) * dexCoeff;
-    scalingDef += baseArmorDef * (effArc / 100) * arcCoeff;
-    scalingMdf += baseArmorMdf * (effInt / 100) * intCoeff;
-    scalingMdf += baseArmorMdf * (effFth / 100) * fthCoeff;
-    scalingMdf += baseArmorMdf * (effArc / 100) * arcCoeff;
+    const baseDef = armor.effect.defBonus ?? 0;
+    const baseMdf = armor.effect.mdfBonus ?? 0;
+    scalingDef += calcScalingSum(baseDef, armor.scaling, [
+      { key: "str", value: effStr },
+      { key: "dex", value: effDex },
+      { key: "arc", value: effArc },
+    ]);
+    scalingMdf += calcScalingSum(baseMdf, armor.scaling, [
+      { key: "int", value: effInt },
+      { key: "fth", value: effFth },
+      { key: "arc", value: effArc },
+    ]);
   }
 
   return {
@@ -320,6 +314,7 @@ export function calcPanelStats(
   };
 }
 
+/** 分配一个属性点 */
 export function allocateAttributePoint(
   world: World,
   attribute: "str" | "dex" | "int" | "fth" | "arc",
@@ -337,6 +332,7 @@ export function allocateAttributePoint(
   };
 }
 
+/** 增加物品到背包 */
 export function gainItem(
   world: World,
   itemId: string,
@@ -396,7 +392,7 @@ export function gainItem(
     },
   };
 }
-
+/** 从背包移除物品 */
 export function removeItem(world: World, itemUid: string, quantity = 1): World {
   const nextInventory = [...world.fleet.inventory];
   const idx = nextInventory.findIndex((item) => item.uid === itemUid);
@@ -420,7 +416,7 @@ export function removeItem(world: World, itemUid: string, quantity = 1): World {
     },
   };
 }
-
+/** 给角色装备一件物品到指定槽位 */
 export function equipCharacterItem(
   world: World,
   itemUid: string,
@@ -429,6 +425,7 @@ export function equipCharacterItem(
   if (world.voyage) throw new DomainError("IN_VOYAGE");
 
   const inventory = world.fleet.inventory;
+
   const item = inventory.find((it) => it.uid === itemUid);
   if (!item) throw new DomainError("ITEM_NOT_FOUND");
 
@@ -484,7 +481,7 @@ export function equipCharacterItem(
     },
   };
 }
-
+/** 从角色卸下指定槽位的物品 */
 export function unequipCharacterItem(
   world: World,
   slot: "weapon" | "armor" | "accessory1" | "accessory2",

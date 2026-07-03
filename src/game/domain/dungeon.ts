@@ -114,6 +114,100 @@ export function advanceDungeonFloor(world: World, choiceId?: string): World {
   return result;
 }
 
+// ============================================================
+// 楼层事件处理
+// ============================================================
+
+/** 战斗事件：初始化人物战斗 */
+function handleCombatFloorEvent(world: World, event: DungeonFloorEvent): World {
+  const combatState = initPersonCombat(world, event.difficulty ?? 1.0);
+  return { ...world, combat: combatState };
+}
+
+/** 宝箱事件：发放金币、经验、物品 */
+function handleTreasureFloorEvent(
+  world: World,
+  event: DungeonFloorEvent,
+): World {
+  let result = world;
+  if (event.goldReward) {
+    result = {
+      ...result,
+      fleet: { ...result.fleet, gold: result.fleet.gold + event.goldReward },
+    };
+  }
+  if (event.expReward) {
+    result = gainExp(result, event.expReward);
+  }
+  if (event.itemRewards) {
+    for (const itemId of event.itemRewards) {
+      result = gainItem(result, itemId);
+    }
+  }
+  // 记录收益
+  return {
+    ...result,
+    dungeon: {
+      ...result.dungeon!,
+      goldGained: result.dungeon!.goldGained + (event.goldReward ?? 0),
+      itemsGained: [
+        ...result.dungeon!.itemsGained,
+        ...(event.itemRewards ?? []),
+      ],
+    },
+  };
+}
+
+/** 选择事件：根据选项发放对应奖励 */
+function handleChoiceFloorEvent(
+  world: World,
+  event: DungeonFloorEvent,
+  choiceId?: string,
+): World {
+  if (!choiceId || !event.options) {
+    return world;
+  }
+  const option = event.options.find((o) => o.id === choiceId);
+  if (!option) return world;
+
+  let result = world;
+  if (option.goldReward) {
+    result = {
+      ...result,
+      fleet: { ...result.fleet, gold: result.fleet.gold + option.goldReward },
+    };
+  }
+  if (option.expReward) {
+    result = gainExp(result, option.expReward);
+  }
+  if (option.itemRewards) {
+    for (const itemId of option.itemRewards) {
+      result = gainItem(result, itemId);
+    }
+  }
+  if (option.hpDamage) {
+    result = {
+      ...result,
+      dungeon: {
+        ...result.dungeon!,
+        hpLoss: result.dungeon!.hpLoss + option.hpDamage,
+      },
+    };
+  }
+  // 记录收益
+  return {
+    ...result,
+    dungeon: {
+      ...result.dungeon!,
+      goldGained: result.dungeon!.goldGained + (option.goldReward ?? 0),
+      itemsGained: [
+        ...result.dungeon!.itemsGained,
+        ...(option.itemRewards ?? []),
+      ],
+    },
+  };
+}
+
 /** 处理单个楼层事件（不推进楼层） */
 function processFloorEvent(
   world: World,
@@ -121,106 +215,14 @@ function processFloorEvent(
   choiceId?: string,
 ): World {
   switch (event.type) {
-    case "combat": {
-      // 初始化人物战斗
-      const combatState = initPersonCombat(world, event.difficulty ?? 1.0);
-      return { ...world, combat: combatState };
-    }
-
-    case "treasure": {
-      let result = world;
-      if (event.goldReward) {
-        result = {
-          ...result,
-          fleet: {
-            ...result.fleet,
-            gold: result.fleet.gold + event.goldReward,
-          },
-        };
-      }
-      if (event.expReward) {
-        result = gainExp(result, event.expReward);
-      }
-      if (event.itemRewards) {
-        for (const itemId of event.itemRewards) {
-          result = gainItem(result, itemId);
-        }
-      }
-      // 记录收益
-      result = {
-        ...result,
-        dungeon: {
-          ...result.dungeon!,
-          goldGained: result.dungeon!.goldGained + (event.goldReward ?? 0),
-          itemsGained: [
-            ...result.dungeon!.itemsGained,
-            ...(event.itemRewards ?? []),
-          ],
-        },
-      };
-      return result;
-    }
-
-    case "choice": {
-      if (!choiceId || !event.options) {
-        // 没有选择时返回当前状态，前端展示选项
-        return world;
-      }
-      const option = event.options.find((o) => o.id === choiceId);
-      if (!option) return world;
-
-      let result = world;
-      if (option.goldReward) {
-        result = {
-          ...result,
-          fleet: {
-            ...result.fleet,
-            gold: result.fleet.gold + option.goldReward,
-          },
-        };
-      }
-      if (option.expReward) {
-        result = gainExp(result, option.expReward);
-      }
-      if (option.itemRewards) {
-        for (const itemId of option.itemRewards) {
-          result = gainItem(result, itemId);
-        }
-      }
-      if (option.hpDamage) {
-        result = {
-          ...result,
-          dungeon: {
-            ...result.dungeon!,
-            hpLoss: result.dungeon!.hpLoss + option.hpDamage,
-          },
-        };
-      }
-      // 记录金币收益
-      if (option.goldReward) {
-        result = {
-          ...result,
-          dungeon: {
-            ...result.dungeon!,
-            goldGained: result.dungeon!.goldGained + option.goldReward,
-          },
-        };
-      }
-      // 记录物品收益
-      if (option.itemRewards) {
-        result = {
-          ...result,
-          dungeon: {
-            ...result.dungeon!,
-            itemsGained: [
-              ...result.dungeon!.itemsGained,
-              ...option.itemRewards,
-            ],
-          },
-        };
-      }
-      return result;
-    }
+    case "combat":
+      return handleCombatFloorEvent(world, event);
+    case "treasure":
+      return handleTreasureFloorEvent(world, event);
+    case "choice":
+      return handleChoiceFloorEvent(world, event, choiceId);
+    default:
+      return world;
   }
 }
 

@@ -495,28 +495,63 @@ function processEnemyTurn(
   return processParticipantTurn(combat, enemyId, action, rng);
 }
 
+// ============================================================
+// 工具函数
+// ============================================================
+
+/** 更新 participants 列表中指定 ID 的参与者 */
+function updateParticipant(
+  participants: readonly CombatParticipant[],
+  id: string,
+  updated: CombatParticipant,
+): readonly CombatParticipant[] {
+  return participants.map((p) => (p.id === id ? updated : p));
+}
+
+/** 同时更新 participants 列表中两个参与者 */
+function updateTwoParticipants(
+  participants: readonly CombatParticipant[],
+  id1: string,
+  updated1: CombatParticipant,
+  id2: string,
+  updated2: CombatParticipant,
+): readonly CombatParticipant[] {
+  return participants.map((p) => {
+    if (p.id === id1) return updated1;
+    if (p.id === id2) return updated2;
+    return p;
+  });
+}
+
+// ============================================================
+// 状态阶段处理
+// ============================================================
+
+interface StatusPhaseResult {
+  readonly part: CombatParticipant;
+  readonly logs: readonly CombatLogEntry[];
+  readonly dotKilled: boolean;
+  readonly isBlocked: boolean;
+}
+
+const DOT_CONFIGS = [
+  { type: "poison", rate: 0.08, label: "中毒" },
+  { type: "bleed", rate: 0.12, label: "出血" },
+  { type: "burn", rate: 0.1, label: "燃烧" },
+] as const;
+
 /**
- * 处理单个角色的完整行动回合（含回合开始阶段与行动阶段）
+ * 处理回合开始阶段：
+ * 1. 状态持续递减，移除过期状态
+ * 2. 结算 DOT 伤害（中毒/出血/燃烧）
+ * 3. 检查控制状态（冰冻/睡眠）
  */
-function processParticipantTurn(
-  combat: PersonCombatState,
-  partId: string,
-  action: {
-    readonly type: "attack" | "skill" | "dodge" | "parry";
-    readonly skillId?: string;
-    readonly targetId?: string;
-  },
-  rng: () => number = Math.random,
-): PersonCombatState {
-  let tempCombat = { ...combat };
-  let part = tempCombat.participants.find((p) => p.id === partId);
-  if (!part || part.hp <= 0) return advanceTurn(tempCombat);
-
+function processStatusPhase(
+  part: CombatParticipant,
+  round: number,
+  turnIndex: number,
+): StatusPhaseResult {
   const logs: CombatLogEntry[] = [];
-
-  // ==========================================
-  // A. 回合开始阶段 (Start of Turn Phase)
-  // ==========================================
 
   // 1. 降低所有状态持续时间 1 回合，过滤掉已过期的状态
   const activeStatuses = part.statuses.map((s) => ({
@@ -530,402 +565,541 @@ function processParticipantTurn(
 
   for (const exp of expiredStatuses) {
     logs.push({
-      round: tempCombat.round,
-      turnIndex: tempCombat.currentTurnIndex,
+      round,
+      turnIndex,
       message: `${part.name} 的【${getStatusLabel(exp.type)}】状态消退了。`,
     });
   }
 
-  part = {
+  let updatedPart: CombatParticipant = {
     ...part,
     statuses: remainingStatuses,
-    isDodging: false, // 清除上一回合的回避
-    isParrying: false, // 清除上一回合的弹反
+    isDodging: false,
+    isParrying: false,
   };
 
-  // 更新参与者列表中的该角色
-  tempCombat = {
-    ...tempCombat,
-    participants: tempCombat.participants.map((p) =>
-      p.id === partId && part ? part : p,
-    ),
-  };
-
-  // 2. 状态异常伤害结算
+  // 2. 状态异常伤害结算（只在状态依然存活时触发，刚过期的状态不触发）
   let dotDamage = 0;
-  let dotMessage = "";
+  const dotParts: string[] = [];
 
-  if (part.statuses.some((s) => s.type === "poison")) {
-    const dmg = Math.max(1, Math.round(part.maxHp * 0.08));
-    dotDamage += dmg;
-    dotMessage += `【中毒】造成 ${dmg} 点伤害；`;
-  }
-  if (part.statuses.some((s) => s.type === "bleed")) {
-    const dmg = Math.max(1, Math.round(part.maxHp * 0.12));
-    dotDamage += dmg;
-    dotMessage += `【出血】造成 ${dmg} 点伤害；`;
-  }
-  if (part.statuses.some((s) => s.type === "burn")) {
-    const dmg = Math.max(1, Math.round(part.maxHp * 0.1));
-    dotDamage += dmg;
-    dotMessage += `【燃烧】造成 ${dmg} 点伤害；`;
+  for (const dot of DOT_CONFIGS) {
+    if (updatedPart.statuses.some((s) => s.type === dot.type)) {
+      const dmg = Math.max(1, Math.round(part.maxHp * dot.rate));
+      dotDamage += dmg;
+      dotParts.push(`【${dot.label}】造成 ${dmg} 点伤害`);
+    }
   }
 
+  let dotKilled = false;
   if (dotDamage > 0) {
-    const newHp = Math.max(0, part.hp - dotDamage);
-    part = { ...part, hp: newHp };
-    tempCombat = {
-      ...tempCombat,
-      participants: tempCombat.participants.map((p) =>
-        p.id === partId && part ? part : p,
-      ),
-    };
+    const newHp = Math.max(0, updatedPart.hp - dotDamage);
+    updatedPart = { ...updatedPart, hp: newHp };
     logs.push({
-      round: tempCombat.round,
-      turnIndex: tempCombat.currentTurnIndex,
-      message: `${part.name} 因异常状态（${dotMessage.slice(0, -1)}）受到 ${dotDamage} 点伤害。`,
+      round,
+      turnIndex,
+      message: `${part.name} 因异常状态（${dotParts.join("；")}）受到 ${dotDamage} 点伤害。`,
     });
-
     if (newHp <= 0) {
-      logs.push({
-        round: tempCombat.round,
-        turnIndex: tempCombat.currentTurnIndex,
-        message: `${part.name} 倒下了！`,
-      });
-      tempCombat = {
-        ...tempCombat,
-        logs: [...tempCombat.logs, ...logs],
-      };
-      return checkCombatEnd(advanceTurn(tempCombat));
+      logs.push({ round, turnIndex, message: `${part.name} 倒下了！` });
+      dotKilled = true;
     }
   }
 
   // 3. 控制状态结算（冰冻、睡眠无法行动）
-  const isFrozen = part.statuses.some((s) => s.type === "freeze");
-  const isAsleep = part.statuses.some((s) => s.type === "sleep");
+  const isFrozen = updatedPart.statuses.some((s) => s.type === "freeze");
+  const isAsleep = updatedPart.statuses.some((s) => s.type === "sleep");
+  const isBlocked = isFrozen || isAsleep;
 
   if (isFrozen) {
     logs.push({
-      round: tempCombat.round,
-      turnIndex: tempCombat.currentTurnIndex,
+      round,
+      turnIndex,
       message: `${part.name} 处于【冰冻】状态下，全身冻结无法行动！`,
     });
-    tempCombat = {
-      ...tempCombat,
-      logs: [...tempCombat.logs, ...logs],
-    };
-    return checkCombatEnd(advanceTurn(tempCombat));
-  }
-
-  if (isAsleep) {
+  } else if (isAsleep) {
     logs.push({
-      round: tempCombat.round,
-      turnIndex: tempCombat.currentTurnIndex,
+      round,
+      turnIndex,
       message: `${part.name} 处于【睡眠】中，沉沉睡去无法行动。`,
     });
-    tempCombat = {
-      ...tempCombat,
-      logs: [...tempCombat.logs, ...logs],
-    };
-    return checkCombatEnd(advanceTurn(tempCombat));
   }
 
-  // ==========================================
-  // B. 行动阶段 (Action Phase)
-  // ==========================================
-  const targetId =
-    action.targetId ||
-    (part.type === "player"
-      ? tempCombat.participants.find((p) => p.type === "enemy" && p.hp > 0)?.id
-      : "player");
-  if (!targetId && (action.type === "attack" || action.type === "skill")) {
+  return { part: updatedPart, logs, dotKilled, isBlocked };
+}
+
+// ============================================================
+// 弹反反击伤害
+// ============================================================
+
+/**
+ * 被弹反后，防御方发动一次物理反击
+ */
+function applyCounterDamage(
+  defender: CombatParticipant,
+  attacker: CombatParticipant,
+  rng: () => number,
+  round: number,
+  turnIndex: number,
+): {
+  attacker: CombatParticipant;
+  logs: readonly CombatLogEntry[];
+} {
+  const counterOutcome = calcPersonDamage(defender, attacker, null, rng);
+  const dmg = counterOutcome.damage;
+  const updatedAttacker: CombatParticipant = {
+    ...attacker,
+    hp: Math.max(0, attacker.hp - dmg),
+  };
+  const logs: CombatLogEntry[] = [
+    {
+      round,
+      turnIndex,
+      message: `${defender.name} 发起弹反反击，对 ${attacker.name} 造成 ${dmg} 点伤害！`,
+    },
+  ];
+  if (updatedAttacker.hp <= 0) {
+    logs.push({ round, turnIndex, message: `${attacker.name} 倒下了！` });
+  }
+  return { attacker: updatedAttacker, logs };
+}
+
+// ============================================================
+// 攻击动作执行
+// ============================================================
+
+/**
+ * 执行普通物理攻击：命中判定、回避、弹反反击、伤害结算
+ */
+function executeAttackAction(
+  attacker: CombatParticipant,
+  targetId: string,
+  participants: readonly CombatParticipant[],
+  rng: () => number,
+  round: number,
+  turnIndex: number,
+): {
+  participants: readonly CombatParticipant[];
+  logs: readonly CombatLogEntry[];
+} {
+  const logs: CombatLogEntry[] = [];
+  const target = participants.find((p) => p.id === targetId);
+
+  if (!target || target.hp <= 0) {
     logs.push({
-      round: tempCombat.round,
-      turnIndex: tempCombat.currentTurnIndex,
-      message: `${part.name} 找不到合法的攻击目标！`,
+      round,
+      turnIndex,
+      message: `${attacker.name} 的普攻目标已倒下。`,
     });
-    tempCombat = { ...tempCombat, logs: [...tempCombat.logs, ...logs] };
-    return checkCombatEnd(advanceTurn(tempCombat));
+    return { participants, logs };
   }
 
-  let target = tempCombat.participants.find((p) => p.id === targetId);
+  const outcome = calcPersonDamage(attacker, target, null, rng);
 
-  if (action.type === "dodge") {
-    // 回避
-    if (part.mp < 5) throw new DomainError("INSUFFICIENT_MP");
-    part = { ...part, mp: part.mp - 5, isDodging: true };
+  if (outcome.isDodged) {
     logs.push({
-      round: tempCombat.round,
-      turnIndex: tempCombat.currentTurnIndex,
-      message: `${part.name} 消耗 5 MP 摆出了【回避】姿态，将免疫下一轮的攻击。`,
+      round,
+      turnIndex,
+      message: `${attacker.name} 发起普攻，但被 ${target.name} 回避了！`,
     });
-    tempCombat = {
-      ...tempCombat,
-      participants: tempCombat.participants.map((p) =>
-        p.id === partId && part ? part : p,
-      ),
-    };
-  } else if (action.type === "parry") {
-    // 弹反
-    if (part.mp < 8) throw new DomainError("INSUFFICIENT_MP");
-    part = { ...part, mp: part.mp - 8, isParrying: true };
-    logs.push({
-      round: tempCombat.round,
-      turnIndex: tempCombat.currentTurnIndex,
-      message: `${part.name} 消耗 8 MP 摆出了【弹反】姿态，准备反击物理攻击。`,
-    });
-    tempCombat = {
-      ...tempCombat,
-      participants: tempCombat.participants.map((p) =>
-        p.id === partId && part ? part : p,
-      ),
-    };
-  } else if (action.type === "attack") {
-    // 普通物理攻击
-    if (!target || target.hp <= 0) {
-      logs.push({
-        round: tempCombat.round,
-        turnIndex: tempCombat.currentTurnIndex,
-        message: `${part.name} 的普攻目标已倒下。`,
-      });
-    } else {
-      const outcome = calcPersonDamage(part, target, null, rng);
-      if (outcome.isDodged) {
-        logs.push({
-          round: tempCombat.round,
-          turnIndex: tempCombat.currentTurnIndex,
-          message: `${part.name} 发起普攻，但被 ${target.name} 回避了！`,
-        });
-      } else if (outcome.isParried) {
-        logs.push({
-          round: tempCombat.round,
-          turnIndex: tempCombat.currentTurnIndex,
-          message: `${part.name} 发起普攻，但被 ${target.name} 成功弹反！`,
-        });
-        // 触发反击
-        const counterOutcome = calcPersonDamage(target, part, null, rng);
-        const counterDmg = counterOutcome.damage;
-        part = { ...part, hp: Math.max(0, part.hp - counterDmg) };
-        logs.push({
-          round: tempCombat.round,
-          turnIndex: tempCombat.currentTurnIndex,
-          message: `${target.name} 发起弹反反击，对 ${part.name} 造成 ${counterDmg} 点伤害！`,
-        });
-        if (part.hp <= 0) {
-          logs.push({
-            round: tempCombat.round,
-            turnIndex: tempCombat.currentTurnIndex,
-            message: `${part.name} 倒下了！`,
-          });
-        }
-      } else {
-        const dmg = outcome.damage;
-        const newHp = Math.max(0, target.hp - dmg);
-        target = { ...target, hp: newHp };
-
-        // 受到伤害解除睡眠
-        const wasAsleep = target.statuses.some((s) => s.type === "sleep");
-        if (wasAsleep) {
-          target = {
-            ...target,
-            statuses: target.statuses.filter((s) => s.type !== "sleep"),
-          };
-        }
-
-        const critMsg = outcome.isCrit ? "（暴击！）" : "";
-        const sleepMsg = wasAsleep
-          ? `，并把 ${target.name} 从梦中痛醒！`
-          : "。";
-        logs.push({
-          round: tempCombat.round,
-          turnIndex: tempCombat.currentTurnIndex,
-          message: `${part.name} 对 ${target.name} 发起普攻，造成 ${dmg} 点伤害${critMsg}${sleepMsg}`,
-        });
-
-        if (newHp <= 0) {
-          logs.push({
-            round: tempCombat.round,
-            turnIndex: tempCombat.currentTurnIndex,
-            message: `${target.name} 倒下了！`,
-          });
-        }
-      }
-
-      // 更新 participants
-      tempCombat = {
-        ...tempCombat,
-        participants: tempCombat.participants.map((p) =>
-          p.id === partId && part
-            ? part
-            : p.id === targetId && target
-              ? target
-              : p,
-        ),
-      };
-    }
-  } else if (action.type === "skill") {
-    // 施放技能
-    const skill = SKILLS.find((s) => s.id === action.skillId);
-    if (!skill) throw new DomainError("INVALID_COMBAT_ACTION");
-
-    // 沉默检查
-    if (
-      part.statuses.some((s) => s.type === "silence") &&
-      skill.type === "magical"
-    ) {
-      throw new DomainError("SILENCED");
-    }
-
-    if (part.mp < skill.mpCost) throw new DomainError("INSUFFICIENT_MP");
-
-    part = { ...part, mp: part.mp - skill.mpCost };
-    tempCombat = {
-      ...tempCombat,
-      participants: tempCombat.participants.map((p) =>
-        p.id === partId && part ? part : p,
-      ),
-    };
-
-    if (skill.type === "heal") {
-      // 治疗技能
-      const healTarget =
-        tempCombat.participants.find((p) => p.id === targetId) || part;
-      if (healTarget.hp <= 0) {
-        logs.push({
-          round: tempCombat.round,
-          turnIndex: tempCombat.currentTurnIndex,
-          message: `${part.name} 试图对已倒下的目标施放【${skill.name}】，施法失败。`,
-        });
-      } else {
-        const healAmt = Math.round(part.mag * skill.power);
-        const nextHp = Math.min(healTarget.maxHp, healTarget.hp + healAmt);
-        const updatedTarget = { ...healTarget, hp: nextHp };
-        logs.push({
-          round: tempCombat.round,
-          turnIndex: tempCombat.currentTurnIndex,
-          message: `${part.name} 施放【${skill.name}】，为 ${healTarget.name} 回复了 ${healAmt} 点生命。`,
-        });
-        tempCombat = {
-          ...tempCombat,
-          participants: tempCombat.participants.map((p) =>
-            p.id === healTarget.id ? updatedTarget : p,
-          ),
-        };
-      }
-    } else {
-      // 伤害性技能
-      if (!target || target.hp <= 0) {
-        logs.push({
-          round: tempCombat.round,
-          turnIndex: tempCombat.currentTurnIndex,
-          message: `${part.name} 试图使用技能【${skill.name}】，但目标已倒下。`,
-        });
-      } else {
-        const outcome = calcPersonDamage(part, target, skill, rng);
-        if (outcome.isDodged) {
-          logs.push({
-            round: tempCombat.round,
-            turnIndex: tempCombat.currentTurnIndex,
-            message: `${part.name} 施放【${skill.name}】，但被 ${target.name} 回避了！`,
-          });
-        } else if (outcome.isParried) {
-          logs.push({
-            round: tempCombat.round,
-            turnIndex: tempCombat.currentTurnIndex,
-            message: `${part.name} 施放【${skill.name}】，但被 ${target.name} 成功弹反！`,
-          });
-          // 触发弹反物理反击
-          const counterOutcome = calcPersonDamage(target, part, null, rng);
-          const counterDmg = counterOutcome.damage;
-          part = { ...part, hp: Math.max(0, part.hp - counterDmg) };
-          logs.push({
-            round: tempCombat.round,
-            turnIndex: tempCombat.currentTurnIndex,
-            message: `${target.name} 发起弹反反击，对 ${part.name} 造成 ${counterDmg} 点伤害！`,
-          });
-          if (part.hp <= 0) {
-            logs.push({
-              round: tempCombat.round,
-              turnIndex: tempCombat.currentTurnIndex,
-              message: `${part.name} 倒下了！`,
-            });
-          }
-        } else {
-          const dmg = outcome.damage;
-          const newHp = Math.max(0, target.hp - dmg);
-          target = { ...target, hp: newHp };
-
-          // 受到伤害解除睡眠
-          const wasAsleep = target.statuses.some((s) => s.type === "sleep");
-          if (wasAsleep) {
-            target = {
-              ...target,
-              statuses: target.statuses.filter((s) => s.type !== "sleep"),
-            };
-          }
-
-          const critMsg = outcome.isCrit ? "（暴击！）" : "";
-          const sleepMsg = wasAsleep
-            ? `，并把 ${target.name} 从梦中痛醒！`
-            : "。";
-          logs.push({
-            round: tempCombat.round,
-            turnIndex: tempCombat.currentTurnIndex,
-            message: `${part.name} 施放【${skill.name}】命中 ${target.name}，造成 ${dmg} 点伤害${critMsg}${sleepMsg}`,
-          });
-
-          if (newHp <= 0) {
-            logs.push({
-              round: tempCombat.round,
-              turnIndex: tempCombat.currentTurnIndex,
-              message: `${target.name} 倒下了！`,
-            });
-          } else if (skill.statusEffect && rng() < skill.statusEffect.chance) {
-            // 施加状态效果
-            const statusType = skill.statusEffect.type;
-            const statusDuration = skill.statusEffect.duration;
-
-            // 过滤掉同类型的，刷新持续时间
-            const otherStatuses = target.statuses.filter(
-              (s) => s.type !== statusType,
-            );
-            target = {
-              ...target,
-              statuses: [
-                ...otherStatuses,
-                { type: statusType, duration: statusDuration },
-              ],
-            };
-            logs.push({
-              round: tempCombat.round,
-              turnIndex: tempCombat.currentTurnIndex,
-              message: `${target.name} 陷入了【${getStatusLabel(statusType)}】状态（持续 ${statusDuration} 回合）！`,
-            });
-          }
-        }
-
-        // 更新 participants
-        tempCombat = {
-          ...tempCombat,
-          participants: tempCombat.participants.map((p) =>
-            p.id === partId && part
-              ? part
-              : p.id === targetId && target
-                ? target
-                : p,
-          ),
-        };
-      }
-    }
+    return { participants, logs };
   }
 
-  // 保存本次行动产生的日志
-  tempCombat = {
-    ...tempCombat,
-    logs: [...tempCombat.logs, ...logs],
+  if (outcome.isParried) {
+    logs.push({
+      round,
+      turnIndex,
+      message: `${attacker.name} 发起普攻，但被 ${target.name} 成功弹反！`,
+    });
+    const { attacker: counterAttacker, logs: counterLogs } = applyCounterDamage(
+      target,
+      attacker,
+      rng,
+      round,
+      turnIndex,
+    );
+    return {
+      participants: updateTwoParticipants(
+        participants,
+        attacker.id,
+        counterAttacker,
+        target.id,
+        target,
+      ),
+      logs: [...logs, ...counterLogs],
+    };
+  }
+
+  // 命中
+  const dmg = outcome.damage;
+  let updatedTarget: CombatParticipant = {
+    ...target,
+    hp: Math.max(0, target.hp - dmg),
   };
 
-  return checkCombatEnd(advanceTurn(tempCombat));
+  // 受到伤害解除睡眠
+  const wasAsleep = target.statuses.some((s) => s.type === "sleep");
+  if (wasAsleep) {
+    updatedTarget = {
+      ...updatedTarget,
+      statuses: updatedTarget.statuses.filter((s) => s.type !== "sleep"),
+    };
+  }
+
+  const critMsg = outcome.isCrit ? "（暴击！）" : "";
+  const sleepMsg = wasAsleep ? `，并把 ${target.name} 从梦中痛醒！` : "。";
+  logs.push({
+    round,
+    turnIndex,
+    message: `${attacker.name} 对 ${target.name} 发起普攻，造成 ${dmg} 点伤害${critMsg}${sleepMsg}`,
+  });
+
+  if (updatedTarget.hp <= 0) {
+    logs.push({ round, turnIndex, message: `${target.name} 倒下了！` });
+  }
+
+  return {
+    participants: updateTwoParticipants(
+      participants,
+      attacker.id,
+      attacker,
+      target.id,
+      updatedTarget,
+    ),
+    logs,
+  };
+}
+
+// ============================================================
+// 技能动作执行
+// ============================================================
+
+/**
+ * 执行技能动作：沉默检查、MP 校验、治疗/伤害分发、状态效果施加
+ */
+function executeSkillAction(
+  caster: CombatParticipant,
+  targetId: string | undefined,
+  skillId: string,
+  participants: readonly CombatParticipant[],
+  rng: () => number,
+  round: number,
+  turnIndex: number,
+): {
+  participants: readonly CombatParticipant[];
+  logs: readonly CombatLogEntry[];
+} {
+  const logs: CombatLogEntry[] = [];
+  const skill = SKILLS.find((s) => s.id === skillId);
+  if (!skill) throw new DomainError("INVALID_COMBAT_ACTION");
+
+  // 沉默检查：沉默状态下无法使用魔法类技能
+  if (
+    caster.statuses.some((s) => s.type === "silence") &&
+    skill.type === "magical"
+  ) {
+    throw new DomainError("SILENCED");
+  }
+
+  if (caster.mp < skill.mpCost) throw new DomainError("INSUFFICIENT_MP");
+
+  const updatedCaster: CombatParticipant = {
+    ...caster,
+    mp: caster.mp - skill.mpCost,
+  };
+  const casterUpdated = updateParticipant(
+    participants,
+    caster.id,
+    updatedCaster,
+  );
+
+  if (skill.type === "heal") {
+    // 治疗技能
+    const healTarget = participants.find((p) => p.id === targetId) || caster;
+    if (healTarget.hp <= 0) {
+      logs.push({
+        round,
+        turnIndex,
+        message: `${caster.name} 试图对已倒下的目标施放【${skill.name}】，施法失败。`,
+      });
+      return { participants: casterUpdated, logs };
+    }
+    const healAmt = Math.round(caster.mag * skill.power);
+    const updatedTarget: CombatParticipant = {
+      ...healTarget,
+      hp: Math.min(healTarget.maxHp, healTarget.hp + healAmt),
+    };
+    logs.push({
+      round,
+      turnIndex,
+      message: `${caster.name} 施放【${skill.name}】，为 ${healTarget.name} 回复了 ${healAmt} 点生命。`,
+    });
+
+    // 自愈：同时应用 MP 消耗与 HP 恢复
+    if (caster.id === healTarget.id) {
+      const merged: CombatParticipant = {
+        ...updatedCaster,
+        hp: updatedTarget.hp,
+      };
+      return {
+        participants: updateParticipant(participants, caster.id, merged),
+        logs,
+      };
+    }
+
+    return {
+      participants: updateTwoParticipants(
+        participants,
+        caster.id,
+        updatedCaster,
+        healTarget.id,
+        updatedTarget,
+      ),
+      logs,
+    };
+  }
+
+  // 伤害性技能
+  const target = participants.find((p) => p.id === targetId);
+  if (!target || target.hp <= 0) {
+    logs.push({
+      round,
+      turnIndex,
+      message: `${caster.name} 试图使用技能【${skill.name}】，但目标已倒下。`,
+    });
+    return { participants: casterUpdated, logs };
+  }
+
+  const outcome = calcPersonDamage(caster, target, skill, rng);
+
+  if (outcome.isDodged) {
+    logs.push({
+      round,
+      turnIndex,
+      message: `${caster.name} 施放【${skill.name}】，但被 ${target.name} 回避了！`,
+    });
+    return { participants: casterUpdated, logs };
+  }
+
+  if (outcome.isParried) {
+    logs.push({
+      round,
+      turnIndex,
+      message: `${caster.name} 施放【${skill.name}】，但被 ${target.name} 成功弹反！`,
+    });
+    const { attacker: counterAttacker, logs: counterLogs } = applyCounterDamage(
+      target,
+      updatedCaster,
+      rng,
+      round,
+      turnIndex,
+    );
+    return {
+      participants: updateTwoParticipants(
+        participants,
+        counterAttacker.id,
+        counterAttacker,
+        target.id,
+        target,
+      ),
+      logs: [...logs, ...counterLogs],
+    };
+  }
+
+  // 命中
+  const dmg = outcome.damage;
+  let updatedTarget: CombatParticipant = {
+    ...target,
+    hp: Math.max(0, target.hp - dmg),
+  };
+
+  // 受到伤害解除睡眠
+  const wasAsleep = target.statuses.some((s) => s.type === "sleep");
+  if (wasAsleep) {
+    updatedTarget = {
+      ...updatedTarget,
+      statuses: updatedTarget.statuses.filter((s) => s.type !== "sleep"),
+    };
+  }
+
+  const critMsg = outcome.isCrit ? "（暴击！）" : "";
+  const sleepMsg = wasAsleep ? `，并把 ${target.name} 从梦中痛醒！` : "。";
+  logs.push({
+    round,
+    turnIndex,
+    message: `${caster.name} 施放【${skill.name}】命中 ${target.name}，造成 ${dmg} 点伤害${critMsg}${sleepMsg}`,
+  });
+
+  if (updatedTarget.hp <= 0) {
+    logs.push({ round, turnIndex, message: `${target.name} 倒下了！` });
+  } else if (skill.statusEffect && rng() < skill.statusEffect.chance) {
+    // 施加状态效果
+    const otherStatuses = updatedTarget.statuses.filter(
+      (s) => s.type !== skill.statusEffect!.type,
+    );
+    updatedTarget = {
+      ...updatedTarget,
+      statuses: [
+        ...otherStatuses,
+        {
+          type: skill.statusEffect.type,
+          duration: skill.statusEffect.duration,
+        },
+      ],
+    };
+    logs.push({
+      round,
+      turnIndex,
+      message: `${target.name} 陷入了【${getStatusLabel(skill.statusEffect.type)}】状态（持续 ${skill.statusEffect.duration} 回合）！`,
+    });
+  }
+
+  return {
+    participants: updateTwoParticipants(
+      participants,
+      caster.id,
+      updatedCaster,
+      target.id,
+      updatedTarget,
+    ),
+    logs,
+  };
+}
+
+/**
+ * 处理单个角色的完整行动回合（含回合开始阶段与行动阶段）
+ */
+function processParticipantTurn(
+  combat: PersonCombatState,
+  partId: string,
+  action: {
+    readonly type: "attack" | "skill" | "dodge" | "parry";
+    readonly skillId?: string;
+    readonly targetId?: string;
+  },
+  rng: () => number = Math.random,
+): PersonCombatState {
+  const part = combat.participants.find((p) => p.id === partId);
+  if (!part || part.hp <= 0) return advanceTurn(combat);
+
+  // A. 回合开始阶段 (Status Phase)
+  const statusResult = processStatusPhase(
+    part,
+    combat.round,
+    combat.currentTurnIndex,
+  );
+  let participants = updateParticipant(
+    combat.participants,
+    partId,
+    statusResult.part,
+  );
+
+  if (statusResult.dotKilled) {
+    return checkCombatEnd(
+      advanceTurn({
+        ...combat,
+        participants,
+        logs: [...combat.logs, ...statusResult.logs],
+      }),
+    );
+  }
+
+  if (statusResult.isBlocked) {
+    return checkCombatEnd(
+      advanceTurn({
+        ...combat,
+        participants,
+        logs: [...combat.logs, ...statusResult.logs],
+      }),
+    );
+  }
+  // B. 行动阶段 (Action Phase)
+  const logs: CombatLogEntry[] = [];
+  const activePart = statusResult.part;
+  const targetId =
+    action.targetId ||
+    (activePart.type === "player"
+      ? participants.find((p) => p.type === "enemy" && p.hp > 0)?.id
+      : "player");
+
+  if (!targetId && (action.type === "attack" || action.type === "skill")) {
+    logs.push({
+      round: combat.round,
+      turnIndex: combat.currentTurnIndex,
+      message: `${activePart.name} 找不到合法的攻击目标！`,
+    });
+    return checkCombatEnd(
+      advanceTurn({
+        ...combat,
+        participants,
+        logs: [...combat.logs, ...statusResult.logs, ...logs],
+      }),
+    );
+  }
+
+  switch (action.type) {
+    case "dodge": {
+      if (activePart.mp < 5) throw new DomainError("INSUFFICIENT_MP");
+      const updated = { ...activePart, mp: activePart.mp - 5, isDodging: true };
+      participants = updateParticipant(participants, partId, updated);
+      logs.push({
+        round: combat.round,
+        turnIndex: combat.currentTurnIndex,
+        message: `${activePart.name} 消耗 5 MP 摆出了【回避】姿态，将免疫下一轮的攻击。`,
+      });
+      break;
+    }
+    case "parry": {
+      if (activePart.mp < 8) throw new DomainError("INSUFFICIENT_MP");
+      const updated = {
+        ...activePart,
+        mp: activePart.mp - 8,
+        isParrying: true,
+      };
+      participants = updateParticipant(participants, partId, updated);
+      logs.push({
+        round: combat.round,
+        turnIndex: combat.currentTurnIndex,
+        message: `${activePart.name} 消耗 8 MP 摆出了【弹反】姿态，准备反击物理攻击。`,
+      });
+      break;
+    }
+    case "attack": {
+      if (!targetId) break;
+      const result = executeAttackAction(
+        activePart,
+        targetId,
+        participants,
+        rng,
+        combat.round,
+        combat.currentTurnIndex,
+      );
+      participants = result.participants;
+      logs.push(...result.logs);
+      break;
+    }
+    case "skill": {
+      const result = executeSkillAction(
+        activePart,
+        targetId,
+        action.skillId!,
+        participants,
+        rng,
+        combat.round,
+        combat.currentTurnIndex,
+      );
+      participants = result.participants;
+      logs.push(...result.logs);
+      break;
+    }
+  }
+
+  return checkCombatEnd(
+    advanceTurn({
+      ...combat,
+      participants,
+      logs: [...combat.logs, ...statusResult.logs, ...logs],
+    }),
+  );
 }
 
 /**
