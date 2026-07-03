@@ -10,20 +10,8 @@ import type {
   PersonCombatView,
   SkillView,
 } from "../../types/game-view";
+import { getStatusLabel } from "../domain/combat-person-damage";
 import type { CombatParticipant, World } from "../domain/types";
-
-function getStatusLabel(type: string): string {
-  const labels: Record<string, string> = {
-    poison: "中毒",
-    bleed: "出血",
-    burn: "燃烧",
-    freeze: "冰冻",
-    sleep: "睡眠",
-    silence: "沉默",
-    blind: "暗闇",
-  };
-  return labels[type] ?? type;
-}
 
 function buildCombatParticipantView(
   p: CombatParticipant,

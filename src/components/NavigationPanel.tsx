@@ -2,11 +2,7 @@
 import { useState, useTransition } from "react";
 
 import { startTravel } from "../app/actions/travel";
-import {
-  SURVIVAL_DEFENSE_FACTOR,
-  SURVIVAL_HP_PENALTY_FACTOR,
-} from "../data/formulas";
-import { calcDefenseScore } from "../game/domain/ship";
+import { computeSurvivalRate } from "../game/view-builder/harborViews";
 import type { NavigationView } from "../types/game-view";
 import { DepartureConfirmModal } from "./DepartureConfirmModal";
 import { DestinationsTable } from "./DestinationsTable";
@@ -65,13 +61,11 @@ export function NavigationPanel({ view }: NavigationPanelProps) {
     const avgDefenseMultiplier = totalDefenseMultiplier / selectedShips.length;
     const avgHpRatio = totalHpRatio / selectedShips.length;
 
-    const score = calcDefenseScore(
+    return computeSurvivalRate(
       avgDefenseMultiplier,
       avgHpRatio,
-      SURVIVAL_DEFENSE_FACTOR,
-      SURVIVAL_HP_PENALTY_FACTOR,
+      baseDangerScore,
     );
-    return Math.min(99, Math.max(5, Math.floor(score - baseDangerScore)));
   }
 
   function toggleShip(shipId: string) {
