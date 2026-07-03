@@ -22,6 +22,8 @@ export interface HarborView {
   readonly maxCrew: number;
   readonly npcsAtPort: readonly NpcSummaryView[];
   readonly questsAvailable: number;
+  readonly selectedTitleName: string | null;
+  readonly unlockedTitleCount: number;
 }
 
 export interface AvailableEquipmentView {
@@ -422,4 +424,25 @@ export interface QuestBoardView {
   readonly portName: string;
   readonly availableQuests: readonly QuestSummaryView[];
   readonly activeQuests: readonly QuestSummaryView[];
+}
+
+// ---- 称号 ----
+
+/** 称号列表中单个称号的展示数据 */
+export interface TitleItemView {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly unlocked: boolean;
+  readonly effects: readonly string[];
+  /** 称号条件的当前进度（仅未解锁时） */
+  readonly progress?: number;
+  /** 称号条件的总目标值（仅未解锁时） */
+  readonly target?: number;
+}
+
+/** 称号页视图（/titles） */
+export interface TitlesView {
+  readonly titles: readonly TitleItemView[];
+  readonly selectedTitleId: string | null;
 }
