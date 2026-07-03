@@ -449,7 +449,7 @@ export function executeSkillAction(params: SkillActionParams): ActionOutcome {
     updatedCaster,
     targetId,
     skill,
-    participants,
+    casterUpdated,
     rng,
     round,
     turnIndex,

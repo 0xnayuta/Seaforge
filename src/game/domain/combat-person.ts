@@ -14,11 +14,7 @@ import { calcInitiative } from "./combat-person-damage";
 import { calcPanelStats } from "./player";
 import type { CombatParticipant, PersonCombatState, World } from "./types";
 
-export {
-  calcInitiative,
-  calcPersonDamage,
-  getStatusLabel,
-} from "./combat-person-damage";
+export { calcInitiative, calcPersonDamage } from "./combat-person-damage";
 export { executePersonCombatAction } from "./combat-person-turn";
 
 // ---- 敌方模板工厂 ----
@@ -26,7 +22,8 @@ export { executePersonCombatAction } from "./combat-person-turn";
 interface EnemyTemplate {
   readonly id: string;
   readonly name: string;
-  readonly stats: {
+  readonly weaponId: string;
+  readonly baseStats: {
     readonly hp: number;
     readonly mp: number;
     readonly atk: number;
@@ -36,9 +33,31 @@ interface EnemyTemplate {
     readonly spd: number;
     readonly luk: number;
   };
-  readonly weaponId: string;
+  /** 中/高难度下使用的提升基础属性 */
+  readonly mediumBaseStats?: {
+    readonly hp: number;
+    readonly atk: number;
+    readonly def: number;
+    readonly spd: number;
+    readonly luk: number;
+  };
+  /** 每等级缩放系数（默认与 pirate_grunt 一致） */
+  readonly scaling?: {
+    readonly hp: number;
+    readonly atk: number;
+    readonly def: number;
+    readonly spd: number;
+    readonly luk: number;
+    readonly mdf: number;
+  };
   readonly levelOffset?: number;
 }
+
+const ENEMY_SCALING = {
+  pirate_grunt: { hp: 8, atk: 1.2, def: 0.8, spd: 0.6, luk: 0.4, mdf: 0.5 },
+  pirate_gunner: { hp: 6, atk: 1.5, def: 0.6, spd: 0.8, luk: 0.5, mdf: 0.6 },
+  pirate_captain: { hp: 12, atk: 2.0, def: 1.2, spd: 0.8, luk: 0.6, mdf: 1.0 },
+} as const satisfies Record<string, EnemyTemplate["scaling"]>;
 
 // 敌方类型定义
 const ENEMY_TEMPLATES: Record<string, EnemyTemplate> = {
@@ -46,19 +65,50 @@ const ENEMY_TEMPLATES: Record<string, EnemyTemplate> = {
     id: "enemy-1",
     name: "海盗水手",
     weaponId: "rusted_sword",
-    stats: { hp: 40, mp: 20, atk: 8, def: 4, mag: 3, mdf: 3, spd: 7, luk: 3 },
+    baseStats: {
+      hp: 40,
+      mp: 20,
+      atk: 8,
+      def: 4,
+      mag: 3,
+      mdf: 3,
+      spd: 7,
+      luk: 3,
+    },
+    mediumBaseStats: { hp: 45, atk: 9, def: 5, spd: 8, luk: 4 },
+    scaling: ENEMY_SCALING.pirate_grunt,
   },
   pirate_gunner: {
     id: "enemy-2",
     name: "海盗火枪手",
     weaponId: "pirate_cutlass",
-    stats: { hp: 35, mp: 25, atk: 12, def: 3, mag: 4, mdf: 4, spd: 10, luk: 5 },
+    baseStats: {
+      hp: 35,
+      mp: 25,
+      atk: 12,
+      def: 3,
+      mag: 4,
+      mdf: 4,
+      spd: 10,
+      luk: 5,
+    },
+    scaling: ENEMY_SCALING.pirate_gunner,
   },
   pirate_captain: {
     id: "enemy-1",
     name: "海盗船长",
     weaponId: "pirate_cutlass",
-    stats: { hp: 70, mp: 30, atk: 15, def: 8, mag: 6, mdf: 7, spd: 11, luk: 8 },
+    baseStats: {
+      hp: 70,
+      mp: 30,
+      atk: 15,
+      def: 8,
+      mag: 6,
+      mdf: 7,
+      spd: 11,
+      luk: 8,
+    },
+    scaling: ENEMY_SCALING.pirate_captain,
     levelOffset: 2,
   },
 };
@@ -69,41 +119,50 @@ function createEnemyGroup(
   enemyLevel: number,
 ): CombatParticipant[] {
   if (difficulty < 1.5) {
-    // 简单：1个海盗水手
     return [
       buildEnemyParticipant(
         ENEMY_TEMPLATES.pirate_grunt,
         "enemy-1",
         enemyLevel,
+        false,
       ),
     ];
   }
-
   if (difficulty < 3.0) {
-    // 中等：1个海盗水手 + 1个海盗火枪手
     return [
       buildEnemyParticipant(
         ENEMY_TEMPLATES.pirate_grunt,
         "enemy-1",
         enemyLevel,
+        true,
       ),
       buildEnemyParticipant(
         ENEMY_TEMPLATES.pirate_gunner,
         "enemy-2",
         enemyLevel,
+        true,
       ),
     ];
   }
-
-  // 困难：1个海盗船长 + 1个海盗水手 + 1个海盗火枪手
   return [
     buildEnemyParticipant(
       ENEMY_TEMPLATES.pirate_captain,
       "enemy-1",
       enemyLevel,
+      true,
     ),
-    buildEnemyParticipant(ENEMY_TEMPLATES.pirate_grunt, "enemy-2", enemyLevel),
-    buildEnemyParticipant(ENEMY_TEMPLATES.pirate_gunner, "enemy-3", enemyLevel),
+    buildEnemyParticipant(
+      ENEMY_TEMPLATES.pirate_grunt,
+      "enemy-2",
+      enemyLevel,
+      true,
+    ),
+    buildEnemyParticipant(
+      ENEMY_TEMPLATES.pirate_gunner,
+      "enemy-3",
+      enemyLevel,
+      true,
+    ),
   ];
 }
 
@@ -112,22 +171,35 @@ function buildEnemyParticipant(
   template: EnemyTemplate,
   id: string,
   level: number,
+  isMediumOrHard: boolean,
 ): CombatParticipant {
   const lvl = level + (template.levelOffset ?? 0);
+  const sc = template.scaling ?? {
+    hp: 8,
+    atk: 1.2,
+    def: 0.8,
+    spd: 0.6,
+    luk: 0.4,
+    mdf: 0.5,
+  };
+  const base =
+    isMediumOrHard && template.mediumBaseStats
+      ? { ...template.baseStats, ...template.mediumBaseStats }
+      : template.baseStats;
   return {
     id,
     name: template.name,
     type: "enemy" as const,
-    hp: template.stats.hp + lvl * 8,
-    maxHp: template.stats.hp + lvl * 8,
-    mp: template.stats.mp,
-    maxMp: template.stats.mp,
-    atk: template.stats.atk + lvl * 1.2,
-    def: template.stats.def + lvl * 0.8,
-    mag: template.stats.mag,
-    mdf: template.stats.mdf + lvl * 0.5,
-    spd: template.stats.spd + lvl * 0.6,
-    luk: template.stats.luk + lvl * 0.4,
+    hp: base.hp + lvl * sc.hp,
+    maxHp: base.hp + lvl * sc.hp,
+    mp: template.baseStats.mp,
+    maxMp: template.baseStats.mp,
+    atk: base.atk + lvl * sc.atk,
+    def: base.def + lvl * sc.def,
+    mag: template.baseStats.mag,
+    mdf: template.baseStats.mdf + lvl * sc.mdf,
+    spd: base.spd + lvl * sc.spd,
+    luk: base.luk + lvl * sc.luk,
     level: lvl,
     weaponId: template.weaponId,
     statuses: [],

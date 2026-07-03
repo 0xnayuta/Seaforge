@@ -38,7 +38,7 @@ export async function saveWorldToSlot(
   try {
     data = JSON.stringify(world);
   } catch {
-    throw new Error("FAILED_TO_SERIALIZE_WORLD");
+    throw new Error("世界序列化失败，存档无法保存");
   }
   await tx.save.upsert({
     where: { slot },
