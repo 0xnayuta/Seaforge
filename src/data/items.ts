@@ -292,3 +292,83 @@ export const ITEM_QUALITY_LABELS = {
   rare: "稀有",
   legendary: "传说",
 } as const;
+
+// ---- 装备合成配方 ----
+
+export interface RecipeIngredient {
+  readonly itemId: string;
+  readonly quantity: number;
+}
+
+export interface EquipmentRecipe {
+  readonly id: string;
+  readonly resultId: string;
+  readonly name: string;
+  readonly ingredients: readonly RecipeIngredient[];
+  readonly goldCost: number;
+  readonly portId: string;
+  readonly minAffinity?: { readonly npcId: string; readonly value: number };
+}
+
+export const RECIPES: readonly EquipmentRecipe[] = [
+  {
+    id: "rusty_to_iron",
+    resultId: "iron_sword",
+    name: "精钢长剑",
+    ingredients: [{ itemId: "rusted_sword", quantity: 2 }],
+    goldCost: 300,
+    portId: "quanzhou",
+  },
+  {
+    id: "leather_to_chain",
+    resultId: "chain_mail",
+    name: "锁子甲",
+    ingredients: [{ itemId: "leather_armor", quantity: 2 }],
+    goldCost: 500,
+    portId: "london",
+  },
+  {
+    id: "brass_to_vigor",
+    resultId: "ring_of_vigor",
+    name: "生命戒指",
+    ingredients: [
+      { itemId: "brass_ring", quantity: 1 },
+      { itemId: "ring_of_strength", quantity: 1 },
+    ],
+    goldCost: 400,
+    portId: "alexandria",
+  },
+  {
+    id: "iron_to_silver",
+    resultId: "silver_rapier",
+    name: "白银细剑",
+    ingredients: [
+      { itemId: "iron_sword", quantity: 1 },
+      { itemId: "mage_staff", quantity: 1 },
+    ],
+    goldCost: 800,
+    portId: "venice",
+  },
+  {
+    id: "chain_to_plate",
+    resultId: "plate_armor",
+    name: "骑士板甲",
+    ingredients: [
+      { itemId: "chain_mail", quantity: 1 },
+      { itemId: "robe_of_wisdom", quantity: 1 },
+    ],
+    goldCost: 1500,
+    portId: "malacca",
+  },
+  {
+    id: "silver_to_harpoon",
+    resultId: "legendary_harpoon",
+    name: "风暴鱼叉",
+    ingredients: [
+      { itemId: "silver_rapier", quantity: 1 },
+      { itemId: "pirate_cutlass", quantity: 1 },
+    ],
+    goldCost: 3000,
+    portId: "goa",
+  },
+];

@@ -56,6 +56,10 @@ const ERROR_MAP: Record<string, string> = {
   DUNGEON_ON_COOLDOWN: "副本冷却中，请等待冷却结束",
   DUNGEON_IN_PROGRESS: "已在副本中",
   DUNGEON_NOT_IN_PROGRESS: "当前不在副本中",
+  RECIPE_NOT_FOUND: "配方不存在",
+  INSUFFICIENT_MATERIALS: "材料不足，无法合成",
+  RECIPE_WRONG_PORT: "当前港口无法合成该装备",
+  RECIPE_AFFINITY_TOO_LOW: "好感度不足，无法合成",
 };
 
 /** 将领域层的 DomainError 转为用户可读的中文错误消息 */
