@@ -446,3 +446,53 @@ export interface TitlesView {
   readonly titles: readonly TitleItemView[];
   readonly selectedTitleId: string | null;
 }
+
+// ---- 成就 ----
+
+export interface AchievementRewardView {
+  readonly gold?: number;
+  readonly exp?: number;
+}
+
+/** 成就列表中单个成就的展示数据 */
+export interface AchievementItemView {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly unlocked: boolean;
+  readonly claimed: boolean;
+  readonly progress: number;
+  readonly target: number;
+  readonly reward: AchievementRewardView;
+}
+
+/** 成就页视图（/achievements） */
+export interface AchievementsView {
+  readonly achievements: readonly AchievementItemView[];
+  readonly totalClaimed: number;
+  readonly totalCount: number;
+}
+
+// ---- 图鉴 ----
+
+/** 图鉴各类别的进度摘要 */
+export interface CollectionCategoryView {
+  readonly label: string;
+  readonly progress: number;
+  readonly total: number;
+  readonly items: readonly CollectionEntryView[];
+}
+
+/** 图鉴中单个条目 */
+export interface CollectionEntryView {
+  readonly id: string;
+  readonly name: string;
+  readonly unlocked: boolean;
+}
+
+/** 图鉴页视图（/collection） */
+export interface CollectionView {
+  readonly categories: readonly CollectionCategoryView[];
+  readonly totalProgress: number;
+  readonly totalCount: number;
+}

@@ -23,10 +23,15 @@ import { SHIPS } from "../../data/ships";
 import { SKILLS } from "../../data/skills";
 import { TITLES, type TitleConfig } from "../../data/titles";
 import type {
+  AchievementItemView,
+  AchievementsView,
   AvailableShipView,
   CargoItemView,
   CargoView,
   CharacterView,
+  CollectionCategoryView,
+  CollectionEntryView,
+  CollectionView,
   CombatChoiceView,
   CombatLogEntryView,
   CombatParticipantView,
@@ -66,6 +71,7 @@ import {
   getReachablePorts,
 } from "../domain/navigation";
 import { calcPanelStats } from "../domain/player";
+import { getAchievementProgress } from "../domain/achievement";
 import { getAvailableQuests } from "../domain/quest";
 import type { ComponentType } from "../domain/ship";
 import {
@@ -1125,4 +1131,82 @@ export function buildTitlesView(world: World): TitlesView {
     titles,
     selectedTitleId: world.selectedTitle,
   };
+}
+
+// ============================================================
+// 成就视图
+// ============================================================
+
+export function buildAchievementsView(world: World): AchievementsView {
+  const progress = getAchievementProgress(world);
+  const achievements: AchievementItemView[] = progress.map((p) => ({
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    unlocked: p.unlocked,
+    claimed: p.claimed,
+    progress: p.progress,
+    target: p.target,
+    reward: p.reward,
+  }));
+
+  return {
+    achievements,
+    totalClaimed: progress.filter((p) => p.claimed).length,
+    totalCount: progress.length,
+  };
+}
+
+// ============================================================
+// 图鉴视图
+// ============================================================
+
+function buildCollectionCategory(
+  label: string,
+  totalEntries: readonly { id: string; name: string }[],
+  unlockedIds: readonly string[],
+): CollectionCategoryView {
+  const items: CollectionEntryView[] = totalEntries.map((entry) => ({
+    id: entry.id,
+    name: entry.name,
+    unlocked: unlockedIds.includes(entry.id),
+  }));
+  return {
+    label,
+    progress: items.filter((i) => i.unlocked).length,
+    total: items.length,
+    items,
+  };
+}
+
+export function buildCollectionView(world: World): CollectionView {
+  const { collection } = world;
+
+  const categories: CollectionCategoryView[] = [
+    buildCollectionCategory(
+      "港口",
+      PORTS.map((p) => ({ id: p.id, name: p.name })),
+      collection.visitedPorts,
+    ),
+    buildCollectionCategory(
+      "商品",
+      GOODS.map((g) => ({ id: g.id, name: g.name })),
+      collection.tradedGoods,
+    ),
+    buildCollectionCategory(
+      "船只",
+      SHIPS.map((s) => ({ id: s.id, name: s.name })),
+      collection.ownedShips,
+    ),
+    buildCollectionCategory(
+      "物品",
+      ITEMS.map((item) => ({ id: item.id, name: item.name })),
+      collection.collectedItems,
+    ),
+  ];
+
+  const totalProgress = categories.reduce((sum, c) => sum + c.progress, 0);
+  const totalCount = categories.reduce((sum, c) => sum + c.total, 0);
+
+  return { categories, totalProgress, totalCount };
 }
