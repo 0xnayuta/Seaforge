@@ -34,10 +34,16 @@ export async function saveWorldToSlot(
   world: World,
   slot: number,
 ): Promise<void> {
+  let data: string;
+  try {
+    data = JSON.stringify(world);
+  } catch {
+    throw new Error("FAILED_TO_SERIALIZE_WORLD");
+  }
   await tx.save.upsert({
     where: { slot },
-    update: { data: JSON.stringify(world) },
-    create: { slot, data: JSON.stringify(world) },
+    update: { data },
+    create: { slot, data },
   });
 }
 
@@ -58,5 +64,7 @@ export async function listSaves(): Promise<
 
 /** 删除指定槽位的存档（槽位为空时静默忽略） */
 export async function deleteSave(slot: number): Promise<void> {
-  await prisma.save.delete({ where: { slot } }).catch(() => {});
+  const existing = await prisma.save.findUnique({ where: { slot } });
+  if (!existing) return;
+  await prisma.save.delete({ where: { slot } });
 }
