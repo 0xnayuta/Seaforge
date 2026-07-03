@@ -20,9 +20,5 @@ export {
 export { buildNpcDetailView } from "./npcViews";
 export { buildQuestBoardView, buildQuestDetailView } from "./questViews";
 export { buildSaveSlotViews, type RawSaveRow } from "./saveSlotViews";
-export {
-  buildFleetShipSummaryView,
-  buildFleetView,
-  buildShipView,
-} from "./shipViews";
+export { buildFleetView, buildShipView } from "./shipViews";
 export { buildVoyageView } from "./voyageViews";
