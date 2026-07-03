@@ -44,10 +44,13 @@ export function makeCombat(
     hp: 40,
     maxHp: 40,
     mp: 20,
+    maxMp: 20,
     atk: 8,
     def: 4,
     spd: 7,
     luk: 3,
+    mag: 3,
+    mdf: 3,
     level: 1,
     weaponId: "rusted_sword",
   });

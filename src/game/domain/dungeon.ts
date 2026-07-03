@@ -221,8 +221,6 @@ function processFloorEvent(
       return handleTreasureFloorEvent(world, event);
     case "choice":
       return handleChoiceFloorEvent(world, event, choiceId);
-    default:
-      return world;
   }
 }
 
