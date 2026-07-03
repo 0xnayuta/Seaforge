@@ -1,5 +1,6 @@
 "use server";
 
+import { updateCollection } from "../../game/domain/collection";
 import {
   allocateAttributePoint,
   equipCharacterItem,
@@ -22,7 +23,10 @@ async function characterTx(
   domainFn: (world: World) => World,
 ): Promise<CharacterView> {
   try {
-    return await withTransaction(domainFn, buildCharacterView)();
+    return await withTransaction(
+      (w) => updateCollection(domainFn(w)),
+      buildCharacterView,
+    )();
   } catch (e) {
     throw new Error(getErrorMessage(e));
   }

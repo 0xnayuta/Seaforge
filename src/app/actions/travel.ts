@@ -1,6 +1,7 @@
 "use server";
 import { redirect } from "next/navigation";
 import { PORTS } from "../../data/ports";
+import { updateCollection } from "../../game/domain/collection";
 import { calcMinCrewForFleet } from "../../game/domain/crew";
 import { calcFleetTravelDays } from "../../game/domain/navigation";
 import { getActiveShip } from "../../game/domain/ship";
@@ -56,7 +57,7 @@ export async function startTravel(formData: FormData): Promise<void> {
           fleetShipIds: shipIds,
         });
 
-        return { ...w, voyage };
+        return updateCollection({ ...w, voyage });
       },
       () => undefined,
     )();

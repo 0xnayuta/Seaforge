@@ -1,5 +1,6 @@
 "use server";
 
+import { updateCollection } from "../../game/domain/collection";
 import {
   acceptQuest,
   checkQuestProgress,
@@ -11,7 +12,7 @@ import { withTransaction } from "../../lib/with-transaction";
 export async function acceptQuestAction(questId: string): Promise<void> {
   try {
     await withTransaction(
-      (w) => acceptQuest(checkQuestProgress(w), questId),
+      (w) => updateCollection(acceptQuest(checkQuestProgress(w), questId)),
       () => undefined,
     )();
   } catch (e) {
@@ -22,7 +23,7 @@ export async function acceptQuestAction(questId: string): Promise<void> {
 export async function completeQuestAction(questId: string): Promise<void> {
   try {
     await withTransaction(
-      (w) => completeQuest(checkQuestProgress(w), questId),
+      (w) => updateCollection(completeQuest(checkQuestProgress(w), questId)),
       () => undefined,
     )();
   } catch (e) {

@@ -1,5 +1,6 @@
 "use server";
 
+import { updateCollection } from "../../game/domain/collection";
 import { giveGift, recruitNpc, talkToNpc } from "../../game/domain/npc";
 import { checkQuestProgress } from "../../game/domain/quest";
 import type { World } from "../../game/domain/types";
@@ -21,7 +22,7 @@ export async function loadNpcView(
 async function npcTx(fn: (world: World) => World): Promise<void> {
   try {
     await withTransaction(
-      (w) => fn(checkQuestProgress(w)),
+      (w) => updateCollection(fn(checkQuestProgress(w))),
       () => undefined,
     )();
   } catch (e) {

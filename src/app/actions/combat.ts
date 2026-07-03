@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { PORTS } from "../../data/ports";
 import { REGIONS } from "../../data/regions";
+import { updateCollection } from "../../game/domain/collection";
 import {
   performCombatAction as domainPerformCombatAction,
   initPersonCombat,
@@ -38,11 +39,13 @@ export async function performCombatAction(
   try {
     return await withTransaction((w) => {
       if (!w.combat) throw new Error("当前不在战斗中");
-      return domainPerformCombatAction(w, {
-        type: finalActionType as "attack" | "skill" | "dodge" | "parry",
-        skillId: skillId ?? undefined,
-        targetId: targetId ?? undefined,
-      });
+      return updateCollection(
+        domainPerformCombatAction(w, {
+          type: finalActionType as "attack" | "skill" | "dodge" | "parry",
+          skillId: skillId ?? undefined,
+          targetId: targetId ?? undefined,
+        }),
+      );
     }, buildVoyageView)();
   } catch (e) {
     throw new Error(getErrorMessage(e));
@@ -97,8 +100,7 @@ export async function surrenderAfterFleetLoss(): Promise<void> {
           },
         };
 
-        // 继续处理剩余航行事件
-        return progressVoyage(afterSurrender);
+        return updateCollection(progressVoyage(afterSurrender));
       },
       () => undefined,
     )();
@@ -166,8 +168,7 @@ export async function acceptBoarding(): Promise<void> {
           },
           combat: initPersonCombat(w, difficulty),
         };
-
-        return nextWorld;
+        return updateCollection(nextWorld);
       },
       () => undefined,
     )();

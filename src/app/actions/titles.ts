@@ -1,5 +1,6 @@
 "use server";
 
+import { updateCollection } from "../../game/domain/collection";
 import { selectTitle } from "../../game/domain/title";
 import {
   buildHarborView,
@@ -21,7 +22,7 @@ export async function selectTitleAction(
   const titleId = formData.get("titleId") as string | null;
   try {
     return await withTransaction(
-      (w) => selectTitle(w, titleId),
+      (w) => updateCollection(selectTitle(w, titleId)),
       buildHarborView,
     )();
   } catch (e) {

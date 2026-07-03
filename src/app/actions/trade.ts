@@ -1,4 +1,5 @@
 "use server";
+import { updateCollection } from "../../game/domain/collection";
 import {
   buyGoods as domainBuyGoods,
   sellGoods as domainSellGoods,
@@ -17,10 +18,9 @@ export async function buyGoods(formData: FormData): Promise<MarketView> {
 
   if (!goodsId || !Number.isFinite(quantity) || quantity <= 0)
     throw new Error("无效的购买请求");
-
   try {
     return await withTransaction(
-      (w) => domainBuyGoods(w, { goodsId, quantity }).world,
+      (w) => updateCollection(domainBuyGoods(w, { goodsId, quantity }).world),
       buildMarketView,
     )();
   } catch (e) {
@@ -34,10 +34,9 @@ export async function sellGoods(formData: FormData): Promise<CargoView> {
 
   if (!goodsId || !Number.isFinite(quantity) || quantity <= 0)
     throw new Error("无效的卖出请求");
-
   try {
     return await withTransaction(
-      (w) => domainSellGoods(w, { goodsId, quantity }).world,
+      (w) => updateCollection(domainSellGoods(w, { goodsId, quantity }).world),
       buildCargoView,
     )();
   } catch (e) {

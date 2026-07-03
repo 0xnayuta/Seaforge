@@ -1,5 +1,6 @@
 "use server";
 
+import { updateCollection } from "../../game/domain/collection";
 import { getActiveShip, setArmamentLevel } from "../../game/domain/ship";
 import { buildFleetView } from "../../game/view-builder/buildGameView";
 import { getErrorMessage } from "../../lib/domain-errors";
@@ -24,10 +25,10 @@ export async function switchActiveShipAction(
       if (w.voyage) throw new Error("航行中无法更换旗舰");
       const shipExists = w.fleet.ships.some((s) => s.id === shipId);
       if (!shipExists) throw new Error("无效船只");
-      return {
+      return updateCollection({
         ...w,
         fleet: { ...w.fleet, activeShipId: shipId },
-      };
+      });
     }, buildFleetView)();
   } catch (e) {
     throw new Error(getErrorMessage(e));
@@ -47,7 +48,7 @@ export async function setArmamentAction(
       const targetShipId = shipId || getActiveShip(w).id;
       const shipExists = w.fleet.ships.some((s) => s.id === targetShipId);
       if (!shipExists) throw new Error("无效船只");
-      return setArmamentLevel(w, targetShipId, level);
+      return updateCollection(setArmamentLevel(w, targetShipId, level));
     }, buildFleetView)();
   } catch (e) {
     throw new Error(getErrorMessage(e));

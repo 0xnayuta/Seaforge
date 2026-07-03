@@ -1,5 +1,6 @@
 "use server";
 
+import { updateCollection } from "../../game/domain/collection";
 import type { ComponentType } from "../../game/domain/ship";
 import {
   buyShip,
@@ -26,7 +27,7 @@ export async function buyShipAction(formData: FormData): Promise<ShipyardView> {
   if (!typeId) throw new Error("未选择船只类型");
   try {
     return await withTransaction(
-      (w) => buyShip(w, typeId),
+      (w) => updateCollection(buyShip(w, typeId)),
       buildShipyardView,
     )();
   } catch (e) {
@@ -40,7 +41,7 @@ export async function sellShipAction(
   const shipId = formData.get("shipId") as string;
   try {
     return await withTransaction(
-      (w) => sellShip(w, shipId),
+      (w) => updateCollection(sellShip(w, shipId)),
       buildShipyardView,
     )();
   } catch (e) {
@@ -57,7 +58,7 @@ export async function upgradeComponentAction(
   if (!shipId) throw new Error("未指定船只");
   try {
     return await withTransaction(
-      (w) => upgradeComponent(w, shipId, component),
+      (w) => updateCollection(upgradeComponent(w, shipId, component)),
       (w) => buildShipyardView(w, shipId),
     )();
   } catch (e) {
@@ -73,7 +74,7 @@ export async function repairShipAction(
   if (!shipId) throw new Error("未指定船只");
   try {
     return await withTransaction(
-      (w) => repairShip(w, shipId),
+      (w) => updateCollection(repairShip(w, shipId)),
       (w) => buildShipyardView(w, shipId),
     )();
   } catch (e) {

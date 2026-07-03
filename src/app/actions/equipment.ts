@@ -1,5 +1,6 @@
 "use server";
 
+import { updateCollection } from "../../game/domain/collection";
 import {
   buyEquipment,
   equipItem,
@@ -18,8 +19,9 @@ async function shipyardTx(
   shipId: string,
 ): Promise<ShipyardView> {
   try {
-    return await withTransaction(domainFn, (w) =>
-      buildShipyardView(w, shipId),
+    return await withTransaction(
+      (w) => updateCollection(domainFn(w)),
+      (w) => buildShipyardView(w, shipId),
     )();
   } catch (e) {
     throw new Error(getErrorMessage(e));

@@ -1,5 +1,6 @@
 "use server";
 
+import { updateCollection } from "../../game/domain/collection";
 import { fireCrew, hireCrew } from "../../game/domain/crew";
 import { buildTavernView } from "../../game/view-builder/buildGameView";
 import { getErrorMessage } from "../../lib/domain-errors";
@@ -14,7 +15,7 @@ export async function hireCrewAction(formData: FormData): Promise<TavernView> {
 
   try {
     return await withTransaction(
-      (w) => hireCrew(w, quantity),
+      (w) => updateCollection(hireCrew(w, quantity)),
       buildTavernView,
     )();
   } catch (e) {
@@ -30,7 +31,7 @@ export async function fireCrewAction(formData: FormData): Promise<TavernView> {
 
   try {
     return await withTransaction(
-      (w) => fireCrew(w, quantity),
+      (w) => updateCollection(fireCrew(w, quantity)),
       buildTavernView,
     )();
   } catch (e) {
