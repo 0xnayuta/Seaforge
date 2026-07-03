@@ -73,6 +73,13 @@ export function createTestWorld(overrides?: Partial<World>): World {
     npcRelations: {},
     activeQuests: [],
     selectedTitle: null,
+    collection: {
+      visitedPorts: ["quanzhou"],
+      tradedGoods: ["silk", "spice"],
+      ownedShips: ["sloop"],
+      collectedItems: [],
+    },
+    claimedAchievements: [],
     ...overrides,
   };
 }
@@ -138,6 +145,13 @@ export function createEmptyWorld(overrides?: Partial<World>): World {
     npcRelations: {},
     activeQuests: [],
     selectedTitle: null,
+    collection: {
+      visitedPorts: ["malacca"],
+      tradedGoods: [],
+      ownedShips: ["sloop"],
+      collectedItems: [],
+    },
+    claimedAchievements: [],
     ...overrides,
   };
 }

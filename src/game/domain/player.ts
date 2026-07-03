@@ -80,6 +80,13 @@ export function createDefaultWorld(): World {
     npcRelations: {},
     activeQuests: [],
     selectedTitle: null,
+    collection: {
+      visitedPorts: ["quanzhou"],
+      tradedGoods: [],
+      ownedShips: ["sloop"],
+      collectedItems: [],
+    },
+    claimedAchievements: [],
   };
 }
 

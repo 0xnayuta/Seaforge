@@ -47,6 +47,9 @@ const ERROR_MAP: Record<string, string> = {
   QUEST_NOT_FOUND: "未找到该任务",
   QUEST_REQUIREMENT_NOT_MET: "不满足任务要求",
   SILENCED: "您处于沉默状态，无法施放魔法技能",
+  ACHIEVEMENT_NOT_FOUND: "成就不存在",
+  ACHIEVEMENT_NOT_UNLOCKED: "成就尚未解锁",
+  ACHIEVEMENT_ALREADY_CLAIMED: "成就奖励已领取",
 };
 
 /** 将领域层的 DomainError 转为用户可读的中文错误消息 */

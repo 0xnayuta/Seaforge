@@ -175,6 +175,15 @@ export interface ActiveQuest {
   readonly acceptedAtDay: number;
 }
 
+// ---- 图鉴 ----
+
+export interface CollectionState {
+  readonly visitedPorts: readonly string[];
+  readonly tradedGoods: readonly string[];
+  readonly ownedShips: readonly string[];
+  readonly collectedItems: readonly string[];
+}
+
 export interface World {
   readonly player: PlayerState;
   readonly fleet: FleetState;
@@ -184,6 +193,8 @@ export interface World {
   readonly npcRelations: Record<string, NpcRelationState>;
   readonly activeQuests: readonly ActiveQuest[];
   readonly selectedTitle: string | null;
+  readonly collection: CollectionState;
+  readonly claimedAchievements: readonly string[];
 }
 
 // ---- 领域错误 ----
@@ -246,4 +257,7 @@ export type DomainErrorCode =
   | "QUEST_REQUIREMENT_NOT_MET"
   | "ITEM_NOT_FOUND_IN_INVENTORY"
   | "TITLE_NOT_FOUND"
-  | "TITLE_NOT_UNLOCKED";
+  | "TITLE_NOT_UNLOCKED"
+  | "ACHIEVEMENT_NOT_FOUND"
+  | "ACHIEVEMENT_NOT_UNLOCKED"
+  | "ACHIEVEMENT_ALREADY_CLAIMED";
