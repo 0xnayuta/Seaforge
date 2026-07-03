@@ -109,7 +109,5 @@ function getConditionProgress(
       return { progress: collection.collectedItems.length, target };
     case "shipsOwned":
       return { progress: collection.ownedShips.length, target };
-    case "tradedGoodsTotal":
-      return { progress: collection.tradedGoods.length, target };
   }
 }

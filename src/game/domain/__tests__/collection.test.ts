@@ -26,21 +26,62 @@ describe("updateCollection", () => {
     expect(updated).toBe(world);
   });
 
-  it("adds ship type IDs from fleet", () => {
-    const world = createTestWorld();
-    // createTestWorld has sloop; ownedShips already contains sloop
+  it("adds new ship type from fleet to collection", () => {
+    const base = createTestWorld();
+    const world: World = {
+      ...base,
+      fleet: {
+        ...base.fleet,
+        ships: [
+          ...base.fleet.ships,
+          {
+            id: "ship-2",
+            typeId: "schooner",
+            name: "双桅纵帆船",
+            equipment: {
+              hullLevel: 0,
+              sailLevel: 0,
+              armorLevel: 0,
+              cannonLevel: 0,
+            },
+            durability: 80,
+            maxDurability: 80,
+            cargo: [],
+            armamentLevel: 0,
+            equippedItems: [],
+          },
+        ],
+      },
+    };
 
     const updated = updateCollection(world);
+    expect(updated.collection.ownedShips).toContain("schooner");
     expect(updated.collection.ownedShips).toContain("sloop");
   });
 
-  it("adds cargo good IDs to tradedGoods", () => {
-    const world = createTestWorld();
-    // createTestWorld has silk and spice in cargo
+  it("adds new cargo good ID from cargo to collection", () => {
+    const base = createTestWorld();
+    const world: World = {
+      ...base,
+      fleet: {
+        ...base.fleet,
+        ships: base.fleet.ships.map((s) =>
+          s.id === base.fleet.activeShipId
+            ? {
+                ...s,
+                cargo: [
+                  ...s.cargo,
+                  { goodId: "porcelain", quantity: 10, buyPrice: 500 },
+                ],
+              }
+            : s,
+        ),
+      },
+    };
 
     const updated = updateCollection(world);
+    expect(updated.collection.tradedGoods).toContain("porcelain");
     expect(updated.collection.tradedGoods).toContain("silk");
-    expect(updated.collection.tradedGoods).toContain("spice");
   });
 
   it("adds inventory item IDs to collectedItems", () => {

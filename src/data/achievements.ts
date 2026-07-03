@@ -11,8 +11,7 @@ export type AchievementConditionType =
   | "voyagesCompleted"
   | "portsVisited"
   | "itemsCollected"
-  | "shipsOwned"
-  | "tradedGoodsTotal";
+  | "shipsOwned";
 
 export interface AchievementCondition {
   readonly type: AchievementConditionType;

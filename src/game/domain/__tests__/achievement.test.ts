@@ -4,18 +4,24 @@
 
 import { describe, expect, it } from "bun:test";
 import { claimAchievementReward, getAchievementProgress } from "../achievement";
-import type { World } from "../types";
+import type { PlayerState, World } from "../types";
 import { createTestWorld } from "./helpers";
+
+/** 创建一个仅覆盖指定 PlayerState 字段的测试 World */
+function worldWithPlayer(overrides: Partial<PlayerState>): World {
+  return createTestWorld({
+    player: { ...createTestWorld().player, ...overrides },
+  });
+}
 
 describe("getAchievementProgress", () => {
   it("returns progress for all achievements", () => {
     const world = createTestWorld();
     const progress = getAchievementProgress(world);
 
-    // 15 achievements defined in data
     expect(progress.length).toBe(15);
 
-    // Fresh world: only first_voyage should be unlocked (0 voyagesCompleted >= 1 is false... wait, 0 >= 1 is false)
+    // Fresh world: no achievements unlocked
     const firstVoyage = progress.find((p) => p.id === "first_voyage");
     expect(firstVoyage).toBeDefined();
     expect(firstVoyage!.unlocked).toBe(false);
@@ -25,66 +31,14 @@ describe("getAchievementProgress", () => {
   });
 
   it("unlocks first_voyage when voyagesCompleted >= 1", () => {
-    const world = createTestWorld({
-      player: {
-        name: "测试船长",
-        currentPortId: "quanzhou",
-        day: 1,
-        level: 1,
-        exp: 0,
-        expToNext: 100,
-        str: 1,
-        dex: 1,
-        int: 1,
-        fth: 1,
-        arc: 1,
-        attributePoints: 0,
-        equipment: {
-          weapon: null,
-          armor: null,
-          accessory1: null,
-          accessory2: null,
-        },
-        totalSalesRevenue: 0,
-        bestSingleProfit: 0,
-        totalMileage: 0,
-        combatWins: 0,
-        voyagesCompleted: 1,
-      },
-    });
+    const world = worldWithPlayer({ voyagesCompleted: 1 });
     const progress = getAchievementProgress(world);
     const firstVoyage = progress.find((p) => p.id === "first_voyage")!;
     expect(firstVoyage.unlocked).toBe(true);
   });
 
   it("unlocks merchant_apprentice when totalSalesRevenue >= 10000", () => {
-    const world = createTestWorld({
-      player: {
-        name: "测试船长",
-        currentPortId: "quanzhou",
-        day: 1,
-        level: 1,
-        exp: 0,
-        expToNext: 100,
-        str: 1,
-        dex: 1,
-        int: 1,
-        fth: 1,
-        arc: 1,
-        attributePoints: 0,
-        equipment: {
-          weapon: null,
-          armor: null,
-          accessory1: null,
-          accessory2: null,
-        },
-        totalSalesRevenue: 10000,
-        bestSingleProfit: 0,
-        totalMileage: 0,
-        combatWins: 0,
-        voyagesCompleted: 0,
-      },
-    });
+    const world = worldWithPlayer({ totalSalesRevenue: 10000 });
     const progress = getAchievementProgress(world);
     const achievement = progress.find((p) => p.id === "merchant_apprentice")!;
     expect(achievement.unlocked).toBe(true);
@@ -93,33 +47,7 @@ describe("getAchievementProgress", () => {
   });
 
   it("shows progress toward tycoon without unlocking", () => {
-    const world = createTestWorld({
-      player: {
-        name: "测试船长",
-        currentPortId: "quanzhou",
-        day: 1,
-        level: 1,
-        exp: 0,
-        expToNext: 100,
-        str: 1,
-        dex: 1,
-        int: 1,
-        fth: 1,
-        arc: 1,
-        attributePoints: 0,
-        equipment: {
-          weapon: null,
-          armor: null,
-          accessory1: null,
-          accessory2: null,
-        },
-        totalSalesRevenue: 100000,
-        bestSingleProfit: 0,
-        totalMileage: 0,
-        combatWins: 0,
-        voyagesCompleted: 0,
-      },
-    });
+    const world = worldWithPlayer({ totalSalesRevenue: 100000 });
     const progress = getAchievementProgress(world);
     const tycoon = progress.find((p) => p.id === "tycoon")!;
     expect(tycoon.unlocked).toBe(false);
@@ -164,33 +92,7 @@ describe("getAchievementProgress", () => {
   });
 
   it("reports combat-related achievements", () => {
-    const world = createTestWorld({
-      player: {
-        name: "测试船长",
-        currentPortId: "quanzhou",
-        day: 1,
-        level: 1,
-        exp: 0,
-        expToNext: 100,
-        str: 1,
-        dex: 1,
-        int: 1,
-        fth: 1,
-        arc: 1,
-        attributePoints: 0,
-        equipment: {
-          weapon: null,
-          armor: null,
-          accessory1: null,
-          accessory2: null,
-        },
-        totalSalesRevenue: 0,
-        bestSingleProfit: 0,
-        totalMileage: 0,
-        combatWins: 10,
-        voyagesCompleted: 0,
-      },
-    });
+    const world = worldWithPlayer({ combatWins: 10 });
     const progress = getAchievementProgress(world);
     const fighter = progress.find((p) => p.id === "fighter")!;
     expect(fighter.unlocked).toBe(true);
@@ -200,39 +102,10 @@ describe("getAchievementProgress", () => {
 
 describe("claimAchievementReward", () => {
   it("claims reward for an unlocked achievement", () => {
-    const world = createTestWorld({
-      player: {
-        name: "测试船长",
-        currentPortId: "quanzhou",
-        day: 1,
-        level: 1,
-        exp: 0,
-        expToNext: 100,
-        str: 1,
-        dex: 1,
-        int: 1,
-        fth: 1,
-        arc: 1,
-        attributePoints: 0,
-        equipment: {
-          weapon: null,
-          armor: null,
-          accessory1: null,
-          accessory2: null,
-        },
-        totalSalesRevenue: 0,
-        bestSingleProfit: 0,
-        totalMileage: 0,
-        combatWins: 0,
-        voyagesCompleted: 1,
-      },
-    });
-
+    const world = worldWithPlayer({ voyagesCompleted: 1 });
     const newWorld = claimAchievementReward(world, "first_voyage");
 
-    // Should mark as claimed
     expect(newWorld.claimedAchievements).toContain("first_voyage");
-    // Should grant gold reward (500)
     expect(newWorld.fleet.gold).toBe(world.fleet.gold + 500);
   });
 
@@ -252,33 +125,7 @@ describe("claimAchievementReward", () => {
 
   it("throws for already-claimed achievement", () => {
     const world: World = {
-      ...createTestWorld({
-        player: {
-          name: "测试船长",
-          currentPortId: "quanzhou",
-          day: 1,
-          level: 1,
-          exp: 0,
-          expToNext: 100,
-          str: 1,
-          dex: 1,
-          int: 1,
-          fth: 1,
-          arc: 1,
-          attributePoints: 0,
-          equipment: {
-            weapon: null,
-            armor: null,
-            accessory1: null,
-            accessory2: null,
-          },
-          totalSalesRevenue: 0,
-          bestSingleProfit: 0,
-          totalMileage: 0,
-          combatWins: 0,
-          voyagesCompleted: 1,
-        },
-      }),
+      ...worldWithPlayer({ voyagesCompleted: 1 }),
       claimedAchievements: ["first_voyage"],
     };
 
@@ -288,35 +135,9 @@ describe("claimAchievementReward", () => {
   });
 
   it("grants exp reward when specified", () => {
-    const world = createTestWorld({
-      player: {
-        name: "测试船长",
-        currentPortId: "quanzhou",
-        day: 1,
-        level: 1,
-        exp: 0,
-        expToNext: 100,
-        str: 1,
-        dex: 1,
-        int: 1,
-        fth: 1,
-        arc: 1,
-        attributePoints: 0,
-        equipment: {
-          weapon: null,
-          armor: null,
-          accessory1: null,
-          accessory2: null,
-        },
-        totalSalesRevenue: 0,
-        bestSingleProfit: 0,
-        totalMileage: 0,
-        combatWins: 10,
-        voyagesCompleted: 0,
-      },
-    });
-
+    const world = worldWithPlayer({ combatWins: 10 });
     const newWorld = claimAchievementReward(world, "fighter");
+
     // fighter gives gold 1500 + exp 100
     expect(newWorld.fleet.gold).toBe(world.fleet.gold + 1500);
     // exp 100 at level 1 / expToNext 100 causes level-up; exp resets to overflow (0)

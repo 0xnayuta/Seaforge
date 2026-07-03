@@ -59,6 +59,7 @@ import type {
   VoyageEventView,
   VoyageView,
 } from "../../types/game-view";
+import { getAchievementProgress } from "../domain/achievement";
 import type { CombatOutcome } from "../domain/combat";
 import {
   getShipCargoCapacity,
@@ -71,7 +72,6 @@ import {
   getReachablePorts,
 } from "../domain/navigation";
 import { calcPanelStats } from "../domain/player";
-import { getAchievementProgress } from "../domain/achievement";
 import { getAvailableQuests } from "../domain/quest";
 import type { ComponentType } from "../domain/ship";
 import {
