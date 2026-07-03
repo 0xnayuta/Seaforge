@@ -20,7 +20,9 @@ export function updateCollection(world: World): World {
   const collectedItems = mergeUnique(prev.collectedItems, inventoryItemIds);
 
   // 从各船货舱中提取交易过的商品
-  const cargoGoodIds = fleet.ships.flatMap((s) => s.cargo.map((c) => c.goodId));
+  const cargoGoodIds = fleet.ships.flatMap((s) =>
+    s.cargo.map((c) => c.goodsId),
+  );
   const tradedGoods = mergeUnique(prev.tradedGoods, cargoGoodIds);
 
   if (

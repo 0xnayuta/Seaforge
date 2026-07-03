@@ -106,7 +106,7 @@ export function worldWithCombat(
             armorLevel: 0,
             cannonLevel: 0,
           },
-          cargo: [{ goodId: "silk", quantity: 5, buyPrice: 102 }],
+          cargo: [{ goodsId: "silk", quantity: 5, buyPrice: 102 }],
           armamentLevel: 0,
           equippedItems: [],
         },

@@ -8,7 +8,7 @@ export interface DeliveryRequirement {
   readonly type: "delivery";
   readonly fromPortId: string;
   readonly toPortId: string;
-  readonly goodId: string;
+  readonly goodsId: string;
   readonly quantity: number;
 }
 
@@ -66,7 +66,7 @@ export const QUESTS: readonly QuestConfig[] = [
       type: "delivery",
       fromPortId: "quanzhou",
       toPortId: "nagasaki",
-      goodId: "silk",
+      goodsId: "silk",
       quantity: 10,
     },
     rewards: { gold: 800, exp: 60, itemIds: ["ring_of_vigor"] },
@@ -104,7 +104,7 @@ export const QUESTS: readonly QuestConfig[] = [
       type: "delivery",
       fromPortId: "venice",
       toPortId: "alexandria",
-      goodId: "glassware",
+      goodsId: "glassware",
       quantity: 8,
     },
     rewards: { gold: 1500, exp: 100, itemIds: ["silver_rapier"] },
@@ -142,7 +142,7 @@ export const QUESTS: readonly QuestConfig[] = [
       type: "delivery",
       fromPortId: "calicut",
       toPortId: "alexandria",
-      goodId: "pepper",
+      goodsId: "pepper",
       quantity: 15,
     },
     rewards: { gold: 1800, exp: 90, itemIds: ["robe_of_wisdom"] },

@@ -168,7 +168,7 @@ describe("装备系统领域逻辑", () => {
               typeId: "sloop", // base capacity 35
               equippedItems: ["cargo_reinforcement"], // capacityBonus: 10. Total capacity: 45
               cargo: [
-                { goodId: "silk", quantity: 20, buyPrice: 100 }, // volume is 2. Total cargo count = 40
+                { goodsId: "silk", quantity: 20, buyPrice: 100 }, // volume is 2. Total cargo count = 40
               ],
             },
           ],

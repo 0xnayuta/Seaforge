@@ -52,7 +52,7 @@ describe("buyGoods", () => {
     const quantity = 2;
     const totalCost = price * quantity;
 
-    const result = buyGoods(world, { goodId: "silk", quantity });
+    const result = buyGoods(world, { goodsId: "silk", quantity });
     const newWorld = result.world;
 
     // gold deducted
@@ -61,7 +61,7 @@ describe("buyGoods", () => {
 
     // cargo updated
     const cargo = newWorld.fleet.ships[0].cargo.find(
-      (c) => c.goodId === "silk",
+      (c) => c.goodsId === "silk",
     );
     expect(cargo).toBeDefined();
     expect(cargo?.quantity).toBe(5 + quantity);
@@ -76,11 +76,11 @@ describe("buyGoods", () => {
     const quantity = 2;
     const totalCost = price * quantity;
 
-    const result = buyGoods(world, { goodId: "silk", quantity });
+    const result = buyGoods(world, { goodsId: "silk", quantity });
 
     expect(result.world.fleet.gold).toBe(world.fleet.gold - totalCost);
     const cargo = result.world.fleet.ships[0].cargo.find(
-      (c) => c.goodId === "silk",
+      (c) => c.goodsId === "silk",
     );
     expect(cargo).toBeDefined();
     expect(cargo?.quantity).toBe(2);
@@ -92,7 +92,7 @@ describe("buyGoods", () => {
     const price = getBuyPrice("silk", world.player.currentPortId, world);
     // 1000 * price = 102000 > 5000
     expect(1000 * price).toBeGreaterThan(world.fleet.gold);
-    expect(() => buyGoods(world, { goodId: "silk", quantity: 1000 })).toThrow(
+    expect(() => buyGoods(world, { goodsId: "silk", quantity: 1000 })).toThrow(
       "INSUFFICIENT_GOLD",
     );
   });
@@ -101,17 +101,17 @@ describe("buyGoods", () => {
     const world = createTestWorld();
     // used = 13, max = 35, silk vol = 2
     // buy 12 silk → 13 + 24 = 37 > 35; cost 12*102 = 1224 < 5000 (gold check passes)
-    expect(() => buyGoods(world, { goodId: "silk", quantity: 12 })).toThrow(
+    expect(() => buyGoods(world, { goodsId: "silk", quantity: 12 })).toThrow(
       "INSUFFICIENT_CARGO",
     );
   });
 
   it("should throw when quantity is zero or negative", () => {
     const world = createTestWorld();
-    expect(() => buyGoods(world, { goodId: "silk", quantity: 0 })).toThrow(
+    expect(() => buyGoods(world, { goodsId: "silk", quantity: 0 })).toThrow(
       "INVALID_QUANTITY",
     );
-    expect(() => buyGoods(world, { goodId: "silk", quantity: -1 })).toThrow(
+    expect(() => buyGoods(world, { goodsId: "silk", quantity: -1 })).toThrow(
       "INVALID_QUANTITY",
     );
   });
@@ -123,7 +123,7 @@ describe("sellGoods", () => {
     const price = getSellPrice("silk", world.player.currentPortId, world);
     const quantity = 3;
 
-    const result = sellGoods(world, { goodId: "silk", quantity });
+    const result = sellGoods(world, { goodsId: "silk", quantity });
 
     // gold increased by revenue = price × quantity
     const expectedRevenue = price * quantity;
@@ -132,7 +132,7 @@ describe("sellGoods", () => {
 
     // silk reduced from 5 to 2
     const cargo = result.world.fleet.ships[0].cargo.find(
-      (c) => c.goodId === "silk",
+      (c) => c.goodsId === "silk",
     );
     expect(cargo).toBeDefined();
     expect(cargo?.quantity).toBe(2);
@@ -141,14 +141,14 @@ describe("sellGoods", () => {
   it("should throw when not enough cargo quantity", () => {
     const world = createTestWorld();
     // only 5 silk in cargo, try to sell 100
-    expect(() => sellGoods(world, { goodId: "silk", quantity: 100 })).toThrow(
+    expect(() => sellGoods(world, { goodsId: "silk", quantity: 100 })).toThrow(
       "CARGO_NOT_FOUND",
     );
   });
 
   it("should throw when good not in cargo", () => {
     const world = createEmptyWorld();
-    expect(() => sellGoods(world, { goodId: "silk", quantity: 1 })).toThrow(
+    expect(() => sellGoods(world, { goodsId: "silk", quantity: 1 })).toThrow(
       "CARGO_NOT_FOUND",
     );
   });
@@ -156,21 +156,21 @@ describe("sellGoods", () => {
   it("should remove cargo entry entirely when selling exact amount", () => {
     const world = createTestWorld();
     const silkCargo = world.fleet.ships[0].cargo.find(
-      (c) => c.goodId === "silk",
+      (c) => c.goodsId === "silk",
     ) as CargoItem;
     const result = sellGoods(world, {
-      goodId: "silk",
+      goodsId: "silk",
       quantity: silkCargo.quantity,
     });
 
     // cargo entry for silk should be gone
     expect(
-      result.world.fleet.ships[0].cargo.find((c) => c.goodId === "silk"),
+      result.world.fleet.ships[0].cargo.find((c) => c.goodsId === "silk"),
     ).toBeUndefined();
 
     // spice cargo should remain
     expect(
-      result.world.fleet.ships[0].cargo.find((c) => c.goodId === "spice"),
+      result.world.fleet.ships[0].cargo.find((c) => c.goodsId === "spice"),
     ).toBeDefined();
   });
 
@@ -179,10 +179,10 @@ describe("sellGoods", () => {
     const price = getSellPrice("silk", world.player.currentPortId, world);
     const quantity = 3;
     const cargo = world.fleet.ships[0].cargo.find(
-      (c) => c.goodId === "silk",
+      (c) => c.goodsId === "silk",
     ) as CargoItem;
 
-    const result = sellGoods(world, { goodId: "silk", quantity });
+    const result = sellGoods(world, { goodsId: "silk", quantity });
     const expectedProfit = (price - cargo.buyPrice) * quantity;
 
     expect(result.profit).toBe(expectedProfit);
@@ -195,14 +195,14 @@ describe("sellGoods", () => {
         ships: [
           {
             ...createTestWorld().fleet.ships[0],
-            cargo: [{ goodId: "silk", quantity: 5, buyPrice: 1 }],
+            cargo: [{ goodsId: "silk", quantity: 5, buyPrice: 1 }],
           },
         ],
       },
     });
     expect(world.player.exp).toBe(0);
 
-    const result = sellGoods(world, { goodId: "silk", quantity: 3 });
+    const result = sellGoods(world, { goodsId: "silk", quantity: 3 });
     expect(result.world.player.exp).toBeGreaterThan(0);
   });
 
@@ -216,14 +216,14 @@ describe("sellGoods", () => {
         ships: [
           {
             ...world.fleet.ships[0],
-            cargo: [{ goodId: "silk", quantity: 5, buyPrice: price + 1000 }],
+            cargo: [{ goodsId: "silk", quantity: 5, buyPrice: price + 1000 }],
           },
         ],
       },
     };
 
     const result = sellGoods(worldWithHighBuy, {
-      goodId: "silk",
+      goodsId: "silk",
       quantity: 3,
     });
     expect(result.profit).toBeLessThan(0);

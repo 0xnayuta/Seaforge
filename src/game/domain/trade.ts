@@ -17,7 +17,7 @@ import { DomainError } from "./types";
 export function getUsedCapacity(world: World): number {
   const ship = getActiveShip(world);
   return ship.cargo.reduce((total, item) => {
-    const good = GOODS.find((g) => g.id === item.goodId);
+    const good = GOODS.find((g) => g.id === item.goodsId);
     return total + (good?.volume ?? 0) * item.quantity;
   }, 0);
 }
@@ -32,7 +32,7 @@ export function getMaxCapacity(world: World): number {
 // ---- 买入 ----
 
 export interface BuyInput {
-  readonly goodId: string;
+  readonly goodsId: string;
   readonly quantity: number;
 }
 
@@ -58,15 +58,15 @@ function updateShipCargo(
 }
 
 export function buyGoods(world: World, input: BuyInput): BuyResult {
-  const { goodId, quantity } = input;
+  const { goodsId, quantity } = input;
   if (quantity <= 0) throw new DomainError("INVALID_QUANTITY");
 
-  const price = getBuyPrice(goodId, world.player.currentPortId, world);
+  const price = getBuyPrice(goodsId, world.player.currentPortId, world);
   const totalCost = price * quantity;
 
   if (world.fleet.gold < totalCost) throw new DomainError("INSUFFICIENT_GOLD");
 
-  const good = GOODS.find((g) => g.id === goodId);
+  const good = GOODS.find((g) => g.id === goodsId);
   if (!good) throw new DomainError("GOOD_NOT_FOUND");
 
   const usedCapacity = getUsedCapacity(world);
@@ -76,7 +76,9 @@ export function buyGoods(world: World, input: BuyInput): BuyResult {
     throw new DomainError("INSUFFICIENT_CARGO");
 
   const activeShip = getActiveShip(world);
-  const existingIndex = activeShip.cargo.findIndex((c) => c.goodId === goodId);
+  const existingIndex = activeShip.cargo.findIndex(
+    (c) => c.goodsId === goodsId,
+  );
 
   let newCargo: CargoItem[];
   if (existingIndex >= 0) {
@@ -93,7 +95,7 @@ export function buyGoods(world: World, input: BuyInput): BuyResult {
         : c,
     );
   } else {
-    newCargo = [...activeShip.cargo, { goodId, quantity, buyPrice: price }];
+    newCargo = [...activeShip.cargo, { goodsId, quantity, buyPrice: price }];
   }
 
   const withCargo = updateShipCargo(world, activeShip.id, newCargo);
@@ -105,7 +107,7 @@ export function buyGoods(world: World, input: BuyInput): BuyResult {
   const worldAfterTrade = applyTradeImpact({
     world: withGold,
     portId: world.player.currentPortId,
-    goodId: goodId,
+    goodsId: goodsId,
     quantity: quantity,
     isBuy: true,
   });
@@ -116,7 +118,7 @@ export function buyGoods(world: World, input: BuyInput): BuyResult {
 // ---- 卖出 ----
 
 export interface SellInput {
-  readonly goodId: string;
+  readonly goodsId: string;
   readonly quantity: number;
 }
 
@@ -127,15 +129,15 @@ export interface SellResult {
 }
 
 export function sellGoods(world: World, input: SellInput): SellResult {
-  const { goodId, quantity } = input;
+  const { goodsId, quantity } = input;
   if (quantity <= 0) throw new DomainError("INVALID_QUANTITY");
 
   const activeShip = getActiveShip(world);
-  const cargo = activeShip.cargo.find((c) => c.goodId === goodId);
+  const cargo = activeShip.cargo.find((c) => c.goodsId === goodsId);
   if (!cargo || cargo.quantity < quantity)
     throw new DomainError("CARGO_NOT_FOUND");
 
-  const price = getSellPrice(goodId, world.player.currentPortId, world);
+  const price = getSellPrice(goodsId, world.player.currentPortId, world);
   const totalRevenue = price * quantity;
   const profit = (price - cargo.buyPrice) * quantity;
 
@@ -143,9 +145,9 @@ export function sellGoods(world: World, input: SellInput): SellResult {
   const newCargo =
     remaining > 0
       ? activeShip.cargo.map((c) =>
-          c.goodId === goodId ? { ...c, quantity: remaining } : c,
+          c.goodsId === goodsId ? { ...c, quantity: remaining } : c,
         )
-      : activeShip.cargo.filter((c) => c.goodId !== goodId);
+      : activeShip.cargo.filter((c) => c.goodsId !== goodsId);
 
   const withCargo = updateShipCargo(world, activeShip.id, newCargo);
   const withGold = {
@@ -156,7 +158,7 @@ export function sellGoods(world: World, input: SellInput): SellResult {
   const worldAfterTrade = applyTradeImpact({
     world: withGold,
     portId: world.player.currentPortId,
-    goodId: goodId,
+    goodsId: goodsId,
     quantity: quantity,
     isBuy: false,
   });

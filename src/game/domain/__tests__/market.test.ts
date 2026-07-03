@@ -94,7 +94,7 @@ describe("market pure functions", () => {
       const updated = applyTradeImpact({
         world: world,
         portId: "quanzhou",
-        goodId: "silk",
+        goodsId: "silk",
         quantity: 10,
         isBuy: true,
       });
@@ -107,7 +107,7 @@ describe("market pure functions", () => {
       const updated = applyTradeImpact({
         world: world,
         portId: "quanzhou",
-        goodId: "silk",
+        goodsId: "silk",
         quantity: 10,
         isBuy: false,
       });
@@ -119,7 +119,7 @@ describe("market pure functions", () => {
       const updated = applyTradeImpact({
         world: world,
         portId: "quanzhou",
-        goodId: "silk",
+        goodsId: "silk",
         quantity: 0,
         isBuy: true,
       });
@@ -132,7 +132,7 @@ describe("market pure functions", () => {
       const updated = applyTradeImpact({
         world: world,
         portId: "quanzhou",
-        goodId: "silk",
+        goodsId: "silk",
         quantity: 1000,
         isBuy: false,
       });
@@ -145,7 +145,7 @@ describe("market pure functions", () => {
       applyTradeImpact({
         world: world,
         portId: "quanzhou",
-        goodId: "silk",
+        goodsId: "silk",
         quantity: 10,
         isBuy: true,
       });
@@ -182,7 +182,7 @@ describe("market pure functions", () => {
       const shocked = applyTradeImpact({
         world: world,
         portId: "quanzhou",
-        goodId: "silk",
+        goodsId: "silk",
         quantity: 10,
         isBuy: true,
       });
@@ -200,7 +200,7 @@ describe("market pure functions", () => {
       const shocked = applyTradeImpact({
         world: world,
         portId: "quanzhou",
-        goodId: "silk",
+        goodsId: "silk",
         quantity: 10,
         isBuy: false,
       });

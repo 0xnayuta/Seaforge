@@ -71,7 +71,7 @@ describe("updateCollection", () => {
                 ...s,
                 cargo: [
                   ...s.cargo,
-                  { goodId: "porcelain", quantity: 10, buyPrice: 500 },
+                  { goodsId: "porcelain", quantity: 10, buyPrice: 500 },
                 ],
               }
             : s,
@@ -123,7 +123,7 @@ describe("updateCollection", () => {
             },
             durability: 80,
             maxDurability: 80,
-            cargo: [{ goodId: "porcelain", quantity: 10, buyPrice: 500 }],
+            cargo: [{ goodsId: "porcelain", quantity: 10, buyPrice: 500 }],
             armamentLevel: 0,
             equippedItems: [],
           },

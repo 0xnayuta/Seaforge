@@ -97,7 +97,7 @@ export function buildMarketView(world: World): MarketView {
   const activeShip = getActiveShip(world);
 
   const goods: GoodView[] = portGoods.map(({ good, buyPrice }) => {
-    const cargo = activeShip.cargo.find((c) => c.goodId === good.id);
+    const cargo = activeShip.cargo.find((c) => c.goodsId === good.id);
     const inCargo = cargo?.quantity ?? 0;
     const sellPrice = getSellPrice(good.id, world.player.currentPortId, world);
     const estimatedProfit =
@@ -146,7 +146,7 @@ export function buildNavigationView(world: World): NavigationView {
   const depRegionMod = depRegion?.dangerModifier ?? 1.0;
   const destinations: DestinationView[] = reachable.map((r) => {
     const estimatedProfit = activeShip.cargo.reduce((sum, c) => {
-      const targetPrice = getSellPrice(c.goodId, r.port.id, world);
+      const targetPrice = getSellPrice(c.goodsId, r.port.id, world);
       return sum + (targetPrice - c.buyPrice) * c.quantity;
     }, 0);
 
@@ -187,10 +187,14 @@ export function buildCargoView(world: World): CargoView {
   const ship = SHIPS.find((s) => s.id === activeShip.typeId);
 
   const items: CargoItemView[] = activeShip.cargo.map((c) => {
-    const good = GOODS.find((g) => g.id === c.goodId);
-    const sellPrice = getSellPrice(c.goodId, world.player.currentPortId, world);
+    const good = GOODS.find((g) => g.id === c.goodsId);
+    const sellPrice = getSellPrice(
+      c.goodsId,
+      world.player.currentPortId,
+      world,
+    );
     return {
-      goodId: c.goodId,
+      goodsId: c.goodsId,
       goodName: good?.name ?? "未知",
       category: good ? CATEGORY_LABEL[good.category] : "",
       quantity: c.quantity,

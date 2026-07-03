@@ -7,7 +7,7 @@ import type { CombatOutcome } from "./combat";
 // ---- 商品 ----
 
 export interface CargoItem {
-  readonly goodId: string;
+  readonly goodsId: string;
   readonly quantity: number;
   readonly buyPrice: number; // 每单位买入价
 }
@@ -66,7 +66,7 @@ export interface FleetState {
 
 /** 每个港口每种商品的当前价格 */
 export interface MarketPriceState {
-  /** portId → goodId → 当前价格 */
+  /** portId → goodsId → 当前价格 */
   readonly prices: Record<string, Record<string, number>>;
 }
 export interface VoyageEvent {

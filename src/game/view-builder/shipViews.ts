@@ -143,7 +143,7 @@ export function buildFleetShipSummaryView(
   const cargoCapacity = shipConfig ? getShipCargoCapacity(ship, shipConfig) : 0;
 
   const cargoUsed = ship.cargo.reduce((sum, c) => {
-    const good = GOODS.find((g) => g.id === c.goodId);
+    const good = GOODS.find((g) => g.id === c.goodsId);
     return sum + (good?.volume ?? 0) * c.quantity;
   }, 0);
 
@@ -154,15 +154,19 @@ export function buildFleetShipSummaryView(
     : 1.0;
 
   const cargo: CargoItemView[] = ship.cargo.map((c) => {
-    const good = GOODS.find((g) => g.id === c.goodId);
+    const good = GOODS.find((g) => g.id === c.goodsId);
     const goodName = good?.name ?? "未知";
     const category = good ? CATEGORY_LABEL[good.category] : "未知";
     const volume = good?.volume ?? 1;
-    const sellPrice = getSellPrice(c.goodId, world.player.currentPortId, world);
+    const sellPrice = getSellPrice(
+      c.goodsId,
+      world.player.currentPortId,
+      world,
+    );
     const estimatedProfit = (sellPrice - c.buyPrice) * c.quantity;
 
     return {
-      goodId: c.goodId,
+      goodsId: c.goodsId,
       goodName,
       quantity: c.quantity,
       category,

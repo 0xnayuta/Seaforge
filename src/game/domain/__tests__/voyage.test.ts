@@ -68,11 +68,11 @@ describe("applyVoyageEvents", () => {
 
     const result = applyVoyageEvents(world, events);
 
-    // Math.random()=0 picks cargo[0] (silk, qty 5); remaining = 5-2 = 3
+    // Math.random()=0 picks cargo[0] (silk, quantity 5); remaining = 5-2 = 3
     expect(result.fleet.ships[0].cargo).toHaveLength(2);
-    expect(result.fleet.ships[0].cargo[0].goodId).toBe("silk");
+    expect(result.fleet.ships[0].cargo[0].goodsId).toBe("silk");
     expect(result.fleet.ships[0].cargo[0].quantity).toBe(3);
-    expect(result.fleet.ships[0].cargo[1].goodId).toBe("spice");
+    expect(result.fleet.ships[0].cargo[1].goodsId).toBe("spice");
     expect(result.fleet.ships[0].cargo[1].quantity).toBe(3);
 
     vi.restoreAllMocks();
@@ -88,9 +88,9 @@ describe("applyVoyageEvents", () => {
 
     const result = applyVoyageEvents(world, events);
 
-    // silk qty 5 - 5 = 0 → item removed entirely
+    // silk quantity 5 - 5 = 0 → item removed entirely
     expect(result.fleet.ships[0].cargo).toHaveLength(1);
-    expect(result.fleet.ships[0].cargo[0].goodId).toBe("spice");
+    expect(result.fleet.ships[0].cargo[0].goodsId).toBe("spice");
 
     vi.restoreAllMocks();
   });
@@ -390,7 +390,7 @@ describe("applyVoyageEvents fleet behavior", () => {
             },
             durability: 50,
             maxDurability: 50,
-            cargo: [{ goodId: "silk", quantity: 5, buyPrice: 100 }],
+            cargo: [{ goodsId: "silk", quantity: 5, buyPrice: 100 }],
             armamentLevel: 0,
             equippedItems: [],
           },
@@ -406,7 +406,7 @@ describe("applyVoyageEvents fleet behavior", () => {
             },
             durability: 50,
             maxDurability: 50,
-            cargo: [{ goodId: "silk", quantity: 5, buyPrice: 100 }],
+            cargo: [{ goodsId: "silk", quantity: 5, buyPrice: 100 }],
             armamentLevel: 0,
             equippedItems: [],
           },

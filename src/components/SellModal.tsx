@@ -8,7 +8,7 @@ import { QuantityInput } from "./ui/QuantityInput";
 interface SellModalProps {
   readonly good: GoodView;
   readonly isSelling: boolean;
-  readonly onSell: (goodId: string, quantity: number) => void;
+  readonly onSell: (goodsId: string, quantity: number) => void;
   readonly onClose: () => void;
 }
 

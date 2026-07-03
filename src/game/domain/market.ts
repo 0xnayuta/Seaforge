@@ -39,31 +39,31 @@ export function initMarketPrices(): MarketPriceState {
 
 /** 当前实际价格（从存储读取） */
 export function getCurrentPrice(
-  goodId: string,
+  goodsId: string,
   portId: string,
   world: World,
 ): number {
   const portPrices = world.market.prices[portId];
   if (!portPrices) throw new DomainError("UNKNOWN_PORT");
-  const price = portPrices[goodId];
+  const price = portPrices[goodsId];
   if (price === undefined) throw new DomainError("NO_PRICE_DATA");
   return price;
 }
 export function getBuyPrice(
-  goodId: string,
+  goodsId: string,
   portId: string,
   world: World,
 ): number {
-  const mid = getCurrentPrice(goodId, portId, world);
+  const mid = getCurrentPrice(goodsId, portId, world);
   return Math.max(1, Math.round(mid * (1 + BID_ASK_SPREAD / 2)));
 }
 
 export function getSellPrice(
-  goodId: string,
+  goodsId: string,
   portId: string,
   world: World,
 ): number {
-  const mid = getCurrentPrice(goodId, portId, world);
+  const mid = getCurrentPrice(goodsId, portId, world);
   return Math.max(1, Math.round(mid * (1 - BID_ASK_SPREAD / 2)));
 }
 
@@ -81,33 +81,33 @@ export function getPortGoods(
 // ---- 价格计算 ----
 
 /** 两级价格系数：区域品类系数 × 港口商品微调 */
-function getPriceModifier(portId: string, goodId: string): number {
+function getPriceModifier(portId: string, goodsId: string): number {
   const port = PORTS.find((p) => p.id === portId);
-  const good = GOODS.find((g) => g.id === goodId);
+  const good = GOODS.find((g) => g.id === goodsId);
   if (!port || !good) return 1.0;
   const region = REGIONS.find((r) => r.id === port.regionId);
   if (!region) return 1.0;
   const regionMod = region.basePriceModifiers[good.category];
-  const localMod = port.localPriceModifiers?.[goodId] ?? 1.0;
+  const localMod = port.localPriceModifiers?.[goodsId] ?? 1.0;
   return regionMod * localMod;
 }
 
 /** 某 (港口, 商品) 的目标均衡价 */
-export function getBasePriceFor(goodId: string, portId: string): number {
-  const good = GOODS.find((g) => g.id === goodId);
+export function getBasePriceFor(goodsId: string, portId: string): number {
+  const good = GOODS.find((g) => g.id === goodsId);
   if (!good) return 0;
-  return Math.round(good.basePrice * getPriceModifier(portId, goodId));
+  return Math.round(good.basePrice * getPriceModifier(portId, goodsId));
 }
 
 /** 设置单个价格，返回新 prices 结构 */
 function setPrice(
   prices: Record<string, Record<string, number>>,
   portId: string,
-  goodId: string,
+  goodsId: string,
   newPrice: number,
 ): Record<string, Record<string, number>> {
   const portPrices = { ...prices[portId] };
-  portPrices[goodId] = Math.max(1, Math.round(newPrice));
+  portPrices[goodsId] = Math.max(1, Math.round(newPrice));
   return { ...prices, [portId]: portPrices };
 }
 
@@ -116,7 +116,7 @@ function setPrice(
 export interface TradeImpactParams {
   readonly world: World;
   readonly portId: string;
-  readonly goodId: string;
+  readonly goodsId: string;
   readonly quantity: number;
   readonly isBuy: boolean;
 }
@@ -126,17 +126,17 @@ export interface TradeImpactParams {
  * 买入 → 价格上涨（需求增加）；卖出 → 价格下跌（供应增加）
  */
 export function applyTradeImpact(params: TradeImpactParams): World {
-  const { world, portId, goodId, quantity, isBuy } = params;
+  const { world, portId, goodsId, quantity, isBuy } = params;
   if (quantity <= 0) return world;
   const impact = TRADE_IMPACT * quantity ** TRADE_IMPACT_DECAY;
-  const currentPrice = getCurrentPrice(goodId, portId, world);
+  const currentPrice = getCurrentPrice(goodsId, portId, world);
   const factor = isBuy ? 1 + impact : 1 - impact;
   const newPrice = Math.round(currentPrice * factor);
 
   return {
     ...world,
     market: {
-      prices: setPrice(world.market.prices, portId, goodId, newPrice),
+      prices: setPrice(world.market.prices, portId, goodsId, newPrice),
     },
   };
 }

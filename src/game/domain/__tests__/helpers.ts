@@ -52,8 +52,8 @@ export function createTestWorld(overrides?: Partial<World>): World {
           durability: 50,
           maxDurability: 50,
           cargo: [
-            { goodId: "silk", quantity: 5, buyPrice: 102 },
-            { goodId: "spice", quantity: 3, buyPrice: 260 },
+            { goodsId: "silk", quantity: 5, buyPrice: 102 },
+            { goodsId: "spice", quantity: 3, buyPrice: 260 },
           ],
           armamentLevel: 0,
           equippedItems: [],

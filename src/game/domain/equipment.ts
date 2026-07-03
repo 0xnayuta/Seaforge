@@ -227,7 +227,7 @@ function checkUnequipCapacity(
   const shipConfig = SHIPS.find((s) => s.id === ship.typeId);
   if (!shipConfig) return;
   const currentCargoUsed = ship.cargo.reduce((sum, c) => {
-    const good = GOODS.find((g) => g.id === c.goodId);
+    const good = GOODS.find((g) => g.id === c.goodsId);
     return sum + (good?.volume ?? 1) * c.quantity;
   }, 0);
   const nextEquippedTest = (ship.equippedItems || []).filter(

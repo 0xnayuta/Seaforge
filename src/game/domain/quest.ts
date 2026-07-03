@@ -120,7 +120,7 @@ function calcQuestProgress(aq: ActiveQuest, world: World): number {
         (sum, s) =>
           sum +
           s.cargo
-            .filter((c) => c.goodId === req.goodId)
+            .filter((c) => c.goodsId === req.goodsId)
             .reduce((s2, c) => s2 + c.quantity, 0),
         0,
       );

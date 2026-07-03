@@ -466,7 +466,7 @@ describe("sellShip", () => {
             },
             durability: 50,
             maxDurability: 50,
-            cargo: [{ goodId: "silk", quantity: 5, buyPrice: 100 }], // has cargo
+            cargo: [{ goodsId: "silk", quantity: 5, buyPrice: 100 }], // has cargo
             armamentLevel: 0,
             equippedItems: [],
           },

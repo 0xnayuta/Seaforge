@@ -31,17 +31,17 @@ export function MarketPanel({ view: initialView, loadView }: MarketPanelProps) {
     ? Math.floor(remainingCargo / buyingGood.volume)
     : 0;
 
-  async function handleBuy(goodId: string, quantity: number) {
+  async function handleBuy(goodsId: string, quantity: number) {
     setIsBuying(true);
     setMessage(null);
     try {
       const fd = new FormData();
-      fd.set("goodId", goodId);
+      fd.set("goodsId", goodsId);
       fd.set("quantity", String(quantity));
       await buyGoods(fd);
       const newView = await loadView();
       setView(newView);
-      const good = view.goods.find((g) => g.id === goodId);
+      const good = view.goods.find((g) => g.id === goodsId);
       setMessage(`成功购买 ${quantity} 个 ${good?.name ?? ""}`);
       setBuyingGoodId(null);
     } catch (e) {
@@ -51,12 +51,12 @@ export function MarketPanel({ view: initialView, loadView }: MarketPanelProps) {
     }
   }
 
-  async function handleSell(goodId: string, quantity: number) {
+  async function handleSell(goodsId: string, quantity: number) {
     setIsSelling(true);
     setMessage(null);
     try {
       const fd = new FormData();
-      fd.set("goodId", goodId);
+      fd.set("goodsId", goodsId);
       fd.set("quantity", String(quantity));
       await sellGoods(fd);
       const newView = await loadView();

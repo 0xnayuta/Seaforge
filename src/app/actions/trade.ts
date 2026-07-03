@@ -12,15 +12,15 @@ import { withTransaction } from "../../lib/with-transaction";
 import type { CargoView, MarketView } from "../../types/game-view";
 
 export async function buyGoods(formData: FormData): Promise<MarketView> {
-  const goodId = formData.get("goodId") as string;
+  const goodsId = formData.get("goodsId") as string;
   const quantity = Number(formData.get("quantity"));
 
-  if (!goodId || !Number.isFinite(quantity) || quantity <= 0)
+  if (!goodsId || !Number.isFinite(quantity) || quantity <= 0)
     throw new Error("无效的购买请求");
 
   try {
     return await withTransaction(
-      (w) => domainBuyGoods(w, { goodId, quantity }).world,
+      (w) => domainBuyGoods(w, { goodsId, quantity }).world,
       buildMarketView,
     )();
   } catch (e) {
@@ -29,15 +29,15 @@ export async function buyGoods(formData: FormData): Promise<MarketView> {
 }
 
 export async function sellGoods(formData: FormData): Promise<CargoView> {
-  const goodId = formData.get("goodId") as string;
+  const goodsId = formData.get("goodsId") as string;
   const quantity = Number(formData.get("quantity"));
 
-  if (!goodId || !Number.isFinite(quantity) || quantity <= 0)
+  if (!goodsId || !Number.isFinite(quantity) || quantity <= 0)
     throw new Error("无效的卖出请求");
 
   try {
     return await withTransaction(
-      (w) => domainSellGoods(w, { goodId, quantity }).world,
+      (w) => domainSellGoods(w, { goodsId, quantity }).world,
       buildCargoView,
     )();
   } catch (e) {

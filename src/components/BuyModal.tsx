@@ -11,7 +11,7 @@ interface BuyModalProps {
   readonly maxBuyable: number;
   readonly remainingCargo: number;
   readonly playerGold: number;
-  readonly onBuy: (goodId: string, quantity: number) => void;
+  readonly onBuy: (goodsId: string, quantity: number) => void;
   readonly onClose: () => void;
 }
 

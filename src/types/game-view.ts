@@ -89,7 +89,7 @@ export interface CargoView {
 }
 
 export interface CargoItemView {
-  readonly goodId: string;
+  readonly goodsId: string;
   readonly goodName: string;
   readonly quantity: number;
   readonly category: string;

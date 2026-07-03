@@ -5,8 +5,8 @@ import { useSort } from "./ui/useSort";
 
 interface GoodsTableProps {
   readonly goods: GoodView[];
-  readonly onBuy: (goodId: string) => void;
-  readonly onSell: (goodId: string) => void;
+  readonly onBuy: (goodsId: string) => void;
+  readonly onSell: (goodsId: string) => void;
   readonly isSelling: boolean;
 }
 

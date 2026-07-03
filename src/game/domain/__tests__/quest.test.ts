@@ -231,7 +231,7 @@ describe("checkQuestProgress", () => {
         ships: [
           {
             id: "ship-1",
-            cargo: [{ goodId: "silk", quantity: 10, buyPrice: 100 }],
+            cargo: [{ goodsId: "silk", quantity: 10, buyPrice: 100 }],
           },
         ],
       },

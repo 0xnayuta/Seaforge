@@ -43,11 +43,11 @@ describe("createDefaultWorld", () => {
     const world = createDefaultWorld();
     const prices = world.market.prices;
     const entries = PORTS.flatMap((port) =>
-      GOODS.map((good) => ({ portId: port.id, goodId: good.id })),
+      GOODS.map((good) => ({ portId: port.id, goodsId: good.id })),
     );
     expect(entries).toHaveLength(PORTS.length * GOODS.length);
-    for (const { portId, goodId } of entries) {
-      expect(prices[portId][goodId]).toBeTypeOf("number");
+    for (const { portId, goodsId } of entries) {
+      expect(prices[portId][goodsId]).toBeTypeOf("number");
     }
   });
   it("market prices match basePrice x portModifier", () => {
@@ -56,11 +56,11 @@ describe("createDefaultWorld", () => {
     const entries = PORTS.flatMap((port) =>
       GOODS.map((good) => {
         const expected = getBasePriceFor(good.id, port.id);
-        return { portId: port.id, goodId: good.id, expected };
+        return { portId: port.id, goodsId: good.id, expected };
       }),
     );
-    for (const { portId, goodId, expected } of entries) {
-      expect(prices[portId][goodId]).toBe(expected);
+    for (const { portId, goodsId, expected } of entries) {
+      expect(prices[portId][goodsId]).toBe(expected);
     }
   });
   it("increments day by N", () => {

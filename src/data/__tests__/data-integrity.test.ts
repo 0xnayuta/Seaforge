@@ -201,30 +201,30 @@ describe("ships data integrity", () => {
 
 describe("cross-region profit ranges", () => {
   // Reuses the same equilibrium-price logic as the game engine
-  function getPriceModifier(portId: string, goodId: string): number {
+  function getPriceModifier(portId: string, goodsId: string): number {
     const port = PORTS.find((p) => p.id === portId);
-    const good = GOODS.find((g) => g.id === goodId);
+    const good = GOODS.find((g) => g.id === goodsId);
     if (!port || !good) return 1.0;
     const region = REGIONS.find((r) => r.id === port.regionId);
     if (!region) return 1.0;
     const regionMod = region.basePriceModifiers[good.category];
-    const localMod = port.localPriceModifiers?.[goodId] ?? 1.0;
+    const localMod = port.localPriceModifiers?.[goodsId] ?? 1.0;
     return regionMod * localMod;
   }
 
-  function basePriceFor(goodId: string, portId: string): number {
-    const good = GOODS.find((g) => g.id === goodId);
+  function basePriceFor(goodsId: string, portId: string): number {
+    const good = GOODS.find((g) => g.id === goodsId);
     if (!good) return 0;
-    return Math.round(good.basePrice * getPriceModifier(portId, goodId));
+    return Math.round(good.basePrice * getPriceModifier(portId, goodsId));
   }
 
   function profitRate(
-    goodId: string,
+    goodsId: string,
     fromPort: string,
     toPort: string,
   ): number {
-    const buy = basePriceFor(goodId, fromPort);
-    const sell = basePriceFor(goodId, toPort);
+    const buy = basePriceFor(goodsId, fromPort);
+    const sell = basePriceFor(goodsId, toPort);
     if (buy <= 0) return 0;
     return (sell - buy) / buy;
   }

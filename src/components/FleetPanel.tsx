@@ -53,8 +53,8 @@ export function FleetPanel({
 
   for (const ship of displayView.ships) {
     for (const item of ship.cargo) {
-      if (!consolidatedCargo[item.goodId]) {
-        consolidatedCargo[item.goodId] = {
+      if (!consolidatedCargo[item.goodsId]) {
+        consolidatedCargo[item.goodsId] = {
           goodName: item.goodName,
           quantity: 0,
           totalCost: 0,
@@ -62,8 +62,9 @@ export function FleetPanel({
           volume: item.volume,
         };
       }
-      consolidatedCargo[item.goodId].quantity += item.quantity;
-      consolidatedCargo[item.goodId].totalCost += item.buyPrice * item.quantity;
+      consolidatedCargo[item.goodsId].quantity += item.quantity;
+      consolidatedCargo[item.goodsId].totalCost +=
+        item.buyPrice * item.quantity;
       totalVolumeUsed += item.quantity * item.volume;
     }
   }
@@ -280,7 +281,7 @@ export function FleetPanel({
                   <div className="flex flex-wrap gap-1.5">
                     {ship.cargo.map((item) => (
                       <div
-                        key={item.goodId}
+                        key={item.goodsId}
                         className="bg-ocean-900/50 border border-ocean-700/50 rounded px-2 py-0.5 text-xs flex gap-1 items-center"
                       >
                         <span className="text-parchment">{item.goodName}</span>
