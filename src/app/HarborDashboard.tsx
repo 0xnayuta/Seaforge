@@ -164,6 +164,27 @@ export function HarborDashboard({ view }: { view: HarborView }) {
           </div>
         </a>
       </div>
+
+      {/* 收集 */}
+      <h3 className="text-sm font-semibold text-gold-400">记录</h3>
+      <div className="grid grid-cols-2 gap-3">
+        <a
+          href="/achievements"
+          className="rounded-lg border border-ocean-600 bg-ocean-700/60 p-3 text-center text-sm hover:bg-ocean-700 transition-colors"
+        >
+          <div className="font-semibold text-gold-400">成就</div>
+          <div className="mt-1 text-xs text-parchment-dark">
+            查看与领取成就奖励
+          </div>
+        </a>
+        <a
+          href="/collection"
+          className="rounded-lg border border-ocean-600 bg-ocean-700/60 p-3 text-center text-sm hover:bg-ocean-700 transition-colors"
+        >
+          <div className="font-semibold text-gold-400">图鉴</div>
+          <div className="mt-1 text-xs text-parchment-dark">已探索内容一览</div>
+        </a>
+      </div>
     </div>
   );
 }
