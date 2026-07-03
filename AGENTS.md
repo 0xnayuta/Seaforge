@@ -171,9 +171,12 @@ prisma.$transaction(tx => {
 
 ---
 
-## 4. 开发校验流程
 
-修改代码后（不含仅文档修改）必须依次执行：
+## 4. 开发与提交流程
+
+### 4.1 提交前校验
+
+修改代码后，必须依次执行以下命令且全部通过：
 
 ```bash
 bun run build          # 编译检查（必须无错误）
@@ -181,26 +184,75 @@ bun run lint           # Biome 代码检查（必须无 warning/error）
 bun run test           # 单元测试（必须全部通过）
 ```
 
-涉及文档完整性、格式化或覆盖率时：
+涉及文档或格式化时：
 
 ```bash
 bun run format         # Biome 格式化
 bun run docs:check     # 文档元数据合规校验（必须通过）
 ```
 
----
+### 4.2 提交分批
+
+| 时机 | 动作 | 约束 |
+|---|---|---|
+| 每轮开发结束后 | 立即按修改批次提交，每条 commit 职责单一 | Conventional Commits 格式 |
+| 代码审查通过后 | rebase 整理，合并同类 fixup | 确保每 commit 可独立编译通过 |
+| 审查修复 | 作为独立 `fix(review):` commit 追加 | 保留审查前后对比链 |
+
+批量原则：同一文件的非关联修改拆为不同 commit；关联修改（如 domain 函数 + 对应测试 + view-builder 适配）合为一个 commit。
+
+### 4.3 提交信息格式
+
+```
+<type>(<scope>): <description>
+```
+
+| type | 用途 |
+|---|---|
+| `feat` | 新功能 |
+| `fix` | 修复（含 review 修复） |
+| `refactor` | 重构，无功能变化 |
+| `test` | 测试增补 |
+| `docs` | 文档变更 |
+| `chore` | 杂项（删除、重命名、配置） |
+
+`scope` 为变更主要模块，小写英文（`domain`、`view-builder`、`actions`、`dungeon`、`crafting` 等）。
+
+### 4.4 推送禁令
+
+**绝不推送（NEVER push）到任何远程分支。** 所有 commit 仅限本地。远程推送由人工审阅后统一操作。违反者直接驳回。
+
+### 4.5 轮次终结
+
+每轮交付（开发 + 审查 + 提交分批完毕）后，必须输出下一轮建议，包含：
+- 本轮未完成的剩余工作
+- 下轮优先处理的模块或问题
+- 已知技术债务或待重构点
 
 ## 5. 文档治理
 
 ### 5.1 文档生命周期
 
-所有 `docs/` 下的文档按以下状态流转：`draft（草稿）→ review（审查中）→ approved（已核准）→ archived（已归档）`。
+文档状态按所在目录范围受限：
+
+| 目录 / 范围 | 允许的状态 | 说明 |
+|---|---|---|
+| `docs/` 根目录, `docs/architecture/`, `docs/guides/`, `docs/specifications/`, `docs/issues/`, `docs/reference/` | `draft` → `review` → `approved` → `archived` | 通用生命周期，默认状态集 |
+| `docs/adr/` | `proposed` → `accepted` / `rejected` → `deprecated` / `superseded` | ADR 决策记录专用 |
+| `docs/roadmap/` | `draft` → `active` → `completed` | 路线图文档专用 |
+| `docs/audits/` | `draft` → `final` | 审计日志专用 |
+| `docs/archive/` | `archived` | 已归档，固定状态，不允许其他值 |
+
+`check-docs.mjs` 中 `DOC_META_RULES.scoped` 数组按 `pattern` 优先匹配，第一条命中规则的 `status` 集生效；无匹配回退到默认状态集（`defaultStatus`）。
 
 ### 5.2 文档规范与同步
 
-- **Frontmatter 必须完整**：每个文档须包含 `status`（`draft`/`review`/`approved`/`archived`）和 `last_verified`（日期，格式 `YYYY-MM-DD`）
+- **Frontmatter 必须完整**：每个文档须包含以下字段，且只能包含以下字段：
+  - `status` — 取值范围由所属目录的生命周期定义（见 5.1 文档生命周期）
+  - `last_verified` — 日期，格式 `YYYY-MM-DD`；如果 `status: template` 则允许写为文字 `YYYY-MM-DD` 占位
+- **禁止额外字段**：frontmatter 中不能出现 `status` 和 `last_verified` 之外的键，否则 `checkDocFrontmatter` 中的 `validateNoExtraFields` 会报错
 - **关联规则标注**：如果文档与 R1-R10 中的规则直接相关，须在文档标题下方标注：`**关联规则：** R1, R4, R6`
-- **内部链接使用相对路径**，确保 `docs:check` 通过
+- **内部链接使用相对路径**，确保 `docs:check` 通过。`checkLinks` 扫描所有 Markdown 文件中的 `[text](path)` 链接，排除 `https?:`、`mailto:`、`#` 锚点、以及 `../../` 开头的相对路径；其余链接必须指向存在的文件
 - 文档与 `docs/guides/` 的关系：`docs/guides/` 定义「怎么做」，AGENTS.md 定义「不能做什么、必须做什么」；两者冲突时 AGENTS.md 优先
 - 文档必须反映 `src/` 的当前状态。修改代码后，关联文档的 `last_verified` 必须同步更新
 - 发现文档与代码不一致时，优先更新文档。如无法立即修复，将 `status` 改为 `draft` 并记录待办
