@@ -3,7 +3,7 @@
 // ============================================================
 
 import { QUESTS, type QuestConfig } from "../../data/quests";
-import { DomainError, type World } from "./types";
+import { type ActiveQuest, DomainError, type World } from "./types";
 
 let _uidCounter = 0;
 export function resetUidCounter(): void {
@@ -52,52 +52,93 @@ export function getAvailableQuests(world: World): readonly QuestConfig[] {
   });
 }
 
-/** 接受任务 */
-export function acceptQuest(world: World, questId: string): World {
-  const q = getQuestConfig(questId);
-
-  if (world.activeQuests.some((a) => a.questId === questId)) {
+/** 校验接受任务的前置条件 */
+function validateQuestAccept(world: World, q: QuestConfig): void {
+  if (world.activeQuests.some((a) => a.questId === q.id)) {
     throw new DomainError("QUEST_ALREADY_ACCEPTED");
   }
   if (world.player.currentPortId !== q.issuerPortId) {
     throw new DomainError("QUEST_NOT_AVAILABLE");
   }
-
-  // 校验前置条件
   if (q.minLevel !== undefined && world.player.level < q.minLevel) {
     throw new DomainError("QUEST_REQUIREMENT_NOT_MET");
   }
-
   const rel = world.npcRelations[q.issuerNpcId];
   if (q.minAffinity !== undefined && q.minAffinity > 0) {
     if (!rel || rel.affinity < q.minAffinity) {
       throw new DomainError("AFFINITY_TOO_LOW");
     }
   }
-
   if (q.prerequisiteQuestId) {
     if (!rel || !rel.completedQuests.includes(q.prerequisiteQuestId)) {
       throw new DomainError("QUEST_REQUIREMENT_NOT_MET");
     }
   }
+}
 
-  // 计算目标值
-  const target =
-    q.requirement.type === "delivery"
-      ? q.requirement.quantity
-      : q.requirement.type === "collect"
-        ? q.requirement.quantity
-        : q.requirement.type === "bounty"
-          ? q.requirement.count
-          : 1;
+/** 根据 requirement 类型计算任务目标值 */
+function getQuestTarget(q: QuestConfig): number {
+  switch (q.requirement.type) {
+    case "delivery":
+      return q.requirement.quantity;
+    case "collect":
+      return q.requirement.quantity;
+    case "bounty":
+      return q.requirement.count;
+    default:
+      return 1;
+  }
+}
 
+/** 接受任务 */
+export function acceptQuest(world: World, questId: string): World {
+  const q = getQuestConfig(questId);
+  validateQuestAccept(world, q);
   return {
     ...world,
     activeQuests: [
       ...world.activeQuests,
-      { questId, progress: 0, target, acceptedAtDay: world.player.day },
+      {
+        questId,
+        progress: 0,
+        target: getQuestTarget(q),
+        acceptedAtDay: world.player.day,
+      },
     ],
   };
+}
+
+/** 计算单个活跃任务的当前进度（根据 quest config 的 requirement 类型） */
+function calcQuestProgress(aq: ActiveQuest, world: World): number {
+  const q = getQuestConfig(aq.questId);
+  const req = q.requirement;
+
+  switch (req.type) {
+    case "delivery": {
+      if (world.player.currentPortId !== req.toPortId) return aq.progress;
+      const totalOnShips = world.fleet.ships.reduce(
+        (sum, s) =>
+          sum +
+          s.cargo
+            .filter((c) => c.goodId === req.goodId)
+            .reduce((s2, c) => s2 + c.quantity, 0),
+        0,
+      );
+      return Math.min(req.quantity, totalOnShips);
+    }
+    case "collect": {
+      const have = world.fleet.inventory
+        .filter((i) => i.itemId === req.itemId)
+        .reduce((sum, i) => sum + i.quantity, 0);
+      return Math.min(req.quantity, have);
+    }
+    case "explore": {
+      return world.player.currentPortId === req.targetPortId ? 1 : aq.progress;
+    }
+    default:
+      // bounty 进度由外部事件更新（combat encounter），此处不做自动检测
+      return aq.progress;
+  }
 }
 
 /** 检查活跃任务进度（基于当前游戏状态） */
@@ -106,37 +147,7 @@ export function checkQuestProgress(world: World): World {
 
   let result = world;
   for (const aq of result.activeQuests) {
-    const q = getQuestConfig(aq.questId);
-    const req = q.requirement;
-    let newProgress = aq.progress;
-
-    if (req.type === "delivery") {
-      // 检查玩家是否在目标港口且有足够的货物
-      if (world.player.currentPortId === req.toPortId) {
-        const totalOnShips = world.fleet.ships.reduce(
-          (sum, s) =>
-            sum +
-            s.cargo
-              .filter((c) => c.goodId === req.goodId)
-              .reduce((s2, c) => s2 + c.quantity, 0),
-          0,
-        );
-        newProgress = Math.min(req.quantity, totalOnShips);
-      }
-    } else if (req.type === "collect") {
-      // 检查背包中是否有目标物品
-      const have = world.fleet.inventory
-        .filter((i) => i.itemId === req.itemId)
-        .reduce((sum, i) => sum + i.quantity, 0);
-      newProgress = Math.min(req.quantity, have);
-    } else if (req.type === "explore") {
-      // 检查玩家是否到达目标港口
-      if (world.player.currentPortId === req.targetPortId) {
-        newProgress = 1;
-      }
-    }
-    // bounty 进度由外部事件更新（combat encounter），此处不做自动检测
-
+    const newProgress = calcQuestProgress(aq, world);
     if (newProgress !== aq.progress) {
       result = {
         ...result,
