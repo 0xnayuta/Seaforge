@@ -2,6 +2,7 @@
 
 import { giveGift, recruitNpc, talkToNpc } from "../../game/domain/npc";
 import { checkQuestProgress } from "../../game/domain/quest";
+import type { World } from "../../game/domain/types";
 import { buildNpcDetailView } from "../../game/view-builder/buildGameView";
 import { getErrorMessage } from "../../lib/domain-errors";
 import { prisma } from "../../lib/prisma";
@@ -16,44 +17,31 @@ export async function loadNpcView(
   return buildNpcDetailView(world, npcId);
 }
 
-export async function talkToNpcAction(npcId: string): Promise<void> {
+/** 通用 NPC 操作事务管道：读档 → checkQuestProgress → domain → 保存 */
+async function npcTx(fn: (world: World) => World): Promise<void> {
   try {
     await prisma.$transaction(async (tx: PrismaTransactionClient) => {
       const world = await loadWorld(tx);
       const nextWorld = checkQuestProgress(world);
-      const result = talkToNpc(nextWorld, npcId);
+      const result = fn(nextWorld);
       await saveWorld(tx, result);
     });
   } catch (e) {
     throw new Error(getErrorMessage(e));
   }
+}
+
+export async function talkToNpcAction(npcId: string): Promise<void> {
+  return npcTx((w) => talkToNpc(w, npcId));
 }
 
 export async function giveGiftAction(
   npcId: string,
   itemUid: string,
 ): Promise<void> {
-  try {
-    await prisma.$transaction(async (tx: PrismaTransactionClient) => {
-      const world = await loadWorld(tx);
-      const nextWorld = checkQuestProgress(world);
-      const result = giveGift(nextWorld, npcId, itemUid);
-      await saveWorld(tx, result);
-    });
-  } catch (e) {
-    throw new Error(getErrorMessage(e));
-  }
+  return npcTx((w) => giveGift(w, npcId, itemUid));
 }
 
 export async function recruitNpcAction(npcId: string): Promise<void> {
-  try {
-    await prisma.$transaction(async (tx: PrismaTransactionClient) => {
-      const world = await loadWorld(tx);
-      const nextWorld = checkQuestProgress(world);
-      const result = recruitNpc(nextWorld, npcId);
-      await saveWorld(tx, result);
-    });
-  } catch (e) {
-    throw new Error(getErrorMessage(e));
-  }
+  return npcTx((w) => recruitNpc(w, npcId));
 }

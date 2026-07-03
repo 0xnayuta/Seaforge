@@ -33,42 +33,33 @@ export function CharacterPanel({ view }: CharacterPanelProps) {
     });
   };
 
-  const handleAllocate = (attribute: string) => {
-    runAction(
-      allocateAttributePointAction,
-      () => {
-        const fd = new FormData();
-        fd.set("attribute", attribute);
-        return fd;
-      },
-      "分配属性点",
-    );
-  };
+  /** 创建 handler：根据参数映射构建 FormData 后提交 */
+  const makeHandler =
+    (
+      action: (fd: FormData) => Promise<CharacterView>,
+      params: Record<string, string>,
+      errorLabel: string,
+    ) =>
+    () => {
+      runAction(
+        action,
+        () => {
+          const fd = new FormData();
+          for (const [key, value] of Object.entries(params)) {
+            fd.set(key, value);
+          }
+          return fd;
+        },
+        errorLabel,
+      );
+    };
 
-  const handleEquip = (itemUid: string, slot: string) => {
-    runAction(
-      equipCharacterItemAction,
-      () => {
-        const fd = new FormData();
-        fd.set("itemUid", itemUid);
-        fd.set("slot", slot);
-        return fd;
-      },
-      "装备道具",
-    );
-  };
-
-  const handleUnequip = (slot: string) => {
-    runAction(
-      unequipCharacterItemAction,
-      () => {
-        const fd = new FormData();
-        fd.set("slot", slot);
-        return fd;
-      },
-      "卸下道具",
-    );
-  };
+  const handleAllocate = (attribute: string) =>
+    makeHandler(allocateAttributePointAction, { attribute }, "分配属性点")();
+  const handleEquip = (itemUid: string, slot: string) =>
+    makeHandler(equipCharacterItemAction, { itemUid, slot }, "装备道具")();
+  const handleUnequip = (slot: string) =>
+    makeHandler(unequipCharacterItemAction, { slot }, "卸下道具")();
 
   const {
     name,
