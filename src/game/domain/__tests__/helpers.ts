@@ -80,10 +80,11 @@ export function createTestWorld(overrides?: Partial<World>): World {
       collectedItems: [],
     },
     claimedAchievements: [],
+    dungeon: null,
+    dungeonCooldowns: {},
     ...overrides,
   };
 }
-
 /** 马六甲出发的空船 */
 export function createEmptyWorld(overrides?: Partial<World>): World {
   return {
@@ -152,6 +153,8 @@ export function createEmptyWorld(overrides?: Partial<World>): World {
       collectedItems: [],
     },
     claimedAchievements: [],
+    dungeon: null,
+    dungeonCooldowns: {},
     ...overrides,
   };
 }

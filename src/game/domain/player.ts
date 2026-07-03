@@ -87,6 +87,8 @@ export function createDefaultWorld(): World {
       collectedItems: [],
     },
     claimedAchievements: [],
+    dungeon: null,
+    dungeonCooldowns: {},
   };
 }
 
