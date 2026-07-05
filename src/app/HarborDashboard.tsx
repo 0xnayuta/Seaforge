@@ -165,6 +165,19 @@ export function HarborDashboard({ view }: { view: HarborView }) {
         </a>
       </div>
 
+      {/* 副本 — 仅在当前港口有副本时显示 */}
+      {view.availableDungeonName && (
+        <a
+          href="/dungeon"
+          className="block rounded-lg border border-ocean-600 bg-ocean-700/60 p-3 text-center text-sm hover:bg-ocean-700 transition-colors"
+        >
+          <div className="font-semibold text-gold-400">副本</div>
+          <div className="mt-1 text-xs text-parchment-dark">
+            {view.availableDungeonName}
+          </div>
+        </a>
+      )}
+
       {/* 收集 */}
       <h3 className="text-sm font-semibold text-gold-400">记录</h3>
       <div className="grid grid-cols-2 gap-3">
