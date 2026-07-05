@@ -24,6 +24,7 @@ export interface HarborView {
   readonly questsAvailable: number;
   readonly selectedTitleName: string | null;
   readonly unlockedTitleCount: number;
+  readonly availableDungeonName: string | null;
 }
 
 export interface AvailableEquipmentView {
@@ -496,6 +497,39 @@ export interface CollectionView {
   readonly totalProgress: number;
   readonly totalCount: number;
 }
+// ---- 合成 ----
+
+/** 合成配方视图 */
+export interface CraftingRecipeView {
+  readonly recipeId: string;
+  readonly name: string;
+  readonly goldCost: number;
+  readonly ingredients: readonly {
+    readonly itemId: string;
+    readonly name: string;
+    readonly required: number;
+    readonly owned: number;
+    readonly sufficient: boolean;
+  }[];
+  readonly resultName: string;
+  readonly resultQuality: string;
+  readonly resultDescription: string;
+  readonly canCraft: boolean;
+  readonly blockedReason: string | null;
+  readonly affinityRequirement: {
+    readonly npcName: string;
+    readonly required: number;
+    readonly current: number;
+    readonly met: boolean;
+  } | null;
+}
+
+/** 合成页视图 */
+export interface CraftingView {
+  readonly recipes: readonly CraftingRecipeView[];
+  readonly fleetGold: number;
+  readonly portName: string;
+}
 
 // ---- 副本 ----
 
@@ -522,4 +556,5 @@ export interface DungeonView {
   readonly itemsGained: readonly string[];
   readonly status: "in_progress" | "cleared" | "failed";
   readonly currentEvent: DungeonFloorEventView | null;
+  readonly combatView: PersonCombatView | null;
 }
