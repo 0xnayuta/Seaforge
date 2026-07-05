@@ -1,6 +1,7 @@
 import { DUNGEONS } from "../../data/dungeons";
 import { GOODS } from "../../data/goods";
 import { ITEMS } from "../../data/items";
+import { NPCS } from "../../data/npcs";
 import { PORTS } from "../../data/ports";
 import { SHIPS } from "../../data/ships";
 import { TITLES, type TitleConfig } from "../../data/titles";
@@ -10,15 +11,19 @@ import type {
   CollectionCategoryView,
   CollectionEntryView,
   CollectionView,
+  CraftingRecipeView,
+  CraftingView,
   DungeonFloorEventView,
   DungeonView,
   TitleItemView,
   TitlesView,
 } from "../../types/game-view";
 import { getAchievementProgress } from "../domain/achievement";
+import { getAvailableRecipes, getItemCount } from "../domain/crafting";
 import { getCurrentFloorEvent } from "../domain/dungeon";
 import { getUnlockedTitleIds } from "../domain/title";
 import type { World } from "../domain/types";
+import { buildPersonCombatView } from "./combatViews";
 
 // ============================================================
 // Titles Views
@@ -160,6 +165,73 @@ export function buildCollectionView(world: World): CollectionView {
 }
 
 // ============================================================
+// Crafting View
+// ============================================================
+
+export function buildCraftingView(world: World): CraftingView {
+  const port = PORTS.find((p) => p.id === world.player.currentPortId);
+  const recipes = getAvailableRecipes(world).map((r) => {
+    const resultItem = ITEMS.find((i) => i.id === r.resultId);
+    const ingredients = r.ingredients.map((ing) => {
+      const ingItem = ITEMS.find((i) => i.id === ing.itemId);
+      const owned = getItemCount(world.fleet.inventory, ing.itemId);
+      return {
+        itemId: ing.itemId,
+        name: ingItem?.name ?? ing.itemId,
+        required: ing.quantity,
+        owned,
+        sufficient: owned >= ing.quantity,
+      };
+    });
+    let affinityRequirement: CraftingRecipeView["affinityRequirement"] = null;
+    if (r.minAffinity) {
+      const npc = NPCS.find((n) => n.id === r.minAffinity!.npcId);
+      const currentAffinity =
+        world.npcRelations[r.minAffinity.npcId]?.affinity ?? 0;
+      affinityRequirement = {
+        npcName: npc?.name ?? r.minAffinity.npcId,
+        required: r.minAffinity.value,
+        current: currentAffinity,
+        met: currentAffinity >= r.minAffinity.value,
+      };
+    }
+    const canCraftIngredients = ingredients.every((i) => i.sufficient);
+    const hasGold = world.fleet.gold >= r.goldCost;
+    const meetsAffinity = !affinityRequirement || affinityRequirement.met;
+    const canCraft = canCraftIngredients && hasGold && meetsAffinity;
+    let blockedReason: string | null = null;
+    if (!canCraft) {
+      if (!hasGold) {
+        blockedReason = "金币不足";
+      } else if (!canCraftIngredients) {
+        const missing = ingredients.find((i) => !i.sufficient);
+        blockedReason = missing ? `缺少材料：${missing.name}` : "材料不足";
+      } else if (!meetsAffinity) {
+        blockedReason = "NPC 好感度不足";
+      }
+    }
+    return {
+      recipeId: r.id,
+      name: r.name,
+      goldCost: r.goldCost,
+      ingredients,
+      resultName: resultItem?.name ?? "未知",
+      resultQuality: resultItem?.quality ?? "normal",
+      resultDescription: resultItem?.description ?? "",
+      canCraft,
+      blockedReason,
+      affinityRequirement,
+    } satisfies CraftingRecipeView;
+  });
+
+  return {
+    recipes,
+    fleetGold: world.fleet.gold,
+    portName: port?.name ?? "未知",
+  };
+}
+
+// ============================================================
 // Dungeon View
 // ============================================================
 
@@ -189,5 +261,6 @@ export function buildDungeonView(world: World): DungeonView | null {
     goldGained: world.dungeon.goldGained,
     status: world.dungeon.status,
     currentEvent: eventView,
+    combatView: buildPersonCombatView(world),
   };
 }

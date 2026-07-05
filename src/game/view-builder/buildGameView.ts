@@ -14,6 +14,7 @@ export {
 export {
   buildAchievementsView,
   buildCollectionView,
+  buildCraftingView,
   buildDungeonView,
   buildTitlesView,
 } from "./metaViews";

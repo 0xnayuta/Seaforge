@@ -1,3 +1,4 @@
+import { DUNGEONS } from "../../data/dungeons";
 import {
   EQUIPMENT_TYPE_LABELS,
   EQUIPMENTS,
@@ -71,6 +72,11 @@ export function buildHarborView(world: World): HarborView {
   const availableQuests = getAvailableQuests(world);
   const unlockedTitles = getUnlockedTitles(world);
 
+  // 检查当前港口是否有副本
+  const availableDungeon = DUNGEONS.find(
+    (d) => d.entryPortId === world.player.currentPortId,
+  );
+
   return {
     portName: port?.name ?? "未知",
     portDescription: port?.description ?? "",
@@ -93,6 +99,7 @@ export function buildHarborView(world: World): HarborView {
       ? (TITLES.find((t) => t.id === world.selectedTitle)?.name ?? null)
       : null,
     unlockedTitleCount: unlockedTitles.length,
+    availableDungeonName: availableDungeon?.name ?? null,
   };
 }
 
