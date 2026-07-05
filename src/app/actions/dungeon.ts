@@ -1,5 +1,6 @@
 "use server";
 
+import { DUNGEONS } from "../../data/dungeons";
 import { updateCollection } from "../../game/domain/collection";
 import { performCombatAction as domainPerformCombatAction } from "../../game/domain/combat-person";
 import {
@@ -44,6 +45,17 @@ export async function enterDungeonAction(
   }
 }
 
+/**
+ * enterDungeonAction 的 FormData 包装，用于 page.tsx 的 <form action={...}>。
+ * 从表单中读取 dungeonId 隐藏字段。
+ */
+export async function enterDungeonFormAction(
+  formData: FormData,
+): Promise<void> {
+  const dungeonId = formData.get("dungeonId") as string;
+  await enterDungeonAction(dungeonId);
+}
+
 export async function advanceDungeonFloorAction(
   choiceId?: string,
 ): Promise<DungeonView> {
@@ -59,9 +71,28 @@ export async function advanceDungeonFloorAction(
 
 export async function escapeDungeonAction(): Promise<DungeonView> {
   try {
+    // Capture dungeon summary before domain function nullifies it
+    let summary: DungeonView | null = null;
     return await withTransaction(
-      (w) => updateCollection(escapeDungeon(w)),
-      buildDungeonViewSafe,
+      (w) => {
+        if (!w.dungeon) throw new Error("当前不在副本中");
+        const d = w.dungeon;
+        const cfg = DUNGEONS.find((c) => c.id === d.dungeonId);
+        summary = {
+          dungeonId: d.dungeonId,
+          name: cfg?.name ?? "",
+          currentFloor: d.currentFloor,
+          totalFloors: d.totalFloors,
+          hpLoss: d.hpLoss,
+          goldGained: Math.floor(d.goldGained * 0.5),
+          itemsGained: [...d.itemsGained],
+          status: "failed",
+          currentEvent: null,
+          combatView: null,
+        };
+        return updateCollection(escapeDungeon(w));
+      },
+      (w) => buildDungeonView(w) ?? summary!,
     )();
   } catch (e) {
     throw new Error(getErrorMessage(e));

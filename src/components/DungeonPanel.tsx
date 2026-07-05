@@ -89,15 +89,6 @@ export function DungeonPanel({ view }: DungeonPanelProps) {
     );
   }
 
-  // 错误显示
-  if (error) {
-    return (
-      <div className="rounded-lg border border-red-500 bg-red-500/10 p-3 text-sm text-red-400 text-center">
-        {error}
-      </div>
-    );
-  }
-
   // 副本进行中 — 显示当前事件
   const handleAdvance = async () => {
     setError(null);

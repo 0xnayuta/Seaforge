@@ -6,7 +6,7 @@ import { PORTS } from "../../data/ports";
 import { buildDungeonView } from "../../game/view-builder/buildGameView";
 import { prisma } from "../../lib/prisma";
 import { loadWorld } from "../../lib/repository";
-import { enterDungeonAction } from "../actions/dungeon";
+import { enterDungeonFormAction } from "../actions/dungeon";
 
 export default async function DungeonPage() {
   const world = await loadWorld(prisma);
@@ -40,11 +40,12 @@ export default async function DungeonPage() {
         ) : (
           <div className="mt-3 grid gap-3">
             {available.map((d) => {
+              const lastClearedDay = world.dungeonCooldowns?.[d.id];
               const onCooldown =
-                world.dungeonCooldowns?.[d.id] != null &&
-                world.dungeonCooldowns[d.id] > world.player.day;
+                lastClearedDay != null &&
+                world.player.day < lastClearedDay + d.cooldownDays;
               const cooldownDays = onCooldown
-                ? world.dungeonCooldowns[d.id] - world.player.day
+                ? lastClearedDay + d.cooldownDays - world.player.day
                 : 0;
               const meetsLevel = world.player.level >= d.levelRequirement;
 
@@ -78,12 +79,8 @@ export default async function DungeonPage() {
                         </p>
                       )}
                     </div>
-                    <form
-                      action={async () => {
-                        "use server";
-                        await enterDungeonAction(d.id);
-                      }}
-                    >
+                    <form action={enterDungeonFormAction}>
+                      <input type="hidden" name="dungeonId" value={d.id} />
                       <button
                         type="submit"
                         disabled={!meetsLevel || onCooldown}
