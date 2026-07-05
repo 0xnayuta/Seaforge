@@ -10,10 +10,17 @@ import type {
 
 interface CombatPanelProps {
   readonly combatView: PersonCombatView;
+  readonly onAction?: unknown;
 }
 
-export function CombatPanel({ combatView }: CombatPanelProps) {
-  const [_state, action, _pending] = useActionState(performCombatAction, null);
+export function CombatPanel({ combatView, onAction }: CombatPanelProps) {
+  const [_state, action, _pending] = useActionState(
+    (onAction ?? performCombatAction) as (
+      prev: unknown,
+      formData: FormData,
+    ) => Promise<unknown>,
+    null,
+  );
 
   const player = combatView.participants.find((p) => p.type === "player");
   const enemies = combatView.participants.filter((p) => p.type === "enemy");
