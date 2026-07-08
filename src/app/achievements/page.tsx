@@ -1,6 +1,7 @@
 import { buildAchievementsView } from "../../game/view-builder/buildGameView";
 import { prisma } from "../../lib/prisma";
 import { loadWorld } from "../../lib/repository";
+import { claimAchievementRewardAction } from "../actions/achievement";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,10 @@ export default async function AchievementsPage() {
               </div>
             )}
             {a.unlocked && !a.claimed && (
-              <form action={undefined} className="mt-2">
+              <form
+                action={claimAchievementRewardAction.bind(null, a.id)}
+                className="mt-2"
+              >
                 <button
                   type="submit"
                   className="rounded bg-gold-600 px-2 py-0.5 text-xs text-white hover:bg-gold-500 transition-colors"
