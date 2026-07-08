@@ -16,6 +16,7 @@ import {
   updateParticipant,
 } from "./combat-person-utils";
 import { gainExp } from "./player";
+import { incrementBountyProgress } from "./quest";
 import type {
   CombatLogEntry,
   CombatParticipant,
@@ -286,7 +287,7 @@ function applyCombatResultToWorld(
 ): World {
   if (nextCombat.status === "victory") {
     let result: World = { ...world, combat: null };
-    result = gainExp(result, 50);
+    result = incrementBountyProgress(gainExp(result, 50));
     if (result.voyage) {
       const filteredEvents = result.voyage.events.filter(
         (ev) => !(ev.day === 0 && ev.type === "combat"),
