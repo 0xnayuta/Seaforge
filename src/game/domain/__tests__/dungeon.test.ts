@@ -122,7 +122,7 @@ describe("advanceDungeonFloor", () => {
     expect(result.dungeon!.hpLoss).toBe(5);
   });
 
-  it("marks dungeon cleared after last floor", () => {
+  it("marks dungeon cleared after last floor and issues completion rewards", () => {
     const world = enterDungeon(createTestWorld(), "kidd_treasure");
     // Jump to last floor (floor 3, treasure)
     const atLastFloor: World = {
@@ -130,9 +130,21 @@ describe("advanceDungeonFloor", () => {
       dungeon: { ...world.dungeon!, currentFloor: 3 },
     };
     const result = advanceDungeonFloor(atLastFloor);
-    // treasure event advances to floor 4 >= 4, so cleared
-    expect(result.dungeon!.currentFloor).toBe(4);
-    expect(result.dungeon!.status).toBe("cleared");
+    // completeDungeon nullifies dungeon state and issues all rewards
+    expect(result.dungeon).toBeNull();
+    // treasure floor (500g) + completion (1000g); start gold is 5000
+    expect(result.fleet.gold).toBe(6500);
+    // Exp: treasure (100) → lv1→lv2 (consumes 100), completion (200) → lv2→lv3 (consumes 130), leftover 70
+    expect(result.player.level).toBe(3);
+    expect(result.player.exp).toBe(70);
+    // silver_rapier (treasure) + ring_of_vigor (completion)
+    expect(result.fleet.inventory).toHaveLength(2);
+    expect(result.fleet.inventory.map((i) => i.itemId).sort()).toEqual([
+      "ring_of_vigor",
+      "silver_rapier",
+    ]);
+    // Cooldown set
+    expect(result.dungeonCooldowns.kidd_treasure).toBe(1);
   });
 
   it("marks dungeon failed on combat defeat", () => {

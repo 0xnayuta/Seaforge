@@ -60,9 +60,36 @@ export async function advanceDungeonFloorAction(
   choiceId?: string,
 ): Promise<DungeonView> {
   try {
+    // Capture dungeon state before transaction for completion summary
+    let summary: DungeonView | null = null;
     return await withTransaction(
-      (w) => updateCollection(advanceDungeonFloor(w, choiceId)),
-      buildDungeonViewSafe,
+      (w) => {
+        const dungeon = w.dungeon;
+        if (dungeon) {
+          const config = DUNGEONS.find((d) => d.id === dungeon.dungeonId);
+          const willComplete =
+            config && dungeon.currentFloor + 1 >= config.floors.length;
+          if (willComplete) {
+            summary = {
+              dungeonId: dungeon.dungeonId,
+              name: config!.name,
+              currentFloor: dungeon.currentFloor,
+              totalFloors: dungeon.totalFloors,
+              hpLoss: dungeon.hpLoss,
+              goldGained: dungeon.goldGained + config!.completionReward.gold,
+              itemsGained: [
+                ...dungeon.itemsGained,
+                ...(config!.completionReward.itemIds ?? []),
+              ],
+              status: "cleared" as const,
+              currentEvent: null,
+              combatView: null,
+            };
+          }
+        }
+        return updateCollection(advanceDungeonFloor(w, choiceId));
+      },
+      (w) => buildDungeonView(w) ?? summary!,
     )();
   } catch (e) {
     throw new Error(getErrorMessage(e));

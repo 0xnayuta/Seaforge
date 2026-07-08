@@ -62,11 +62,7 @@ function handleCombatResult(world: World, config: DungeonConfig): World {
   if (!world.combat) return world;
   if (world.combat.status === "in_progress") return world;
   if (world.combat.status === "defeat") {
-    return {
-      ...world,
-      dungeon: { ...world.dungeon!, status: "failed" },
-      combat: null,
-    };
+    return failDungeon(world);
   }
   // victory
   const playerPart = world.combat.participants.find((p) => p.id === "player");
@@ -79,10 +75,19 @@ function handleCombatResult(world: World, config: DungeonConfig): World {
     },
     combat: null,
   };
-  return advanceFloorToNext(result, config);
+  return advanceAndComplete(result, config);
 }
 
-/**【推进当前楼层】*/
+/** 推进到下一层，如果通关则发放奖励 */
+function advanceAndComplete(world: World, config: DungeonConfig): World {
+  const nextWorld = advanceFloorToNext(world, config);
+  if (nextWorld.dungeon?.status === "cleared") {
+    return completeDungeon(nextWorld);
+  }
+  return nextWorld;
+}
+
+/** 【推进当前楼层】 */
 export function advanceDungeonFloor(world: World, choiceId?: string): World {
   if (!world.dungeon) throw new DomainError("DUNGEON_NOT_IN_PROGRESS");
   if (world.dungeon.status !== "in_progress") {
@@ -112,7 +117,7 @@ export function advanceDungeonFloor(world: World, choiceId?: string): World {
     floorEvent.type !== "combat" &&
     result.dungeon?.status === "in_progress"
   ) {
-    return advanceFloorToNext(result, config);
+    return advanceAndComplete(result, config);
   }
   return result;
 }
@@ -284,7 +289,6 @@ export function completeDungeon(world: World): World {
   return result;
 }
 
-/** 中途退出：保留 50% 累计金币和物品，丢弃副本状态 */
 /** 中途退出：保留 50% 累计金币，全部物品 */
 export function escapeDungeon(world: World): World {
   if (!world.dungeon) throw new DomainError("DUNGEON_NOT_IN_PROGRESS");
