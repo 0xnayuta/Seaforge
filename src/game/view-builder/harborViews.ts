@@ -4,12 +4,7 @@ import {
   EQUIPMENTS,
   getEquipmentEffectDescription,
 } from "../../data/equipment";
-import {
-  BASE_HIRE_COST,
-  SURVIVAL_DEFENSE_FACTOR,
-  SURVIVAL_DISTANCE_FACTOR,
-  SURVIVAL_HP_PENALTY_FACTOR,
-} from "../../data/formulas";
+import { BASE_HIRE_COST, SURVIVAL_DISTANCE_FACTOR } from "../../data/formulas";
 import { CATEGORY_LABEL, GOODS } from "../../data/goods";
 import { NPCS } from "../../data/npcs";
 import { PORTS } from "../../data/ports";
@@ -36,7 +31,7 @@ import {
   getReachablePorts,
 } from "../domain/navigation";
 import { getAvailableQuests } from "../domain/quest";
-import { calcDefenseScore, getActiveShip } from "../domain/ship";
+import { getActiveShip } from "../domain/ship";
 import { getUnlockedTitles } from "../domain/title";
 import { getMaxCapacity, getUsedCapacity } from "../domain/trade";
 import type { World } from "../domain/types";
@@ -323,23 +318,4 @@ export function buildTavernView(world: World): TavernView {
     blockedByVoyage: world.voyage !== null,
     ships,
   };
-}
-
-// ============================================================
-// 生存率计算 — 供 NavigationPanel 客户端调用
-// ============================================================
-
-/** 计算给定舰队平均防御和状态的生存率 */
-export function computeSurvivalRate(
-  avgDefenseMultiplier: number,
-  avgHpRatio: number,
-  baseDangerScore: number,
-): number {
-  const score = calcDefenseScore(
-    avgDefenseMultiplier,
-    avgHpRatio,
-    SURVIVAL_DEFENSE_FACTOR,
-    SURVIVAL_HP_PENALTY_FACTOR,
-  );
-  return Math.min(99, Math.max(5, Math.floor(score - baseDangerScore)));
 }
