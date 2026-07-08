@@ -1,12 +1,12 @@
 // ============================================================
-// 生存率计算 — 纯公式，不依赖游戏世界状态
+// 生存率计算 — 纯游戏公式
 // ============================================================
 
 import {
   SURVIVAL_DEFENSE_FACTOR,
   SURVIVAL_HP_PENALTY_FACTOR,
-} from "../data/formulas";
-import { calcDefenseScore } from "../game/domain/ship";
+} from "../../data/formulas";
+import { calcDefenseScore } from "./ship";
 
 /**
  * 计算给定舰队平均防御和状态的生存率百分比（clamped 5–99）。

@@ -2,7 +2,7 @@
 import { useState, useTransition } from "react";
 
 import { startTravel } from "../app/actions/travel";
-import { computeSurvivalRate } from "../lib/survival";
+import { computeSurvivalRate } from "../game/domain/survival";
 import type { NavigationView } from "../types/game-view";
 import { DepartureConfirmModal } from "./DepartureConfirmModal";
 import { DestinationsTable } from "./DestinationsTable";
