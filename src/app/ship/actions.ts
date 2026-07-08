@@ -1,6 +1,7 @@
 "use server";
 
 import { updateCollection } from "../../game/domain/collection";
+import { recalculateMaxCrew } from "../../game/domain/crew";
 import type { ComponentType } from "../../game/domain/ship";
 import {
   buyShip,
@@ -27,7 +28,7 @@ export async function buyShipAction(formData: FormData): Promise<ShipyardView> {
   if (!typeId) throw new Error("未选择船只类型");
   try {
     return await withTransaction(
-      (w) => updateCollection(buyShip(w, typeId)),
+      (w) => updateCollection(recalculateMaxCrew(buyShip(w, typeId))),
       buildShipyardView,
     )();
   } catch (e) {
@@ -41,7 +42,7 @@ export async function sellShipAction(
   const shipId = formData.get("shipId") as string;
   try {
     return await withTransaction(
-      (w) => updateCollection(sellShip(w, shipId)),
+      (w) => updateCollection(recalculateMaxCrew(sellShip(w, shipId))),
       buildShipyardView,
     )();
   } catch (e) {
@@ -58,7 +59,10 @@ export async function upgradeComponentAction(
   if (!shipId) throw new Error("未指定船只");
   try {
     return await withTransaction(
-      (w) => updateCollection(upgradeComponent(w, shipId, component)),
+      (w) =>
+        updateCollection(
+          recalculateMaxCrew(upgradeComponent(w, shipId, component)),
+        ),
       (w) => buildShipyardView(w, shipId),
     )();
   } catch (e) {
