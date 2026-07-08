@@ -1,7 +1,7 @@
 import { LEVEL_SPEED_PER_LEVEL, SPEED_BASE } from "../../data/formulas";
 import { PORTS, type PortConfig } from "../../data/ports";
 import { SHIPS } from "../../data/ships";
-import { getShipDefenseMultiplier, getShipSpeed } from "./equipment";
+import { getShipSpeed } from "./equipment";
 import { getActiveShip } from "./ship";
 import type { World } from "./types";
 
@@ -28,7 +28,9 @@ export function getReachablePorts(
       return {
         port,
         distance,
-        travelDays: calcTravelDays(distance, world),
+        travelDays: calcFleetTravelDays(distance, world, [
+          getActiveShip(world).id,
+        ]),
       };
     })
     .sort((a, b) => a.distance - b.distance);
@@ -54,24 +56,6 @@ export function calcFleetTravelDays(
   return Math.ceil(distance / (fleetSpeed * levelBonus * SPEED_BASE));
 }
 
-/** 计算航行天数（单船，委托 calcFleetTravelDays） */
-export function calcTravelDays(distance: number, world: World): number {
-  return calcFleetTravelDays(distance, world, [getActiveShip(world).id]);
-}
-
-/** 计算舰队综合战力 */
-export function getFleetCombatPower(world: World, shipIds: string[]): number {
-  let total = 0;
-  for (const id of shipIds) {
-    const ship = world.fleet.ships.find((s) => s.id === id);
-    if (!ship) continue;
-    const shipConfig = SHIPS.find((s) => s.id === ship.typeId);
-    if (!shipConfig) continue;
-    const defenseMultiplier = getShipDefenseMultiplier(ship, shipConfig);
-    total += ship.equipment.cannonLevel * defenseMultiplier;
-  }
-  return total;
-}
 export function arriveAtPort(
   world: World,
   targetPortId: string,

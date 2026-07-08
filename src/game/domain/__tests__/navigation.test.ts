@@ -1,38 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { PORTS } from "../../../data/ports";
-import { arriveAtPort, calcTravelDays, getReachablePorts } from "../navigation";
+import { arriveAtPort, getReachablePorts } from "../navigation";
 import { createTestWorld } from "./helpers";
-
-describe("calcTravelDays", () => {
-  it("distance 5 → ceil(5/(1*2)) = 3", () => {
-    const world = createTestWorld();
-    expect(calcTravelDays(5, world)).toBe(3);
-  });
-
-  it("distance 8 → ceil(8/(1*2)) = 4", () => {
-    const world = createTestWorld();
-    expect(calcTravelDays(8, world)).toBe(4);
-  });
-
-  it("level 10 reduces travel days vs level 1", () => {
-    const worldL1 = createTestWorld();
-    const worldL10 = createTestWorld({
-      player: {
-        name: "x",
-        gold: 5000,
-        currentPortId: "quanzhou",
-        day: 1,
-        level: 10,
-        exp: 0,
-        expToNext: 100,
-      },
-    });
-
-    // distance 30: level 1 → ceil(30/(1*1.02*2)) = 15, level 10 → ceil(30/(1*1.20*2)) = 13
-    expect(calcTravelDays(30, worldL1)).toBe(15);
-    expect(calcTravelDays(30, worldL10)).toBe(13);
-  });
-});
 
 describe("getReachablePorts", () => {
   it("from quanzhou returns all other ports sorted by distance", () => {
@@ -96,7 +65,7 @@ describe("arriveAtPort", () => {
   });
 });
 
-import { calcFleetTravelDays, getFleetCombatPower } from "../navigation";
+import { calcFleetTravelDays } from "../navigation";
 
 describe("calcFleetTravelDays", () => {
   it("uses slowest ship in fleet to determine travel days", () => {
@@ -153,59 +122,5 @@ describe("calcFleetTravelDays", () => {
     // 0.55 * 1.02 * 2.0 = 1.122. ceil(10/1.122) = 9 days.
     expect(calcFleetTravelDays(10, world, ["ship-1"])).toBe(5);
     expect(calcFleetTravelDays(10, world, ["ship-1", "ship-2"])).toBe(9);
-  });
-});
-
-describe("getFleetCombatPower", () => {
-  it("sums individual ship combat powers based on cannonLevel and armament multiplier", () => {
-    const world = createTestWorld({
-      fleet: {
-        ships: [
-          {
-            id: "ship-1",
-            typeId: "sloop",
-            name: "小船",
-            equipment: {
-              hullLevel: 0,
-              sailLevel: 0,
-              armorLevel: 0,
-              cannonLevel: 2,
-            },
-            durability: 50,
-            maxDurability: 50,
-            cargo: [],
-            armamentLevel: 1, // Standard tier defense/combat multiplier = 1.5
-            equippedItems: [],
-          },
-          {
-            id: "ship-2",
-            typeId: "cog",
-            name: "大船",
-            equipment: {
-              hullLevel: 0,
-              sailLevel: 0,
-              armorLevel: 0,
-              cannonLevel: 4,
-            },
-            durability: 90,
-            maxDurability: 90,
-            cargo: [],
-            armamentLevel: 2, // Combat tier defense/combat multiplier = 2.5
-            equippedItems: [],
-          },
-        ],
-        activeShipId: "ship-1",
-        maxShips: 3,
-        crew: 3,
-        maxCrew: 6,
-        gold: 1000,
-      },
-    });
-
-    // ship-1 power = 2 * 1.5 = 3
-    // ship-2 power = 4 * 2.5 = 10
-    // total = 13
-    expect(getFleetCombatPower(world, ["ship-1"])).toBe(3);
-    expect(getFleetCombatPower(world, ["ship-1", "ship-2"])).toBe(13);
   });
 });
