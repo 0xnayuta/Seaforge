@@ -132,6 +132,14 @@ describe("advanceDungeonFloor", () => {
     const result = advanceDungeonFloor(atLastFloor);
     // completeDungeon nullifies dungeon state and issues all rewards
     expect(result.dungeon).toBeNull();
+    // lastDungeonResult carries the completion summary
+    expect(result.lastDungeonResult).not.toBeNull();
+    expect(result.lastDungeonResult!.status).toBe("cleared");
+    expect(result.lastDungeonResult!.goldGained).toBe(1500); // 500 (treasure) + 1000 (completion)
+    expect(result.lastDungeonResult!.itemsGained).toEqual([
+      "silver_rapier",
+      "ring_of_vigor",
+    ]);
     // treasure floor (500g) + completion (1000g); start gold is 5000
     expect(result.fleet.gold).toBe(6500);
     // Exp: treasure (100) → lv1→lv2 (consumes 100), completion (200) → lv2→lv3 (consumes 130), leftover 70
@@ -156,7 +164,9 @@ describe("advanceDungeonFloor", () => {
       combat: { ...inCombat.combat!, status: "defeat" as const },
     };
     const result = advanceDungeonFloor(defeatedWorld);
-    expect(result.dungeon!.status).toBe("failed");
+    expect(result.dungeon).toBeNull();
+    expect(result.lastDungeonResult).not.toBeNull();
+    expect(result.lastDungeonResult!.status).toBe("failed");
     expect(result.combat).toBeNull();
   });
 
@@ -191,6 +201,9 @@ describe("completeDungeon", () => {
     };
     const result = completeDungeon(world);
     expect(result.dungeon).toBeNull(); // dungeon state cleared
+    expect(result.lastDungeonResult).not.toBeNull();
+    expect(result.lastDungeonResult!.status).toBe("cleared");
+    expect(result.lastDungeonResult!.goldGained).toBe(1000); // completion reward only (no floor rewards here)
     // completionReward: gold 1000, exp 200, ring_of_vigor
     expect(result.fleet.gold).toBe(world.fleet.gold + 1000);
     expect(result.dungeonCooldowns.kidd_treasure).toBe(result.player.day);
@@ -237,6 +250,10 @@ describe("escapeDungeon", () => {
     };
     const result = escapeDungeon(world);
     expect(result.dungeon).toBeNull();
+    expect(result.lastDungeonResult).not.toBeNull();
+    expect(result.lastDungeonResult!.status).toBe("failed");
+    expect(result.lastDungeonResult!.goldGained).toBe(250); // 50% of 500
+    expect(result.lastDungeonResult!.itemsGained).toEqual(["silver_rapier"]);
     // 50% of 500 = 250 保留
     expect(result.fleet.gold).toBe(baseWorld.fleet.gold + 250);
     expect(
@@ -283,7 +300,9 @@ describe("failDungeon", () => {
       },
     };
     const result = failDungeon(world);
-    expect(result.dungeon!.status).toBe("failed");
+    expect(result.dungeon).toBeNull();
+    expect(result.lastDungeonResult).not.toBeNull();
+    expect(result.lastDungeonResult!.status).toBe("failed");
     expect(result.combat).toBeNull();
   });
 });

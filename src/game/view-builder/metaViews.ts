@@ -236,31 +236,54 @@ export function buildCraftingView(world: World): CraftingView {
 // ============================================================
 
 export function buildDungeonView(world: World): DungeonView | null {
-  if (!world.dungeon) return null;
-  const config = DUNGEONS.find((d) => d.id === world.dungeon!.dungeonId);
-  const currentEvent = getCurrentFloorEvent(world);
-  const eventView: DungeonFloorEventView | null = currentEvent
-    ? {
-        type: currentEvent.type,
-        flavorText: currentEvent.flavorText,
-        difficulty: currentEvent.difficulty,
-        goldReward: currentEvent.goldReward,
-        expReward: currentEvent.expReward,
-        hpDamage: currentEvent.hpDamage,
-        itemRewards: currentEvent.itemRewards,
-        options: currentEvent.options?.map((o) => ({ id: o.id, text: o.text })),
-      }
-    : null;
-  return {
-    dungeonId: world.dungeon.dungeonId,
-    name: config?.name ?? "",
-    currentFloor: world.dungeon.currentFloor,
-    totalFloors: world.dungeon.totalFloors,
-    itemsGained: world.dungeon.itemsGained,
-    hpLoss: world.dungeon.hpLoss,
-    goldGained: world.dungeon.goldGained,
-    status: world.dungeon.status,
-    currentEvent: eventView,
-    combatView: buildPersonCombatView(world),
-  };
+  // 有进行中的副本
+  if (world.dungeon) {
+    const config = DUNGEONS.find((d) => d.id === world.dungeon!.dungeonId);
+    const currentEvent = getCurrentFloorEvent(world);
+    const eventView: DungeonFloorEventView | null = currentEvent
+      ? {
+          type: currentEvent.type,
+          flavorText: currentEvent.flavorText,
+          difficulty: currentEvent.difficulty,
+          goldReward: currentEvent.goldReward,
+          expReward: currentEvent.expReward,
+          hpDamage: currentEvent.hpDamage,
+          itemRewards: currentEvent.itemRewards,
+          options: currentEvent.options?.map((o) => ({
+            id: o.id,
+            text: o.text,
+          })),
+        }
+      : null;
+    return {
+      dungeonId: world.dungeon.dungeonId,
+      name: config?.name ?? "",
+      currentFloor: world.dungeon.currentFloor,
+      totalFloors: world.dungeon.totalFloors,
+      itemsGained: world.dungeon.itemsGained,
+      hpLoss: world.dungeon.hpLoss,
+      goldGained: world.dungeon.goldGained,
+      status: world.dungeon.status,
+      currentEvent: eventView,
+      combatView: buildPersonCombatView(world),
+    };
+  }
+
+  // 有结算结果（完成/逃离/失败后 dungeon 已被 nullify）
+  if (world.lastDungeonResult) {
+    return {
+      dungeonId: world.lastDungeonResult.dungeonId,
+      name: world.lastDungeonResult.name,
+      currentFloor: world.lastDungeonResult.currentFloor,
+      totalFloors: world.lastDungeonResult.totalFloors,
+      hpLoss: world.lastDungeonResult.hpLoss,
+      goldGained: world.lastDungeonResult.goldGained,
+      itemsGained: world.lastDungeonResult.itemsGained,
+      status: world.lastDungeonResult.status,
+      currentEvent: null,
+      combatView: null,
+    };
+  }
+
+  return null;
 }

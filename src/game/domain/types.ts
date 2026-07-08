@@ -196,6 +196,17 @@ export interface DungeonState {
   readonly status: "in_progress" | "cleared" | "failed";
 }
 
+/** 副本结算结果 — 保存玩家最后一次副本完成/逃离的记录，供 View Builder 渲染 */
+export interface DungeonCompletionResult {
+  readonly dungeonId: string;
+  readonly name: string;
+  readonly currentFloor: number;
+  readonly totalFloors: number;
+  readonly hpLoss: number;
+  readonly goldGained: number;
+  readonly itemsGained: readonly string[];
+  readonly status: "cleared" | "failed";
+}
 export interface World {
   readonly player: PlayerState;
   readonly fleet: FleetState;
@@ -207,10 +218,10 @@ export interface World {
   readonly selectedTitle: string | null;
   readonly collection: CollectionState;
   readonly claimedAchievements: readonly string[];
+  readonly lastDungeonResult: DungeonCompletionResult | null;
   readonly dungeon: DungeonState | null;
   readonly dungeonCooldowns: Record<string, number>;
 }
-
 // ---- 领域错误 ----
 
 /** 领域层只抛出错误码，不包含展示文本 */

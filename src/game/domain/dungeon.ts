@@ -9,7 +9,12 @@ import {
 } from "../../data/dungeons";
 import { initPersonCombat } from "./combat-person";
 import { gainExp, gainItem } from "./player";
-import { DomainError, type DungeonState, type World } from "./types";
+import {
+  DomainError,
+  type DungeonCompletionResult,
+  type DungeonState,
+  type World,
+} from "./types";
 
 /** 获取副本配置 */
 function getDungeonConfig(dungeonId: string): DungeonConfig {
@@ -53,8 +58,7 @@ export function enterDungeon(world: World, dungeonId: string): World {
     itemsGained: [],
     status: "in_progress",
   };
-
-  return { ...world, dungeon };
+  return { ...world, dungeon, lastDungeonResult: null };
 }
 
 /** 战斗结算：处理 combat 刚结束时的逻辑 */
@@ -259,36 +263,55 @@ export function completeDungeon(world: World): World {
   }
 
   const config = getDungeonConfig(world.dungeon.dungeonId);
-  let result = world;
+  const completionReward = config.completionReward;
+
+  // Stamp completion result before nullifying dungeon
+  const result: DungeonCompletionResult = {
+    dungeonId: world.dungeon.dungeonId,
+    name: config.name,
+    currentFloor: world.dungeon.currentFloor,
+    totalFloors: world.dungeon.totalFloors,
+    hpLoss: world.dungeon.hpLoss,
+    goldGained: world.dungeon.goldGained + completionReward.gold,
+    itemsGained: [
+      ...world.dungeon.itemsGained,
+      ...(completionReward.itemIds ?? []),
+    ],
+    status: "cleared",
+  };
+
+  let newWorld: World = {
+    ...world,
+    lastDungeonResult: result,
+    dungeon: null,
+  };
 
   // 发放通关奖励
-  result = {
-    ...result,
+  newWorld = {
+    ...newWorld,
     fleet: {
-      ...result.fleet,
-      gold: result.fleet.gold + config.completionReward.gold,
+      ...newWorld.fleet,
+      gold: newWorld.fleet.gold + completionReward.gold,
     },
   };
-  result = gainExp(result, config.completionReward.exp);
-  if (config.completionReward.itemIds) {
-    for (const itemId of config.completionReward.itemIds) {
-      result = gainItem(result, itemId);
+  newWorld = gainExp(newWorld, completionReward.exp);
+  if (completionReward.itemIds) {
+    for (const itemId of completionReward.itemIds) {
+      newWorld = gainItem(newWorld, itemId);
     }
   }
 
   // 标记冷却
-  result = {
-    ...result,
-    dungeon: null,
+  newWorld = {
+    ...newWorld,
     dungeonCooldowns: {
-      ...result.dungeonCooldowns,
-      [world.dungeon.dungeonId]: result.player.day,
+      ...newWorld.dungeonCooldowns,
+      [world.dungeon.dungeonId]: newWorld.player.day,
     },
   };
 
-  return result;
+  return newWorld;
 }
-
 /** 中途退出：保留 50% 累计金币，全部物品 */
 export function escapeDungeon(world: World): World {
   if (!world.dungeon) throw new DomainError("DUNGEON_NOT_IN_PROGRESS");
@@ -296,25 +319,63 @@ export function escapeDungeon(world: World): World {
     throw new DomainError("DUNGEON_NOT_IN_PROGRESS");
   }
 
+  const config = getDungeonConfig(world.dungeon.dungeonId);
+
+  // Stamp escape result before nullifying dungeon
+  const keptGold = Math.floor(world.dungeon.goldGained * 0.5);
+  const result: DungeonCompletionResult = {
+    dungeonId: world.dungeon.dungeonId,
+    name: config.name,
+    currentFloor: world.dungeon.currentFloor,
+    totalFloors: world.dungeon.totalFloors,
+    hpLoss: world.dungeon.hpLoss,
+    goldGained: keptGold,
+    itemsGained: [...world.dungeon.itemsGained],
+    status: "failed",
+  };
+
+  let newWorld: World = {
+    ...world,
+    lastDungeonResult: result,
+    dungeon: null,
+    combat: null,
+  };
+
   // 金币/物品已在 processFloorEvent 中全额发放到 fleet/inventory，
   // 此处减去超发的 50% 金币，实现保留 50% 的语义
   // 物品保留全部（已在 inventory 中，不移除）
   const excessGold = Math.floor(world.dungeon.goldGained * 0.5);
-  const result: World = { ...world, dungeon: null, combat: null };
-  return excessGold > 0
-    ? {
-        ...result,
-        fleet: { ...result.fleet, gold: result.fleet.gold - excessGold },
-      }
-    : result;
+  if (excessGold > 0) {
+    newWorld = {
+      ...newWorld,
+      fleet: { ...newWorld.fleet, gold: newWorld.fleet.gold - excessGold },
+    };
+  }
+
+  return newWorld;
 }
 
 /** 副本进入失败处理（如战斗失败） */
 export function failDungeon(world: World): World {
   if (!world.dungeon) throw new DomainError("DUNGEON_NOT_IN_PROGRESS");
+
+  const config = getDungeonConfig(world.dungeon.dungeonId);
+
+  const result: DungeonCompletionResult = {
+    dungeonId: world.dungeon.dungeonId,
+    name: config.name,
+    currentFloor: world.dungeon.currentFloor,
+    totalFloors: world.dungeon.totalFloors,
+    hpLoss: world.dungeon.hpLoss,
+    goldGained: world.dungeon.goldGained,
+    itemsGained: [...world.dungeon.itemsGained],
+    status: "failed",
+  };
+
   return {
     ...world,
-    dungeon: { ...world.dungeon, status: "failed" },
+    lastDungeonResult: result,
+    dungeon: null,
     combat: null,
   };
 }
