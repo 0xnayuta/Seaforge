@@ -370,5 +370,6 @@ export const RECIPES: readonly EquipmentRecipe[] = [
     ],
     goldCost: 3000,
     portId: "goa",
+    minAffinity: { npcId: "marco", value: 40 },
   },
 ];

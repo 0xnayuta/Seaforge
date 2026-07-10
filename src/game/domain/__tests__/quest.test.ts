@@ -77,9 +77,18 @@ describe("getQuestConfig", () => {
 
 describe("getAvailableQuests", () => {
   it("returns quests available at the current port", () => {
-    const world = worldAtPort("quanzhou");
+    const world = worldAtPort("quanzhou", {
+      npcRelations: {
+        li_hua: {
+          affinity: 0,
+          recruited: false,
+          dialogPhase: 1,
+          completedQuests: ["safe_passage"],
+        },
+      },
+    });
     const quests = getAvailableQuests(world);
-    // safe_passage (level 2) and family_heirloom (level 3) should be available at level 5
+    // safe_passage (level 2, completed) and family_heirloom (level 3, prerequisite satisfied) should be available at level 5
     expect(quests.length).toBeGreaterThanOrEqual(2);
     expect(quests.some((q) => q.id === "safe_passage")).toBe(true);
     expect(quests.some((q) => q.id === "family_heirloom")).toBe(true);

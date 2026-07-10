@@ -82,6 +82,7 @@ export const QUESTS: readonly QuestConfig[] = [
     description:
       "李华家传的一枚古玉戒指被海盗劫走。海盗船据说常在果阿附近出没，找回戒指必有重谢。",
     type: "collect",
+    prerequisiteQuestId: "safe_passage",
     requirement: {
       type: "collect",
       itemId: "ring_of_strength", // 代表"古玉戒指"

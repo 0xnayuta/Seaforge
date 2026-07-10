@@ -164,4 +164,21 @@ export const NPCS: readonly NpcConfig[] = [
     recruitCondition: null,
     stats: null,
   },
+  // ── 长崎：武田铁匠（锻造工匠） ──
+  {
+    id: "takeda",
+    name: "武田铁匠",
+    portId: "nagasaki",
+    type: "blacksmith",
+    dialogText:
+      "欢迎来到我的工坊，船长大人。我武田三代都是长崎的铁匠——从修补船锚到锻造刀剑，没有我接不了的活儿。听说你有好材料？我倒是可以帮你打造些稀罕物件。",
+    questIds: [],
+    giftPreferences: [
+      { itemId: "iron_sword", affinityGain: 12 },
+      { itemId: "chain_mail", affinityGain: 8 },
+    ],
+    recruitable: false,
+    recruitCondition: null,
+    stats: null,
+  },
 ] as const;
