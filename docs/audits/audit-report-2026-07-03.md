@@ -11,58 +11,6 @@ last_verified: 2026-07-03
 
 ---
 
-## 0. 修复记录
-
-> 以下条目记录本报告发布后已修复的审计发现。记录不修改原始正文，仅跟踪已消除的技术债。
-
-### 0.1 `withTransaction` HOF 零调用 → 已全面推广
-
-| | |
-|---|---|
-| **关联痛点** | 6. 痛点 1 |
-| **修复日期** | 2026-07-03（两次提交后最终确认） |
-| **涉及文件** | `src/app/actions/{trade,combat,crew,equipment,character,travel,quest,npc,titles}.ts`（9 个文件） |
-
-**修复前后对比：**
-
-```diff
-- await prisma.$transaction(async (tx) => {
--   const world = await loadWorld(tx);
--   const result = doDomainLogic(world, input);
--   await saveWorld(tx, result);
--   return buildView(result);
-- });
-+ return await withTransaction(
-+   (world) => doDomainLogic(world, input),
-+   buildView,
-+ )();
-```
-
-**结论：** 9/11 个 Server Action 已全面迁移至 `withTransaction` HOF。剩余 2 个（`new-game.ts` 新建游戏无 World 可加载、`save.ts` 槽位间复制/加载写入目标异构）属于 HOF 设计合法边界，非遗漏。
-
-### 0.2 存档 JSON 解析失败静默回退 → 改为 Fail-Fast 报错
-
-| | |
-|---|---|
-| **关联痛点** | 6. 痛点 3 |
-| **修复日期** | 2026-07-03 |
-| **涉及文件** | `src/lib/repository.ts` |
-
-**修复前后对比：**
-
-```diff
-  try {
-    return JSON.parse(save.data) as World;
-- } catch {
--   return createDefaultWorld();  // 静默丢失数据
-+ } catch (error) {
-+   console.error("❌ [存档重创] ...", error);
-+   throw new Error("存档版本不匹配！...");
-  }
-```
-
-**结论：** 损坏数据不再静默回退至空世界，改为 `console.error` + 抛出带清晰指引的 Error（事务自动回滚，不污染数据库）。
-
 ## 1. 项目基础元数据
 
 ### 1.1 技术栈与核心依赖
