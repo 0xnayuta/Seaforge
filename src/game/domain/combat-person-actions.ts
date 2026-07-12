@@ -37,7 +37,7 @@ export interface SkillActionParams {
 }
 
 /** 战斗上下文：跨多个动作执行函数共享的环境参数 */
-export interface CombatContext {
+interface CombatContext {
   readonly participants: readonly CombatParticipant[];
   readonly rng: () => number;
   readonly round: number;

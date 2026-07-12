@@ -108,7 +108,7 @@ export function ShipMaintenance({
   const durPct = getDurPercent(shipDetail);
 
   return (
-    <div className="rounded-lg border border-ocean-600 bg-ocean-800/80 p-4 space-y-4">
+    <div className="space-y-4">
       <h3 className="text-sm font-semibold text-gold-400">
         船只属性 & 维护 — {shipName} ({shipTypeName})
       </h3>

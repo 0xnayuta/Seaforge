@@ -5,7 +5,6 @@ import type { EquippedItemView } from "../types/game-view";
 interface ShipEquipmentProps {
   readonly equippedItems: readonly EquippedItemView[];
   readonly fleetInventory: readonly EquippedItemView[];
-  readonly shipId: string;
   readonly isPending: boolean;
   readonly isEquipmentPending: boolean;
   readonly blockedByVoyage: boolean;

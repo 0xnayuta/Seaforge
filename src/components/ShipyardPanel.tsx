@@ -177,7 +177,6 @@ export function ShipyardPanel({
           <ShipEquipment
             equippedItems={selectedShipDetail.equippedItems}
             fleetInventory={selectedShipDetail.fleetInventory}
-            shipId={selectedShipId}
             isPending={isPending}
             isEquipmentPending={isEquipmentPending}
             blockedByVoyage={blockedByVoyage}
