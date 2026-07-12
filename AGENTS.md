@@ -11,7 +11,7 @@
 |项目类型|单人离线航海贸易经营 × **RPG**。贸易是经济轴，RPG 是成长轴|
 |灵感来源|QQ家园《纵横四海》— 借鉴核心玩法；《艾尔登法环》— 属性 Build 与装备收集；《BLACK SOULS》— 回合制策略战斗|
 |目标平台|PC|
-|状态|Phase 4 内容深度（副本/合成/成就/图鉴） — 开发中|
+| 状态 | Phase 4 内容深度（副本/合成/成就/图鉴） — 已完成 |
 
 **核心循环（双轴）：**
 
@@ -284,7 +284,7 @@ bun run docs:check     # 文档元数据合规校验（必须通过）
 | `docs/specifications/save-system.md` | 存档设计、Prisma 模型、操作 API | R9 |
 | `docs/roadmap/phase-3-rpg-foundation.md` | Phase 3 RPG 底层（人物/物品/NPC/战斗/称号）路线图 | — |
 | `docs/roadmap/phase-4-content-depth.md` | Phase 4 内容深度（副本/合成/成就/图鉴）路线图 | — |
-| `docs/roadmap/phase-5-extension.md` | Phase 5 扩展（房屋/宠物/MOD）路线图 | — |
+| `docs/archive/phase-5-extension-and-mod-archived.md` | Phase 5 扩展（房屋/宠物/MOD）路线图（已归档） | — |
 | `docs/adr/ADR-0001-server-action-as-entry-point.md` | Server Action 作为权威入口的决策 | — |
 | `docs/adr/ADR-0002-save-and-json-column.md` | Save + JSON 列模式的决策 | — |
 | `docs/adr/ADR-0003-world-and-gameview-separation.md` | World 和 GameView 分离的决策 | — |

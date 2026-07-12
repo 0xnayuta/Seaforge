@@ -13,7 +13,7 @@ Seaforge 是一款单人离线航海贸易经营 × **RPG**。灵感来源于 QQ
 | Phase 1 MVP（核心循环） | ✅ 已完成 |
 | Phase 2 系统深度（舰队/船员/装备/存档） | ✅ 已完成 |
 | Phase 3 RPG 底层（人物/物品/NPC/战斗/称号） | ✅ 已完成 |
-| Phase 4 内容深度（副本/合成/成就/图鉴） | 🚧 进行中 |
+| Phase 4 内容深度（副本/合成/成就/图鉴） | ✅ 已完成 |
 
 ---
 
@@ -93,16 +93,22 @@ src/
 │   ├── NewGameForm.tsx         # 新游戏按钮
 │   ├── SaveSlotList.tsx        # 存档槽位管理组件
 │   ├── market/                 # 交易所 (/market)
-│   ├── cargo/                  # 船舱 (/cargo)
 │   ├── navigation/             # 航海图 (/navigation)
 │   ├── ship/                   # 造船厂 (/ship) — 船只管理 + 装备装卸
 │   ├── voyage/                 # 航行中 (/voyage)
 │   ├── fleet/                  # 舰队总览 (/fleet) — 编队管理
 │   ├── tavern/                 # 航海家酒馆 (/tavern) — 船员招募
+│   ├── dungeon/                # 副本 (/dungeon)
+│   ├── achievements/           # 成就 (/achievements)
+│   ├── collection/             # 图鉴 (/collection)
+│   ├── character/              # 人物属性 (/character)
+│   ├── npc/                    # NPC 交互 (/npc)
+│   ├── quests/                 # 任务 (/quests)
+│   ├── titles/                 # 称号 (/titles)
 │   ├── saves/                  # 存档管理 (/saves)
-│   └── actions/                # Server Actions（贸易、航行、船员、装备、存档）
+│   └── actions/                # Server Actions（贸易、航行、船员、装备、副本、合成、成就、存档）
 ├── game/                       # 游戏引擎（纯函数，不依赖框架）
-│   ├── domain/                 # 领域逻辑（价格、买卖、航行、舰队、战斗、船员、装备）
+│   ├── domain/                 # 领域逻辑（贸易、航行、舰队、船员、装备、战斗、副本、合成、成就、图鉴、NPC、任务、称号）
 │   │   └── __tests__/          # 单元测试
 │   └── view-builder/           # World → GameView 转换器
 ├── data/                       # 游戏数据配置（所有数值可调）
@@ -110,6 +116,13 @@ src/
 │   ├── goods.ts                # 19 商品，四大品类
 │   ├── ships.ts                # 8 船只，各绑定出售港口
 │   ├── equipment.ts            # 9 装备，5 类型，港口绑定
+│   ├── items.ts                # 物品/装备数据 + 合成配方
+│   ├── dungeons.ts             # 3 副本配置
+│   ├── achievements.ts         # 15 成就配置
+│   ├── npcs.ts                 # NPC 配置
+│   ├── quests.ts               # 任务配置
+│   ├── titles.ts               # 称号配置
+│   ├── skills.ts               # 技能配置
 │   ├── events.ts               # 随机事件配置
 │   ├── formulas.ts             # 公式常量
 │   ├── regions.ts              # 区域配置
@@ -124,12 +137,17 @@ src/
 ├── components/                 # React UI 组件（纯渲染）
 │   ├── ui/                     # 通用组件（GameCard、Modal、QuantityInput）
 │   ├── MarketPanel.tsx
-│   ├── CargoHold.tsx
 │   ├── NavigationPanel.tsx
 │   ├── ShipyardPanel.tsx
 │   ├── FleetPanel.tsx
 │   ├── VoyageScreen.tsx
 │   ├── TavernPanel.tsx
+│   ├── DungeonPanel.tsx
+│   ├── CraftingPanel.tsx
+│   ├── CharacterPanel.tsx
+│   ├── CombatPanel.tsx
+│   ├── TitlesPanel.tsx
+│   ├── NpcInteractionPanel.tsx
 │   ├── GoodsTable.tsx
 │   ├── BuyModal.tsx
 │   ├── SellModal.tsx
