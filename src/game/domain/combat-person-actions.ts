@@ -36,6 +36,14 @@ export interface SkillActionParams {
   readonly turnIndex: number;
 }
 
+/** 战斗上下文：跨多个动作执行函数共享的环境参数 */
+export interface CombatContext {
+  readonly participants: readonly CombatParticipant[];
+  readonly rng: () => number;
+  readonly round: number;
+  readonly turnIndex: number;
+}
+
 export interface ActionOutcome {
   readonly participants: readonly CombatParticipant[];
   readonly logs: readonly CombatLogEntry[];
@@ -49,11 +57,9 @@ export interface ActionOutcome {
 export function applyCounterDamage(
   defender: CombatParticipant,
   attacker: CombatParticipant,
-  rng: () => number,
-  round: number,
-  turnIndex: number,
+  ctx: CombatContext,
 ): { attacker: CombatParticipant; logs: readonly CombatLogEntry[] } {
-  const counterOutcome = calcPersonDamage(defender, attacker, null, rng);
+  const counterOutcome = calcPersonDamage(defender, attacker, null, ctx.rng);
   const dmg = counterOutcome.damage;
   const updatedAttacker: CombatParticipant = {
     ...attacker,
@@ -61,13 +67,17 @@ export function applyCounterDamage(
   };
   const logs: CombatLogEntry[] = [
     {
-      round,
-      turnIndex,
+      round: ctx.round,
+      turnIndex: ctx.turnIndex,
       message: `${defender.name} 发起弹反反击，对 ${attacker.name} 造成 ${dmg} 点伤害！`,
     },
   ];
   if (updatedAttacker.hp <= 0) {
-    logs.push({ round, turnIndex, message: `${attacker.name} 倒下了！` });
+    logs.push({
+      round: ctx.round,
+      turnIndex: ctx.turnIndex,
+      message: `${attacker.name} 倒下了！`,
+    });
   }
   return { attacker: updatedAttacker, logs };
 }
@@ -119,24 +129,25 @@ function buildSkillHitMessage(
  */
 export function performAttack(params: AttackActionParams): ActionOutcome {
   const { attacker, targetId, participants, rng, round, turnIndex } = params;
+  const ctx: CombatContext = { participants, rng, round, turnIndex };
   const logs: CombatLogEntry[] = [];
   const target = participants.find((p) => p.id === targetId);
 
   if (!target || target.hp <= 0) {
     logs.push({
-      round,
-      turnIndex,
+      round: ctx.round,
+      turnIndex: ctx.turnIndex,
       message: `${attacker.name} 的普攻目标已倒下。`,
     });
     return { participants, logs };
   }
 
-  const outcome = calcPersonDamage(attacker, target, null, rng);
+  const outcome = calcPersonDamage(attacker, target, null, ctx.rng);
 
   if (outcome.isDodged) {
     logs.push({
-      round,
-      turnIndex,
+      round: ctx.round,
+      turnIndex: ctx.turnIndex,
       message: `${attacker.name} 发起普攻，但被 ${target.name} 回避了！`,
     });
     return { participants, logs };
@@ -144,16 +155,14 @@ export function performAttack(params: AttackActionParams): ActionOutcome {
 
   if (outcome.isParried) {
     logs.push({
-      round,
-      turnIndex,
+      round: ctx.round,
+      turnIndex: ctx.turnIndex,
       message: `${attacker.name} 发起普攻，但被 ${target.name} 成功弹反！`,
     });
     const { attacker: counterAttacker, logs: counterLogs } = applyCounterDamage(
       target,
       attacker,
-      rng,
-      round,
-      turnIndex,
+      ctx,
     );
     return {
       participants: updateTwoParticipants(
@@ -178,8 +187,8 @@ export function performAttack(params: AttackActionParams): ActionOutcome {
   updatedTarget = wakeIfAsleep(updatedTarget);
 
   logs.push({
-    round,
-    turnIndex,
+    round: ctx.round,
+    turnIndex: ctx.turnIndex,
     message: buildHitMessage(
       attacker.name,
       target.name,
@@ -190,7 +199,11 @@ export function performAttack(params: AttackActionParams): ActionOutcome {
   });
 
   if (updatedTarget.hp <= 0) {
-    logs.push({ round, turnIndex, message: `${target.name} 倒下了！` });
+    logs.push({
+      round: ctx.round,
+      turnIndex: ctx.turnIndex,
+      message: `${target.name} 倒下了！`,
+    });
   }
 
   return {
@@ -212,20 +225,18 @@ function applyHealSkill(
   updatedCaster: CombatParticipant,
   targetId: string | undefined,
   skill: SkillConfig,
-  participants: readonly CombatParticipant[],
-  round: number,
-  turnIndex: number,
+  ctx: CombatContext,
 ): ActionOutcome {
   const logs: CombatLogEntry[] = [];
   const healTarget =
-    participants.find((p) => p.id === targetId) || updatedCaster;
+    ctx.participants.find((p) => p.id === targetId) || updatedCaster;
   if (healTarget.hp <= 0) {
     logs.push({
-      round,
-      turnIndex,
+      round: ctx.round,
+      turnIndex: ctx.turnIndex,
       message: `${updatedCaster.name} 试图对已倒下的目标施放【${skill.name}】，施法失败。`,
     });
-    return { participants, logs };
+    return { participants: ctx.participants, logs };
   }
 
   const healAmt = Math.round(updatedCaster.mag * skill.power);
@@ -234,8 +245,8 @@ function applyHealSkill(
     hp: Math.min(healTarget.maxHp, healTarget.hp + healAmt),
   };
   logs.push({
-    round,
-    turnIndex,
+    round: ctx.round,
+    turnIndex: ctx.turnIndex,
     message: `${updatedCaster.name} 施放【${skill.name}】，为 ${healTarget.name} 回复了 ${healAmt} 点生命。`,
   });
 
@@ -246,14 +257,18 @@ function applyHealSkill(
       hp: updatedTarget.hp,
     };
     return {
-      participants: updateParticipant(participants, updatedCaster.id, merged),
+      participants: updateParticipant(
+        ctx.participants,
+        updatedCaster.id,
+        merged,
+      ),
       logs,
     };
   }
 
   return {
     participants: updateTwoParticipants(
-      participants,
+      ctx.participants,
       updatedCaster.id,
       updatedCaster,
       healTarget.id,
@@ -297,50 +312,45 @@ function applyDamageSkill(
   updatedCaster: CombatParticipant,
   targetId: string | undefined,
   skill: SkillConfig,
-  participants: readonly CombatParticipant[],
-  rng: () => number,
-  round: number,
-  turnIndex: number,
+  ctx: CombatContext,
 ): ActionOutcome {
   const logs: CombatLogEntry[] = [];
-  const target = participants.find((p) => p.id === targetId);
+  const target = ctx.participants.find((p) => p.id === targetId);
 
   if (!target || target.hp <= 0) {
     logs.push({
-      round,
-      turnIndex,
+      round: ctx.round,
+      turnIndex: ctx.turnIndex,
       message: `${caster.name} 试图使用技能【${skill.name}】，但目标已倒下。`,
     });
-    return { participants, logs };
+    return { participants: ctx.participants, logs };
   }
 
-  const outcome = calcPersonDamage(caster, target, skill, rng);
+  const outcome = calcPersonDamage(caster, target, skill, ctx.rng);
 
   if (outcome.isDodged) {
     logs.push({
-      round,
-      turnIndex,
+      round: ctx.round,
+      turnIndex: ctx.turnIndex,
       message: `${caster.name} 施放【${skill.name}】，但被 ${target.name} 回避了！`,
     });
-    return { participants: participants, logs };
+    return { participants: ctx.participants, logs };
   }
 
   if (outcome.isParried) {
     logs.push({
-      round,
-      turnIndex,
+      round: ctx.round,
+      turnIndex: ctx.turnIndex,
       message: `${caster.name} 施放【${skill.name}】，但被 ${target.name} 成功弹反！`,
     });
     const { attacker: counterAttacker, logs: counterLogs } = applyCounterDamage(
       target,
       updatedCaster,
-      rng,
-      round,
-      turnIndex,
+      ctx,
     );
     return {
       participants: updateTwoParticipants(
-        participants,
+        ctx.participants,
         counterAttacker.id,
         counterAttacker,
         target.id,
@@ -361,8 +371,8 @@ function applyDamageSkill(
   updatedTarget = wakeIfAsleep(updatedTarget);
 
   logs.push({
-    round,
-    turnIndex,
+    round: ctx.round,
+    turnIndex: ctx.turnIndex,
     message: buildSkillHitMessage(
       caster.name,
       skill.name,
@@ -374,19 +384,23 @@ function applyDamageSkill(
   });
 
   if (updatedTarget.hp <= 0) {
-    logs.push({ round, turnIndex, message: `${target.name} 倒下了！` });
+    logs.push({
+      round: ctx.round,
+      turnIndex: ctx.turnIndex,
+      message: `${target.name} 倒下了！`,
+    });
   } else {
     // 施加状态效果
     const { target: statusAppliedTarget, applied } = applyStatusEffectToTarget(
       updatedTarget,
       skill,
-      rng,
+      ctx.rng,
     );
     if (applied) {
       updatedTarget = statusAppliedTarget;
       logs.push({
-        round,
-        turnIndex,
+        round: ctx.round,
+        turnIndex: ctx.turnIndex,
         message: `${target.name} 陷入了【${getStatusLabel(skill.statusEffect!.type)}】状态（持续 ${skill.statusEffect!.duration} 回合）！`,
       });
     }
@@ -394,7 +408,7 @@ function applyDamageSkill(
 
   return {
     participants: updateTwoParticipants(
-      participants,
+      ctx.participants,
       caster.id,
       updatedCaster,
       target.id,
@@ -432,26 +446,16 @@ export function performSkill(params: SkillActionParams): ActionOutcome {
     caster.id,
     updatedCaster,
   );
-
-  if (skill.type === "heal") {
-    return applyHealSkill(
-      updatedCaster,
-      targetId,
-      skill,
-      casterUpdated,
-      round,
-      turnIndex,
-    );
-  }
-
-  return applyDamageSkill(
-    caster,
-    updatedCaster,
-    targetId,
-    skill,
-    casterUpdated,
+  const ctx: CombatContext = {
+    participants: casterUpdated,
     rng,
     round,
     turnIndex,
-  );
+  };
+
+  if (skill.type === "heal") {
+    return applyHealSkill(updatedCaster, targetId, skill, ctx);
+  }
+
+  return applyDamageSkill(caster, updatedCaster, targetId, skill, ctx);
 }
