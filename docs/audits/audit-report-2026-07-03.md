@@ -239,7 +239,7 @@ await prisma.$transaction(async (tx: PrismaTransactionClient) => {
 | 称号 | 6 |
 | 成就 | 15 |
 | 武器技能 | 10 |
-| 合成配方 | ~8（位于 `items.ts` RECIPES 数组） |
+| 合成配方 | 6（位于 `items.ts` RECIPES 数组） |
 | 区域 | 5 |
 
 ### 4.7 公式组织
