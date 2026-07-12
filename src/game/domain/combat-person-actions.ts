@@ -306,61 +306,16 @@ function applyStatusEffectToTarget(
   };
 }
 
-/** 应用伤害性技能效果（处理弹反、命中、状态效果） */
-function applyDamageSkill(
+/** 处理命中后的伤害结算：扣血、睡眠解除、死亡日志、状态效果施加 */
+function applyHitDamage(
   caster: CombatParticipant,
   updatedCaster: CombatParticipant,
-  targetId: string | undefined,
+  target: CombatParticipant,
   skill: SkillConfig,
+  outcome: DamageResult,
   ctx: CombatContext,
 ): ActionOutcome {
   const logs: CombatLogEntry[] = [];
-  const target = ctx.participants.find((p) => p.id === targetId);
-
-  if (!target || target.hp <= 0) {
-    logs.push({
-      round: ctx.round,
-      turnIndex: ctx.turnIndex,
-      message: `${caster.name} 试图使用技能【${skill.name}】，但目标已倒下。`,
-    });
-    return { participants: ctx.participants, logs };
-  }
-
-  const outcome = calcPersonDamage(caster, target, skill, ctx.rng);
-
-  if (outcome.isDodged) {
-    logs.push({
-      round: ctx.round,
-      turnIndex: ctx.turnIndex,
-      message: `${caster.name} 施放【${skill.name}】，但被 ${target.name} 回避了！`,
-    });
-    return { participants: ctx.participants, logs };
-  }
-
-  if (outcome.isParried) {
-    logs.push({
-      round: ctx.round,
-      turnIndex: ctx.turnIndex,
-      message: `${caster.name} 施放【${skill.name}】，但被 ${target.name} 成功弹反！`,
-    });
-    const { attacker: counterAttacker, logs: counterLogs } = applyCounterDamage(
-      target,
-      updatedCaster,
-      ctx,
-    );
-    return {
-      participants: updateTwoParticipants(
-        ctx.participants,
-        counterAttacker.id,
-        counterAttacker,
-        target.id,
-        target,
-      ),
-      logs: [...logs, ...counterLogs],
-    };
-  }
-
-  // 命中
   const dmg = outcome.damage;
   let updatedTarget: CombatParticipant = {
     ...target,
@@ -416,6 +371,64 @@ function applyDamageSkill(
     ),
     logs,
   };
+}
+
+/** 应用伤害性技能效果（处理弹反、命中、状态效果） */
+function applyDamageSkill(
+  caster: CombatParticipant,
+  updatedCaster: CombatParticipant,
+  targetId: string | undefined,
+  skill: SkillConfig,
+  ctx: CombatContext,
+): ActionOutcome {
+  const logs: CombatLogEntry[] = [];
+  const target = ctx.participants.find((p) => p.id === targetId);
+
+  if (!target || target.hp <= 0) {
+    logs.push({
+      round: ctx.round,
+      turnIndex: ctx.turnIndex,
+      message: `${caster.name} 试图使用技能【${skill.name}】，但目标已倒下。`,
+    });
+    return { participants: ctx.participants, logs };
+  }
+
+  const outcome = calcPersonDamage(caster, target, skill, ctx.rng);
+
+  if (outcome.isDodged) {
+    logs.push({
+      round: ctx.round,
+      turnIndex: ctx.turnIndex,
+      message: `${caster.name} 施放【${skill.name}】，但被 ${target.name} 回避了！`,
+    });
+    return { participants: ctx.participants, logs };
+  }
+
+  if (outcome.isParried) {
+    logs.push({
+      round: ctx.round,
+      turnIndex: ctx.turnIndex,
+      message: `${caster.name} 施放【${skill.name}】，但被 ${target.name} 成功弹反！`,
+    });
+    const { attacker: counterAttacker, logs: counterLogs } = applyCounterDamage(
+      target,
+      updatedCaster,
+      ctx,
+    );
+    return {
+      participants: updateTwoParticipants(
+        ctx.participants,
+        counterAttacker.id,
+        counterAttacker,
+        target.id,
+        target,
+      ),
+      logs: [...logs, ...counterLogs],
+    };
+  }
+
+  // 命中
+  return applyHitDamage(caster, updatedCaster, target, skill, outcome, ctx);
 }
 
 /**
