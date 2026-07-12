@@ -316,6 +316,8 @@ cargo 货物明细仅在 `FleetPanel` 和 `MarketPanel` 中内嵌展示，无独
 2. **Loading 边界**：为根 layout 添加 `loading.tsx`，防止首次渲染白屏。
 3. **Error 边界**：为根 layout 添加 `error.tsx`，作为 Server Component / Server Action 意外的兜底（组件级错误已通过 try/catch 处理）。
 
+**后续跟踪（2026-07-12）：** 导航栏补全 5 个缺失入口（副本/成就/图鉴/NPC/任务），nav 容器加 `flex-wrap` 防溢出；添加根路由 `loading.tsx`（居中 spinner）；添加根路由 `error.tsx`（红色错误卡片 + 重试按钮）。**✅ 确认关闭。**
+
 ---
 
 ## 7. 额外发现：配方数异常减少
@@ -346,5 +348,5 @@ cargo 货物明细仅在 `FleetPanel` 和 `MarketPanel` 中内嵌展示，无独
 | ~~🟡 P1~~ | §2 离线结算 skipDays 参数化 | ✅ 已关闭（非问题） |
 | ~~🔵 P3~~ | §3 `/cargo` 路由（方案 B） | ✅ 已关闭（舱容→/fleet 链接） |
 | ~~🟢 P2~~ | §1 超大组件分解 | ✅ 已关闭 |
-| ⚪ **P4** | §6 UI 打磨（导航栏补全 + loading + error 边界） | ~1.5h | 无 |
+| ~~⚪ P4~~ | §6 UI 打磨 | ✅ 已关闭 |
 | ⚪ **P4** | §5 扩展玩法（船只技能/世界事件/房屋/宠物） | — | 内容达"够吃"线后评估 |

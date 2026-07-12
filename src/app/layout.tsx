@@ -19,7 +19,7 @@ export default function RootLayout({
           <span className="text-gold-400 font-bold tracking-wider">
             纵横四海
           </span>
-          <div className="flex gap-4 text-parchment-dark">
+          <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-parchment-dark">
             <Link
               href="/"
               className="hover:text-gold-400 focus-visible:text-gold-400 transition-colors outline-none"
@@ -61,6 +61,36 @@ export default function RootLayout({
               className="hover:text-gold-400 focus-visible:text-gold-400 transition-colors outline-none"
             >
               航海图
+            </Link>
+            <Link
+              href="/dungeon"
+              className="hover:text-gold-400 focus-visible:text-gold-400 transition-colors outline-none"
+            >
+              副本
+            </Link>
+            <Link
+              href="/achievements"
+              className="hover:text-gold-400 focus-visible:text-gold-400 transition-colors outline-none"
+            >
+              成就
+            </Link>
+            <Link
+              href="/collection"
+              className="hover:text-gold-400 focus-visible:text-gold-400 transition-colors outline-none"
+            >
+              图鉴
+            </Link>
+            <Link
+              href="/npc"
+              className="hover:text-gold-400 focus-visible:text-gold-400 transition-colors outline-none"
+            >
+              NPC
+            </Link>
+            <Link
+              href="/quests"
+              className="hover:text-gold-400 focus-visible:text-gold-400 transition-colors outline-none"
+            >
+              任务
             </Link>
           </div>
         </nav>
