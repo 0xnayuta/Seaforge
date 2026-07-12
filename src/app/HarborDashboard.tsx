@@ -51,9 +51,12 @@ export function HarborDashboard({ view }: { view: HarborView }) {
             <span className="text-parchment-dark">金币</span>{" "}
             {view.playerGold.toLocaleString()}
           </span>
-          <span className="text-parchment-dark">
+          <a
+            href="/fleet"
+            className="text-parchment-dark hover:text-gold-400 transition-colors"
+          >
             舱容 {view.cargoCount}/{view.cargoCapacity}
-          </span>
+          </a>
           <span className="text-parchment-dark">
             船员 {view.crew}/{view.maxCrew}
           </span>
